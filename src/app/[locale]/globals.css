@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Theme colors — overridden at runtime by ThemeLoader */
+    --color-primary: 10 25 49;      /* #0A1931 */
+    --color-accent:  201 168 76;    /* #C9A84C */
+    --color-gradient-end: 201 168 76; /* same as accent by default */
+
+    --background: #F8F8F8;
+    --foreground: #1A1A2E;
+    --success: #2D6A4F;
+    --warning: #E9C46A;
+    --danger: #E63946;
+    --radius: 0.625rem;
+    --border: 214.3 31.8% 88%;
+    --input: 214.3 31.8% 88%;
+    --ring: 221.2 83.2% 53.3%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Brand gradient utility — applied wherever a gradient accent is desired */
+.bg-brand-gradient {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-primary)) 0%,
+    rgb(var(--color-gradient-end)) 100%
+  );
+}
