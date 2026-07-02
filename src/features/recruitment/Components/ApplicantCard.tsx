@@ -1,20 +1,36 @@
 'use client';
-import { User } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+import { SOURCE_CONFIG } from '../constants';
 import type { Applicant } from '../Hooks/useRecruitment';
 
 export function ApplicantCard({ applicant, onClick }: { applicant: Applicant; onClick: () => void }) {
+  const srcCfg = SOURCE_CONFIG[applicant.source ?? ''] ?? SOURCE_CONFIG.other;
+  const appliedDate = applicant.appliedAt ? new Date(applicant.appliedAt) : new Date(applicant.createdAt);
+  const daysAgo = Math.floor((Date.now() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
+
   return (
-    <div onClick={onClick} className="p-3 border rounded-lg bg-gray-50 hover:bg-white hover:shadow-sm cursor-pointer transition-all">
-      <div className="flex items-center gap-2">
-        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="h-4 w-4 text-primary" />
-        </div>
-        <div>
-          <p className="text-sm font-medium">{applicant.fullName}</p>
-          <p className="text-xs text-foreground/50">{applicant.email}</p>
-        </div>
+    <div
+      onClick={onClick}
+      className="bg-white border border-gray-100 rounded-xl p-3.5 hover:shadow-md cursor-pointer transition-all hover:border-indigo-200 group"
+    >
+      <div className="flex items-start justify-between mb-1.5">
+        <p className="text-sm font-semibold text-slate-900 leading-tight group-hover:text-indigo-700 transition-colors">{applicant.fullName}</p>
+        <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md shrink-0 ml-2 tabular-nums">
+          {daysAgo === 0 ? 'today' : `${daysAgo}d`}
+        </span>
       </div>
-      <p className="text-xs text-foreground/40 mt-1">{new Date(applicant.createdAt).toLocaleDateString('en-KE')}</p>
+      {applicant.positionTitle && (
+        <p className="text-xs text-slate-500 truncate mb-2">{applicant.positionTitle}</p>
+      )}
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[10px] text-slate-400">
+          {appliedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+        </span>
+        <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full', srcCfg.cls)}>
+          {srcCfg.label}
+        </span>
+      </div>
     </div>
   );
 }

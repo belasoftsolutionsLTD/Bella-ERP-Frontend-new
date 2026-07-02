@@ -7,8 +7,9 @@ import { CurrencyInput } from '@/components/custom-ui/CurrencyInput';
 import { DEPARTMENTS, DESIGNATIONS } from '../../employees/Components/EmployeeSchema';
 
 const JOB_CATEGORIES = [
-  'Teaching', 'Administrative', 'Support Staff', 'Technical',
-  'Management', 'Finance', 'ICT', 'Library', 'Sports & Recreation',
+  'Administrative', 'Technical', 'Management', 'Finance', 'ICT',
+  'Operations', 'Sales & Marketing', 'Customer Service', 'Legal',
+  'Procurement', 'Human Resources', 'Support Staff',
 ];
 
 interface StageReq {
@@ -182,6 +183,16 @@ export function JobPositionForm({ onClose, onSubmit, initialValues, mode = 'crea
           {/* Dropdowns row */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
+              <FieldLabel label="Department" required />
+              <StyledSelect
+                value={form.department}
+                onChange={(v) => set('department', v)}
+                options={DEPARTMENTS}
+                placeholder="Select department"
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
               <FieldLabel label="Designation" />
               <StyledSelect
                 value={form.designation}
@@ -197,16 +208,6 @@ export function JobPositionForm({ onClose, onSubmit, initialValues, mode = 'crea
                 onChange={(v) => set('jobCategory', v)}
                 options={JOB_CATEGORIES}
                 placeholder="Select category"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <FieldLabel label="Department" required />
-              <StyledSelect
-                value={form.department}
-                onChange={(v) => set('department', v)}
-                options={DEPARTMENTS}
-                placeholder="Select department"
-                required
               />
             </div>
             <div className="flex flex-col gap-1.5">

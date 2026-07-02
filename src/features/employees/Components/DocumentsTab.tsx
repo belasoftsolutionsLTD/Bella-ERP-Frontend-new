@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import { Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL } from '@/configs/constants';
+import { downloadFile } from '@/functions/downloadFile';
 
 interface Doc { docId: string; docType: string; fileName: string; uploadedAt: string }
 
@@ -28,9 +29,9 @@ export function DocumentsTab({ employeeId, documents }: { employeeId: string; do
                   <p className="text-xs text-foreground/50">{doc.docType} · {new Date(doc.uploadedAt).toLocaleDateString('en-KE')}</p>
                 </div>
               </div>
-              <a href={`${API_BASE_URL}/employees/${employeeId}/documents/${doc.docId}/download`} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline"><Download className="h-4 w-4 mr-1" />{tc('download')}</Button>
-              </a>
+              <Button size="sm" variant="outline" onClick={() => downloadFile(`${API_BASE_URL}/employees/${employeeId}/documents/${doc.docId}/download`, doc.fileName ?? 'document').catch(err => alert(err.message))}>
+                <Download className="h-4 w-4 mr-1" />{tc('download')}
+              </Button>
             </li>
           ))}
         </ul>

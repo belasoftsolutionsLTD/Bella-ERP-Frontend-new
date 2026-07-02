@@ -1,338 +1,421 @@
 'use client';
 
-import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useHrDashboard } from '../Hooks/useHrDashboard';
-import { Wrapper } from '@/components/custom-ui/Wrapper';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useLocale } from 'next-intl';
 import {
-  Users, Calendar, CheckSquare, Briefcase,
-  ClipboardList, AlertTriangle, UserPlus, TrendingUp, ChevronDown,
+  Users, Calendar, CheckSquare, Briefcase, AlertTriangle,
+  UserPlus, Clock, TrendingUp, ChevronRight, FileText, Building2,
+  ClipboardList, BarChart2, Bell,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Wrapper } from '@/components/custom-ui/Wrapper';
+import { useHrDashboard } from '../Hooks/useHrDashboard';
+import { useAuth } from '@/hooks/useAuth';
 
-const COLORS = ['#6366f1','#f59e0b','#10b981','#3b82f6','#ec4899','#8b5cf6','#14b8a6','#f97316'];
-const FONT   = 'system-ui, -apple-system, sans-serif';
-
-// Criticality colour: red <50 %, orange 50-79 %, green 80-100 %
-function critColor(pct: number): string {
-  if (pct >= 80) return '#10b981';
-  if (pct >= 50) return '#f59e0b';
-  return '#ef4444';
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
-// ── Vertical bar chart (X = categories, Y = values) ──────────────────────────
-function BarChart({
-  data, width = 500, height = 240,
-  barColor = '#6366f1', multiColor = false, criticalityMax,
-}: {
-  data: { label: string; value: number }[];
-  width?: number; height?: number;
-  barColor?: string; multiColor?: boolean;
-  /** When set, each bar is coloured by critColor(value/criticalityMax*100) */
-  criticalityMax?: number;
+function Ring({ pct, size = 92, stroke = 7, color = '#6366f1' }: {
+  pct: number; size?: number; stroke?: number; color?: string;
 }) {
-  if (!data.length) return <p className="text-xs text-center text-foreground/40 py-6">No data</p>;
-
-  const mt = 20, mb = 52, ml = 44, mr = 16;
-  const cw = width - ml - mr;
-  const ch = height - mt - mb;
-
-  const maxVal = Math.max(...data.map(d => d.value), 1);
-  const yMax = Math.ceil(maxVal / 5) * 5 || 5;
-  const yTicks = 5;
-  const barW = Math.max(10, (cw / data.length) * 0.55);
-  const gap  = cw / data.length;
-
-  const yPx = (v: number) => ch - (v / yMax) * ch;
-
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="100%" style={{ overflow: 'visible' }}>
-      {Array.from({ length: yTicks + 1 }, (_, i) => {
-        const v = (yMax / yTicks) * i;
-        const y = mt + yPx(v);
-        return (
-          <g key={i}>
-            <line x1={ml} y1={y} x2={ml + cw} y2={y}
-              stroke={i === 0 ? '#9ca3af' : '#e5e7eb'} strokeWidth={i === 0 ? 1.5 : 1} />
-            <text x={ml - 6} y={y + 4} textAnchor="end"
-              fontSize={10} fill="#9ca3af" fontFamily={FONT}>{v}</text>
-          </g>
-        );
-      })}
-
-      <line x1={ml} y1={mt} x2={ml} y2={mt + ch + 1} stroke="#d1d5db" strokeWidth={1.5} />
-
-      {data.map((d, i) => {
-        const x  = ml + i * gap + gap / 2 - barW / 2;
-        const bh = (d.value / yMax) * ch;
-        const by = mt + ch - bh;
-        const col = criticalityMax != null
-          ? critColor((d.value / criticalityMax) * 100)
-          : multiColor ? COLORS[i % COLORS.length] : barColor;
-        const labelAngle = data.length > 6 ? -38 : 0;
-        const labelX = ml + i * gap + gap / 2;
-        const labelY = mt + ch + 16;
-        return (
-          <g key={d.label}>
-            <rect x={x} y={by} width={barW} height={bh} rx={4} fill={col}>
-              <animate attributeName="height" from="0" to={bh} dur="0.5s" fill="freeze" />
-              <animate attributeName="y" from={mt + ch} to={by} dur="0.5s" fill="freeze" />
-            </rect>
-            {bh > 12 && (
-              <text x={x + barW / 2} y={by - 4} textAnchor="middle"
-                fontSize={10} fontWeight="700" fill={col} fontFamily={FONT}>{d.value}</text>
-            )}
-            <text
-              x={labelX} y={labelY}
-              textAnchor={labelAngle ? 'end' : 'middle'}
-              fontSize={10} fill="#6b7280" fontFamily={FONT}
-              transform={labelAngle ? `rotate(${labelAngle}, ${labelX}, ${labelY})` : undefined}
-            >
-              {d.label.length > 12 ? d.label.slice(0, 11) + '…' : d.label}
-            </text>
-          </g>
-        );
-      })}
+    <svg width={size} height={size} className="-rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#334155" strokeWidth={stroke} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ}
+        strokeDashoffset={circ - (Math.min(100, Math.max(0, pct)) / 100) * circ}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+      />
     </svg>
   );
 }
 
-
-// ── KPI card ──────────────────────────────────────────────────────────────────
-function KpiCard({ icon: Icon, label, value, sub, color }: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string; color: string;
+function KpiTile({ label, value, sub, icon: Icon, color }: {
+  label: string; value: string | number; sub?: string;
+  icon: React.ElementType; color: string;
 }) {
   return (
-    <div className="rounded-2xl bg-white border shadow-sm p-5 flex items-center gap-4">
-      <div className="rounded-xl p-3 shrink-0" style={{ background: `${color}15` }}>
-        <Icon className="h-5 w-5" style={{ color }} />
-      </div>
-      <div>
-        <p className="text-2xl font-black text-foreground leading-none">{value}</p>
-        <p className="text-xs font-semibold text-foreground/60 mt-0.5">{label}</p>
-        {sub && <p className="text-[10px] text-foreground/35 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-// ── Collapsible section wrapper ───────────────────────────────────────────────
-function Section({ title, icon: Icon, color, children, defaultOpen = true }: {
-  title: string; icon: React.ElementType; color: string;
-  children: React.ReactNode; defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50/60 transition-colors">
-        <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}18` }}>
-          <Icon className="h-4 w-4" style={{ color }} />
+    <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: `${color}22` }}>
+          <Icon className="h-3.5 w-3.5" style={{ color }} />
         </div>
-        <span className="font-bold text-sm text-foreground flex-1 text-left">{title}</span>
-        <ChevronDown className={cn('h-4 w-4 text-foreground/30 transition-transform duration-200', open && 'rotate-180')} />
-      </button>
-      {open && <div className="px-5 pb-5 border-t pt-4 space-y-4">{children}</div>}
+        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="text-2xl font-black text-slate-100 leading-none">{value}</p>
+      {sub && <p className="text-[11px] text-slate-400 mt-1">{sub}</p>}
     </div>
   );
 }
 
-// ── Main dashboard ────────────────────────────────────────────────────────────
+function SectionLabel({ icon: Icon, title, color = 'text-slate-400' }: {
+  icon: React.ElementType;
+  title: string;
+  color?: string;
+}) {
+  return (
+    <div className={cn('flex items-center gap-1.5', color)}>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span className="text-[11px] font-bold uppercase tracking-widest">{title}</span>
+    </div>
+  );
+}
+
+const AVATAR_COLORS = [
+  'bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-orange-500',
+  'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-rose-500',
+];
+function avatarColor(name: string) {
+  let hash = 0;
+  for (const ch of name) hash = ch.charCodeAt(0) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 export default function HrDashboardPage() {
-  const t = useTranslations('HrDashboard');
+  const { userData } = useAuth();
+  const locale = useLocale();
   const { data, loading, error, refetch } = useHrDashboard();
 
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const workStart = 8 * 60;
+  const workEnd   = 17 * 60;
+  const nowMins   = now.getHours() * 60 + now.getMinutes();
+  const workPct   = Math.min(100, Math.max(0, Math.round(((nowMins - workStart) / (workEnd - workStart)) * 100)));
+  const timeStr   = now.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+  const dateStr   = now.toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const firstName = userData?.name?.split(' ')[0] ?? 'there';
+
   return (
-    <Wrapper loading={loading} error={error} onRetry={refetch}>
-      {data && (
-        <div className="space-y-4 pb-6">
+    <div className="space-y-5 pb-6">
 
-          <h1 className="text-2xl font-bold text-primary">{t('title')}</h1>
+      {/* ── Greeting ────────────────────────────────────────────────────────── */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-100">{getGreeting()}, {firstName}!</h1>
+        <p className="text-sm text-slate-400 mt-0.5">{dateStr}</p>
+      </div>
 
-          {/* ── KPI strip (always visible) ──────────────────────────────── */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard icon={Users}       label={t('totalHeadcount')}  value={data.totalHeadcount}
-              sub={`${data.teachingVsNonTeaching.teaching}T · ${data.teachingVsNonTeaching.nonTeaching}NT`}
-              color="#6366f1" />
-            <KpiCard icon={Calendar}    label={t('pendingLeave')}    value={data.pendingLeaveRequests.count}
-              sub={t('awaitingApproval')} color="#f59e0b" />
-            <KpiCard icon={CheckSquare} label={t('attendanceRate')}  value={`${data.attendanceRateThisWeek}%`}
-              sub={t('thisWeek')} color={critColor(data.attendanceRateThisWeek)} />
-            <KpiCard icon={Briefcase}   label={t('openPositions')}   value={data.positionsSummary.open}
-              sub={`${data.positionsSummary.filled} filled · ${data.positionsSummary.frozen} frozen`}
-              color="#8b5cf6" />
-          </div>
+      <Wrapper loading={loading} error={error} onRetry={refetch}>
+        {data && (
+          <div className="grid grid-cols-1 lg:grid-cols-[256px_1fr_240px] gap-5 items-start">
 
-          {/* ── WORKFORCE ──────────────────────────────────────────────── */}
-          <Section title="Workforce" icon={Users} color="#6366f1">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2">
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">{t('byDepartment')} — {t('employeesPerDept')}</p>
-                <BarChart multiColor
-                  data={data.headcountByDepartment.map(d => ({ label: d.department, value: d.count }))}
-                  width={520} height={220} />
+            {/* ══ LEFT ════════════════════════════════════════════════════════ */}
+            <div className="space-y-5">
+
+              {/* Time & Attendance */}
+              <div className="space-y-2">
+                <SectionLabel icon={Clock} title="Time & Attendance" color="text-indigo-400" />
+                <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm p-5">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="relative">
+                      <Ring pct={workPct} size={96} stroke={7} />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-base font-bold text-slate-100 tabular-nums leading-tight">{timeStr}</span>
+                        <span className="text-[10px] text-slate-400">{workPct}%</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 text-center mt-1">{dateStr}</p>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>08:00</span>
+                      <span className="text-indigo-400 font-semibold">Workday</span>
+                      <span>17:00</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+                        style={{ width: `${workPct}%` }}
+                      />
+                    </div>
+                    <Link
+                      href={`/${locale}/attendance`}
+                      className="mt-2 w-full flex items-center justify-center gap-2 h-9 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm shadow-indigo-900/50"
+                    >
+                      <Clock className="h-3.5 w-3.5" />
+                      Manage Attendance
+                    </Link>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">{t('staffComposition')}</p>
-                <BarChart multiColor
-                  data={[
-                    { label: t('teaching'),    value: data.teachingVsNonTeaching.teaching },
-                    { label: t('nonTeaching'), value: data.teachingVsNonTeaching.nonTeaching },
-                  ]}
-                  width={200} height={180} />
+
+              {/* Quick Access */}
+              <div className="space-y-2">
+                <SectionLabel icon={ChevronRight} title="Quick Access" color="text-slate-400" />
+                <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm p-2">
+                  {[
+                    { label: 'People',         href: `/${locale}/employees`,  icon: Users },
+                    { label: 'Leave Requests', href: `/${locale}/leave`,       icon: Calendar },
+                    { label: 'Attendance',     href: `/${locale}/attendance`,  icon: Clock },
+                    { label: 'Payroll',        href: `/${locale}/payroll`,     icon: FileText },
+                    { label: 'Recruitment',    href: `/${locale}/recruitment`, icon: Briefcase },
+                    { label: 'Onboarding',     href: `/${locale}/onboarding`,  icon: ClipboardList },
+                  ].map(({ label, href, icon: Icon }) => (
+                    <Link
+                      key={label} href={href}
+                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-slate-300 hover:bg-indigo-500/10 hover:text-indigo-300 transition-colors group"
+                    >
+                      <Icon className="h-3.5 w-3.5 text-slate-500 group-hover:text-indigo-400 shrink-0" />
+                      <span className="flex-1">{label}</span>
+                      <ChevronRight className="h-3 w-3 text-slate-600 group-hover:text-indigo-400" />
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* New hires inside workforce */}
-            <div>
-              <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <UserPlus className="h-3.5 w-3.5 text-emerald-500" /> {t('newHires')} this month
-              </p>
-              {(data.newHiresThisMonth as any[]).length === 0
-                ? <p className="text-xs text-foreground/40 py-2">{t('noNewHires')}</p>
-                : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {(data.newHiresThisMonth as any[]).map((h: any, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
-                        <div className="h-8 w-8 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0 text-xs font-black text-emerald-700">
-                          {(h.fullName ?? '?').charAt(0)}
+            {/* ══ CENTER ══════════════════════════════════════════════════════ */}
+            <div className="space-y-5">
+
+              {/* Workforce Overview */}
+              <div className="space-y-2">
+                <SectionLabel icon={Users} title="Workforce Overview" color="text-indigo-400" />
+                <div className="grid grid-cols-2 gap-4">
+                  <KpiTile
+                    icon={Users} label="Headcount" color="#6366f1"
+                    value={data.totalHeadcount}
+                    sub={`${data.teachingVsNonTeaching.teaching}T · ${data.teachingVsNonTeaching.nonTeaching}NT`}
+                  />
+                  <KpiTile
+                    icon={CheckSquare} label="Attendance Rate"
+                    color={data.attendanceRateThisWeek >= 80 ? '#10b981' : data.attendanceRateThisWeek >= 50 ? '#f59e0b' : '#ef4444'}
+                    value={`${data.attendanceRateThisWeek}%`}
+                    sub="this week"
+                  />
+                  <KpiTile
+                    icon={Calendar} label="Pending Leave" color="#f59e0b"
+                    value={data.pendingLeaveRequests.count}
+                    sub="awaiting approval"
+                  />
+                  <KpiTile
+                    icon={Briefcase} label="Open Positions" color="#8b5cf6"
+                    value={data.positionsSummary.open}
+                    sub={`${data.positionsSummary.filled} filled · ${data.positionsSummary.frozen} frozen`}
+                  />
+                </div>
+              </div>
+
+              {/* Leave Management */}
+              <div className="space-y-2">
+                <SectionLabel icon={Calendar} title="Leave Management" color="text-amber-400" />
+                <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm">
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/40">
+                    <p className="text-sm font-bold text-slate-100">Pending Leave Requests</p>
+                    <Link
+                      href={`/${locale}/leave`}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-0.5"
+                    >
+                      View all <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                  {(data.pendingLeaveRequests as any).requests?.length > 0 ? (
+                    <div className="divide-y divide-slate-700/40">
+                      {(data.pendingLeaveRequests as any).requests.slice(0, 4).map((r: any, i: number) => (
+                        <div key={i} className="flex items-center gap-3 px-5 py-3">
+                          <div className={cn(
+                            'h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0',
+                            avatarColor(r.employeeName ?? ''),
+                          )}>
+                            {(r.employeeName ?? '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-100 truncate">{r.employeeName}</p>
+                            <p className="text-xs text-slate-400 capitalize">
+                              {(r.leaveType ?? '').replace('_', ' ')} · {r.numberOfDays ?? ''} day{r.numberOfDays !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[11px] font-semibold border border-amber-500/30 shrink-0">
+                            Pending
+                          </span>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold truncate">{h.fullName}</p>
-                          <p className="text-[10px] text-foreground/40">{h.designation || h.department || 'Staff'}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-5 py-8 text-center">
+                      <CheckSquare className="h-7 w-7 text-emerald-400 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-slate-300">All caught up!</p>
+                      <p className="text-xs text-slate-400 mt-0.5">No pending leave requests.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Recruitment & Onboarding */}
+              <div className="space-y-2">
+                <SectionLabel icon={UserPlus} title="Recruitment & Onboarding" color="text-emerald-400" />
+                <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm">
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/40">
+                    <div className="flex items-center gap-2">
+                      <UserPlus className="h-3.5 w-3.5 text-emerald-500" />
+                      <p className="text-sm font-bold text-slate-100">New Hires This Month</p>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                      {(data.newHiresThisMonth as any[]).length}
+                    </span>
+                  </div>
+                  {(data.newHiresThisMonth as any[]).length === 0 ? (
+                    <div className="px-5 py-6 text-center">
+                      <p className="text-sm text-slate-400">No new hires this month.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-700/40">
+                      {(data.newHiresThisMonth as any[]).slice(0, 4).map((h: any, i) => (
+                        <div key={i} className="flex items-center gap-3 px-5 py-3">
+                          <div className={cn(
+                            'h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0',
+                            avatarColor(h.fullName ?? ''),
+                          )}>
+                            {(h.fullName ?? '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-100 truncate">{h.fullName}</p>
+                            <p className="text-xs text-slate-400">{h.designation || h.department || 'New staff'}</p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-semibold border border-emerald-500/30 shrink-0">
+                            New
+                          </span>
                         </div>
-                        <span className="ml-auto text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">{t('newBadge')}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ══ RIGHT ═══════════════════════════════════════════════════════ */}
+            <div className="space-y-5">
+
+              {/* HR Snapshot */}
+              <div className="space-y-2">
+                <SectionLabel icon={BarChart2} title="HR Snapshot" color="text-violet-400" />
+                <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm p-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'On Leave',   value: data.pendingLeaveRequests.count,  cls: 'bg-blue-500/15 text-blue-400' },
+                      { label: 'Headcount',  value: data.totalHeadcount,              cls: 'bg-violet-500/15 text-violet-400' },
+                      { label: 'Attendance', value: `${data.attendanceRateThisWeek}%`, cls: 'bg-emerald-500/15 text-emerald-400' },
+                      { label: 'Open Roles', value: data.positionsSummary.open,        cls: 'bg-orange-500/15 text-orange-400' },
+                    ].map(({ label, value, cls }) => (
+                      <div key={label} className={cn('rounded-lg px-3 py-3 text-center', cls)}>
+                        <p className="text-xl font-black leading-none">{value}</p>
+                        <p className="text-[10px] font-semibold mt-1 opacity-80">{label}</p>
                       </div>
                     ))}
                   </div>
-              }
-            </div>
-          </Section>
-
-          {/* ── ATTENDANCE & LEAVE ──────────────────────────────────────── */}
-          <Section title="Attendance & Leave" icon={Calendar} color="#f59e0b">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">{t('attendanceRate')} — {t('thisWeekVsTarget')}</p>
-                <BarChart width={280} height={200} criticalityMax={100}
-                  data={[
-                    { label: t('thisWeek'), value: data.attendanceRateThisWeek },
-                    { label: 'Target',      value: 100 },
-                  ]} />
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">
-                  Pending Leave Requests — {data.pendingLeaveRequests.count} awaiting approval
-                </p>
-                {(data.pendingLeaveRequests as any).requests?.length > 0
-                  ? <div className="space-y-2">
-                      {(data.pendingLeaveRequests as any).requests.slice(0, 5).map((r: any, i: number) => (
-                        <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl border border-amber-100 bg-amber-50">
-                          <div className="h-8 w-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-xs font-black text-amber-700">
-                            {(r.employeeName ?? '?').charAt(0)}
+
+              {/* Alerts & Actions */}
+              <div className="space-y-2">
+                <SectionLabel icon={Bell} title="Alerts & Actions" color="text-red-400" />
+
+                {/* Expiring contracts */}
+                <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/40">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
+                    <p className="text-xs font-bold text-slate-300">Expiring Contracts</p>
+                  </div>
+                  {data.expiringContracts.length === 0 ? (
+                    <div className="px-4 py-4 text-center">
+                      <CheckSquare className="h-5 w-5 text-emerald-400 mx-auto mb-1" />
+                      <p className="text-xs text-slate-400">None expiring soon.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-700/40">
+                      {data.expiringContracts.slice(0, 4).map(c => (
+                        <div key={c.staffNumber} className="flex items-center gap-2.5 px-4 py-2.5">
+                          <div className={cn(
+                            'h-7 w-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0',
+                            avatarColor(c.fullName ?? ''),
+                          )}>
+                            {(c.fullName ?? '?').charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate">{r.employeeName}</p>
-                            <p className="text-[10px] text-foreground/40 capitalize">{(r.leaveType ?? '').replace('_',' ')} · {r.numberOfDays ?? ''} day{r.numberOfDays !== 1 ? 's' : ''}</p>
+                            <p className="text-xs font-semibold text-slate-100 truncate">{c.fullName}</p>
+                            <p className="text-[10px] text-slate-400">{c.staffNumber}</p>
                           </div>
-                          <span className="text-[10px] font-bold text-amber-600 bg-white border border-amber-200 px-2 py-0.5 rounded-full shrink-0">Pending</span>
+                          <span className={cn(
+                            'text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0',
+                            c.daysRemaining <= 14 ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400',
+                          )}>
+                            {c.daysRemaining}d
+                          </span>
                         </div>
                       ))}
                     </div>
-                  : <p className="text-xs text-foreground/40 py-2">No pending leave requests.</p>
-                }
-              </div>
-            </div>
-          </Section>
+                  )}
+                </div>
 
-          {/* ── RECRUITMENT & ONBOARDING ────────────────────────────────── */}
-          <Section title="Recruitment & Onboarding" icon={Briefcase} color="#8b5cf6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">{t('positionsSummary')} — {t('openFilledFrozen')}</p>
-                <BarChart multiColor width={280} height={200}
-                  data={[
-                    { label: t('openPositions'),   value: data.positionsSummary.open   },
-                    { label: t('filledPositions'), value: data.positionsSummary.filled },
-                    { label: t('frozenPositions'), value: data.positionsSummary.frozen },
-                  ]} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <ClipboardList className="h-3.5 w-3.5 text-blue-500" /> {t('onboardingProgress')}
-                </p>
-                {data.onboardingProgress.length === 0
-                  ? <p className="text-xs text-foreground/40 py-2">{t('noActiveOnboarding')}</p>
-                  : <BarChart width={280} height={200} criticalityMax={100}
-                      data={data.onboardingProgress.slice(0, 6).map(e => ({
-                        label: `…${String(e.employeeId).slice(-5)}`,
-                        value: e.percentage,
-                      }))} />
-                }
-              </div>
-            </div>
-          </Section>
-
-          {/* ── PERFORMANCE & COMPLIANCE ────────────────────────────────── */}
-          <Section title="Performance & Compliance" icon={TrendingUp} color="#ef4444" defaultOpen={true}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-3.5 w-3.5 text-purple-500" /> {t('performanceConcerns')}
-                </p>
-                {(data.performanceConcerns as any[]).length === 0
-                  ? <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                      <CheckSquare className="h-5 w-5 text-emerald-500 shrink-0" />
-                      <p className="text-xs text-emerald-700 font-medium">{t('allOnTrack')}</p>
+                {/* Performance flags */}
+                {(data.performanceConcerns as any[]).length > 0 && (
+                  <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/40">
+                      <TrendingUp className="h-3.5 w-3.5 text-violet-400" />
+                      <p className="text-xs font-bold text-slate-300">Performance Flags</p>
                     </div>
-                  : <div className="space-y-2">
-                      {(data.performanceConcerns as any[]).map((c: any, i) => (
-                        <div key={i} className="flex items-center gap-2 p-2.5 rounded-xl bg-red-50 border border-red-100">
-                          <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
-                          <div>
-                            <p className="text-xs font-semibold text-red-700">{c.fullName ?? c.employeeId}</p>
-                            <p className="text-[10px] text-red-400">{c.concern ?? t('flaggedForReview')}</p>
+                    <div className="divide-y divide-slate-700/40">
+                      {(data.performanceConcerns as any[]).slice(0, 3).map((c: any, i) => (
+                        <div key={i} className="flex items-center gap-2.5 px-4 py-2.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-200 truncate">{c.fullName ?? c.employeeId}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{c.concern ?? 'Flagged for review'}</p>
                           </div>
                         </div>
                       ))}
                     </div>
-                }
+                  </div>
+                )}
               </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <AlertTriangle className="h-3.5 w-3.5 text-red-400" /> {t('expiringContracts')}
-                </p>
-                {data.expiringContracts.length === 0
-                  ? <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                      <CheckSquare className="h-5 w-5 text-emerald-500 shrink-0" />
-                      <p className="text-xs text-emerald-700 font-medium">{t('noExpiringContracts')}</p>
-                    </div>
-                  : <div className="space-y-2">
-                      {data.expiringContracts.map(c => {
-                        const col = c.daysRemaining <= 14 ? '#ef4444' : c.daysRemaining <= 30 ? '#f59e0b' : '#6366f1';
-                        return (
-                          <div key={c.staffNumber} className="flex items-center gap-3 p-2.5 rounded-xl"
-                            style={{ background: `${col}08`, border: `1px solid ${col}20` }}>
-                            <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black"
-                              style={{ background: `${col}15`, color: col }}>
-                              {(c.fullName ?? '?').charAt(0)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate">{c.fullName}</p>
-                              <p className="text-[10px] text-foreground/40">{c.staffNumber}</p>
-                            </div>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                              style={{ background: `${col}15`, color: col }}>{c.daysRemaining}d left</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                }
-              </div>
-            </div>
-          </Section>
 
-        </div>
-      )}
-    </Wrapper>
+              {/* Departments */}
+              <div className="space-y-2">
+                <SectionLabel icon={Building2} title="By Department" color="text-indigo-400" />
+                <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-sm">
+                  <div className="px-4 py-3 space-y-2.5">
+                    {data.headcountByDepartment.slice(0, 6).map(d => {
+                      const pct = data.totalHeadcount > 0
+                        ? Math.round((d.count / data.totalHeadcount) * 100) : 0;
+                      return (
+                        <div key={d.department} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[11px] text-slate-300 font-medium truncate max-w-[140px]">{d.department}</span>
+                            <span className="text-[11px] text-slate-400 font-mono">{d.count}</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+      </Wrapper>
+    </div>
   );
 }

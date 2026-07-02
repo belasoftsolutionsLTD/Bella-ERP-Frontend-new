@@ -42,16 +42,16 @@ export default function HrConfigPage() {
         </p>
       </div>
 
-      <div className="flex border-b gap-1 overflow-x-auto">
+      <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              'px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
+              'px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors',
               tab === t.key
-                ? 'border-accent text-accent'
-                : 'border-transparent text-foreground/60 hover:text-foreground'
+                ? 'bg-accent text-white'
+                : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60 hover:text-white'
             )}
           >
             {t.label}
@@ -139,10 +139,11 @@ export default function HrConfigPage() {
           loading={leaveTypes.loading}
           columns={[
             { key: 'name',        label: 'Leave Type Name' },
-            { key: 'defaultDays', label: 'Default Days', type: 'number' },
+            { key: 'defaultDays', label: 'Default Days', type: 'integer' },
+            { key: 'isEnabled',   label: 'Enabled', type: 'checkbox' },
             { key: 'description', label: 'Description' },
           ]}
-          defaultForm={{ name: '', defaultDays: '', description: '' }}
+          defaultForm={{ name: '', defaultDays: '', isEnabled: 'true', description: '' }}
           onCreate={(d) => leaveTypes.create(d)}
           onUpdate={(id, d) => leaveTypes.update(id, d)}
           onDelete={(id) => leaveTypes.remove(id)}

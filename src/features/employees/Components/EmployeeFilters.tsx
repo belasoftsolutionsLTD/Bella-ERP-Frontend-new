@@ -22,10 +22,10 @@ function FilterChip({
         onChange={(e) => onChange(e.target.value)}
         className={`
           appearance-none h-9 pl-3 pr-8 rounded-full text-sm font-medium border transition-all duration-150 cursor-pointer
-          focus:outline-none focus:ring-2 focus:ring-primary/20
+          focus:outline-none focus:ring-1 focus:ring-indigo-500
           ${active
-            ? 'bg-primary text-white border-primary shadow-sm'
-            : 'bg-white text-foreground border-gray-200 hover:border-primary/40 hover:bg-gray-50'
+            ? 'bg-indigo-600 text-white border-indigo-600'
+            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-indigo-500/50 hover:bg-slate-700'
           }
         `}
       >
@@ -34,7 +34,7 @@ function FilterChip({
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none ${active ? 'text-white/80' : 'text-foreground/40'}`} />
+      <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none ${active ? 'text-white/80' : 'text-slate-500'}`} />
     </div>
   );
 }
@@ -50,9 +50,9 @@ export function EmployeeFilters({ filters, onChange }: Props) {
     <div className="flex flex-wrap gap-2 items-center">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
         <input
-          className="h-9 pl-9 pr-4 rounded-full border border-gray-200 bg-white text-sm placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 hover:border-primary/40 transition-all w-52"
+          className="h-9 pl-9 pr-4 rounded-full border border-slate-700 bg-slate-800 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 hover:border-indigo-500/50 transition-all w-52"
           placeholder="Search by name or staff no..."
           value={filters.search ?? ''}
           onChange={(e) => set('search', e.target.value)}
@@ -98,7 +98,7 @@ export function EmployeeFilters({ filters, onChange }: Props) {
       {(filters.search || filters.department || filters.designation || filters.employmentType || filters.status) && (
         <button
           onClick={() => onChange({ page: 1, limit: filters.limit })}
-          className="h-9 px-3 rounded-full text-xs font-medium text-danger border border-danger/30 bg-danger/5 hover:bg-danger/10 transition-colors"
+          className="h-9 px-3 rounded-full text-xs font-medium text-red-400 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-colors"
         >
           Clear all
         </button>

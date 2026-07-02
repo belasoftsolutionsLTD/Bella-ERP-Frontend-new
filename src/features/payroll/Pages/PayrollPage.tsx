@@ -1,152 +1,532 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Layers, ChevronDown, ChevronUp } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Wrapper } from '@/components/custom-ui/Wrapper';
-import { PayrollTable } from '../Components/PayrollTable';
-import { GeneratePayrollModal } from '../Components/GeneratePayrollModal';
-import { usePayroll } from '../Hooks/usePayroll';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Lock, AlertTriangle, Download, Check, X, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { downloadFile } from '@/functions/downloadFile';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-export default function PayrollPage() {
+type CycleStatus = 'open' | 'review' | 'locked' | 'closed';
+
+interface PayrollCycle {
+  _id: string; name: string;
+  period: { month: number; year: number; startDate: string; endDate: string };
+  payDate: string | null; status: CycleStatus; currency: string;
+  totalGross: number; totalDeductions: number; totalNet: number; totalEmployerCost: number;
+  employeeCount: number; hasExceptions: boolean; exceptionCount: number;
+}
+
+interface PayrollResult {
+  _id: string; employeeId: string;
+  employee?: { fullName: string; staffNumber: string; department: string };
+  grossPay: number; totalDeductions: number; netPay: number; totalEmployerCost: number;
+  earnings: { conceptName: string; amount: number }[];
+  deductions: { conceptName: string; amount: number }[];
+  employerContributions: { conceptName: string; amount: number }[];
+  benefits: { conceptName: string; amount: number }[];
+  hasException: boolean;
+  exceptions: { type: string; message: string; severity: string }[];
+  status: string; payslipUrl?: string;
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const STATUS_CFG: Record<CycleStatus, { label: string; border: string; badge: string; text: string }> = {
+  open:   { label: 'Open',   border: 'border-l-blue-500',   badge: 'bg-blue-500/15 text-blue-400',    text: 'text-blue-400'    },
+  review: { label: 'Review', border: 'border-l-amber-500',  badge: 'bg-amber-500/15 text-amber-400',  text: 'text-amber-400'   },
+  locked: { label: 'Locked', border: 'border-l-violet-500', badge: 'bg-violet-500/15 text-violet-400',text: 'text-violet-400'  },
+  closed: { label: 'Closed', border: 'border-l-emerald-500',badge: 'bg-emerald-500/15 text-emerald-400',text:'text-emerald-400'},
+};
+
+const PIPELINE: CycleStatus[] = ['open', 'review', 'locked', 'closed'];
+
+const fmt = (n: number, cur = 'KES') =>
+  `${cur} ${(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0 })}`;
+
+const fmtDate = (d?: string | null) =>
+  d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+// ── Pipeline ──────────────────────────────────────────────────────────────────
+
+function Pipeline({ status }: { status: CycleStatus }) {
+  const cur = PIPELINE.indexOf(status);
+  return (
+    <div className="flex items-center">
+      {PIPELINE.map((step, i) => {
+        const done = i < cur; const active = i === cur;
+        const cfg = STATUS_CFG[step];
+        return (
+          <div key={step} className="flex items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <div className={cn('h-5 w-5 rounded-full border-2 flex items-center justify-center',
+                done   ? 'border-indigo-500 bg-indigo-500' :
+                active ? 'border-indigo-500 bg-transparent ring-2 ring-indigo-500/30 ring-offset-1 ring-offset-slate-800' :
+                         'border-slate-700 bg-transparent')}>
+                {done   && <Check className="h-2.5 w-2.5 text-white" />}
+                {active && <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />}
+              </div>
+              <span className={cn('text-[10px] font-semibold capitalize', (done || active) ? cfg.text : 'text-slate-600')}>{cfg.label}</span>
+            </div>
+            {i < PIPELINE.length - 1 && <div className={cn('h-0.5 w-10 mx-1 mb-4', done ? 'bg-indigo-500' : 'bg-slate-700')} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── New Cycle Modal ───────────────────────────────────────────────────────────
+
+function NewCycleModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const now = new Date();
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear]   = useState(now.getFullYear());
-  const [showGenerate, setShowGenerate] = useState(false);
-  const [bulking, setBulking] = useState(false);
-  const [showBulkPanel, setShowBulkPanel] = useState(false);
-
-  // Bulk filters
-  const [bulkDept, setBulkDept]               = useState('');
-  const [bulkJobGroup, setBulkJobGroup]        = useState('');
-  const [bulkEmploymentType, setBulkEmploymentType] = useState('');
-
-  const { records, loading, error, refetch } = usePayroll(undefined, month, year);
-
-  const isFuture = year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth() + 1);
-
-  const handleBulkGenerate = async () => {
-    if (isFuture) { toast.error('Cannot generate payroll for a future period.'); return; }
-    setBulking(true);
-    const data: Record<string, unknown> = { month, year };
-    if (bulkDept)            data.department     = bulkDept;
-    if (bulkJobGroup)        data.jobGroupId     = bulkJobGroup;
-    if (bulkEmploymentType)  data.employmentType = bulkEmploymentType;
-    await apiCallFunction({
-      url: `${API_BASE_URL}/payroll/bulk`,
-      method: 'POST',
-      data,
-      thenFn: (res: any) => { toast.success(res.message || 'Bulk payroll generated.'); refetch(); },
-    });
-    setBulking(false);
-  };
+  const [month, setMonth] = useState(String(now.getMonth() + 1));
+  const [year,  setYear]  = useState(String(now.getFullYear()));
+  const [payDate, setPayDate] = useState('');
+  const [saving, setSaving]   = useState(false);
+  const mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const name = `${mNames[parseInt(month)-1]} ${year} Payroll`;
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Payroll</h1>
-          <p className="text-sm text-foreground/50 mt-0.5">Generate and review monthly payroll records. Gross pay is pulled from each employee's profile.</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <h2 className="text-base font-bold text-slate-100">New Payroll Cycle</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"><X className="h-4 w-4" /></button>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 text-foreground/60" onClick={() => setShowBulkPanel(v => !v)}>
-            <Layers className="h-4 w-4" />
-            Bulk Generate
-            {showBulkPanel ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </Button>
-          <Button className="bg-primary text-white gap-2" onClick={() => setShowGenerate(true)}>
-            <Plus className="h-4 w-4" /> Generate Payroll
-          </Button>
-        </div>
-      </div>
-
-      {/* Bulk generation panel */}
-      {showBulkPanel && (
-        <div className="rounded-xl border bg-white p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Bulk Payroll Generation</h3>
-            <p className="text-xs text-foreground/50">Leave filters blank to generate for all active employees</p>
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <p className="text-xs text-slate-500 mb-1">Cycle name</p>
+            <p className="text-sm font-bold text-indigo-300">{name}</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-foreground/60">Filter by Department</label>
-              <input type="text" value={bulkDept} onChange={e => setBulkDept(e.target.value)}
-                placeholder="e.g. Finance (blank = all)"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-foreground/60">Filter by Employment Type</label>
-              <select value={bulkEmploymentType} onChange={e => setBulkEmploymentType(e.target.value)}
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white">
-                <option value="">All Types</option>
-                <option value="permanent">Permanent</option>
-                <option value="contract">Contract</option>
-                <option value="intern">Intern</option>
-                <option value="part_time">Part-time</option>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Month</label>
+              <select value={month} onChange={e => setMonth(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                {mNames.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
               </select>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-foreground/60">Period</label>
-              <div className="flex gap-2">
-                <select value={month} onChange={e => setMonth(Number(e.target.value))}
-                  className="flex-1 h-9 border border-gray-200 rounded-xl px-2 text-sm focus:outline-none bg-white">
-                  {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-                </select>
-                <select value={year} onChange={e => setYear(Number(e.target.value))}
-                  className="w-24 h-9 border border-gray-200 rounded-xl px-2 text-sm focus:outline-none bg-white">
-                  {[now.getFullYear(), now.getFullYear() - 1].map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Year</label>
+              <select value={year} onChange={e => setYear(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
             </div>
           </div>
-          {isFuture && <p className="text-xs text-red-600">Cannot generate for a future period.</p>}
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setShowBulkPanel(false)} className="text-xs text-foreground/40 hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleBulkGenerate} disabled={bulking || isFuture}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-white px-4 py-1.5 rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              <Layers className="h-3.5 w-3.5" />
-              {bulking ? 'Generating…' : 'Run Bulk Payroll'}
-            </button>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Pay Date (optional)</label>
+            <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
           </div>
         </div>
-      )}
-
-      {/* Month / year filter for table */}
-      <div className="flex gap-3">
-        <div className="relative">
-          <select value={month} onChange={e => setMonth(Number(e.target.value))}
-            className="appearance-none h-9 border rounded-full bg-white pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium">
-            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/30 pointer-events-none text-xs">▾</span>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-700">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+          <button onClick={() => {
+            setSaving(true);
+            apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles`, method: 'POST',
+              data: { name, month, year, payDate: payDate || undefined, currency: 'KES' },
+              thenFn: () => { onCreated(); onClose(); },
+              finallyFn: () => setSaving(false),
+            });
+          }} disabled={saving} className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
+            {saving ? 'Creating…' : 'Create Cycle'}
+          </button>
         </div>
-        <div className="relative">
-          <select value={year} onChange={e => setYear(Number(e.target.value))}
-            className="appearance-none h-9 border rounded-full bg-white pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium">
-            {[now.getFullYear(), now.getFullYear() - 1].map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/30 pointer-events-none text-xs">▾</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Result Detail Modal ───────────────────────────────────────────────────────
+
+function ResultModal({ r, cur, onClose, onApprove, isHR }: {
+  r: PayrollResult; cur: string; onClose: () => void; onApprove: () => void; isHR: boolean;
+}) {
+  const [showEmp, setShowEmp] = useState(false);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <div>
+            <p className="text-base font-bold text-slate-100">{r.employee?.fullName}</p>
+            <p className="text-xs text-slate-500">{r.employee?.department} · {r.employee?.staffNumber}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {r.hasException && r.exceptions.map((ex, i) => (
+            <div key={i} className={cn('flex gap-2 px-3 py-2 rounded-lg text-xs', ex.severity === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400')}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />{ex.message}
+            </div>
+          ))}
+          {/* Earnings */}
+          <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-slate-700"><p className="text-xs font-bold text-emerald-400 uppercase tracking-wide">Earnings</p></div>
+            {[...(r.earnings ?? []), ...(r.benefits ?? [])].map((e, i) => (
+              <div key={i} className="flex justify-between px-4 py-2 border-b border-slate-700/50 last:border-0 text-sm">
+                <span className="text-slate-300">{e.conceptName}</span><span className="font-semibold text-slate-100">{fmt(e.amount, cur)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between px-4 py-2.5 bg-emerald-500/5 text-sm font-bold">
+              <span className="text-emerald-400">Gross Pay</span><span className="text-emerald-300">{fmt(r.grossPay, cur)}</span>
+            </div>
+          </div>
+          {/* Deductions */}
+          <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-slate-700"><p className="text-xs font-bold text-red-400 uppercase tracking-wide">Deductions</p></div>
+            {(r.deductions ?? []).map((d, i) => (
+              <div key={i} className="flex justify-between px-4 py-2 border-b border-slate-700/50 last:border-0 text-sm">
+                <span className="text-slate-300">{d.conceptName}</span><span className="font-semibold text-slate-100">{fmt(d.amount, cur)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between px-4 py-2.5 bg-red-500/5 text-sm font-bold">
+              <span className="text-red-400">Total Deductions</span><span className="text-red-300">{fmt(r.totalDeductions, cur)}</span>
+            </div>
+          </div>
+          {/* Net */}
+          <div className="bg-indigo-600/20 border border-indigo-500/30 rounded-xl px-4 py-4 flex justify-between">
+            <span className="text-sm font-bold text-slate-200">NET PAY</span>
+            <span className="text-xl font-black text-indigo-300">{fmt(r.netPay, cur)}</span>
+          </div>
+          {/* Employer contributions */}
+          {(r.employerContributions ?? []).length > 0 && (
+            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+              <button className="w-full flex justify-between items-center px-4 py-2.5 text-xs font-bold text-violet-400 uppercase tracking-wide" onClick={() => setShowEmp(v => !v)}>
+                Employer Contributions <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', showEmp && 'rotate-90')} />
+              </button>
+              {showEmp && r.employerContributions.map((ec, i) => (
+                <div key={i} className="flex justify-between px-4 py-2 border-t border-slate-700/50 text-sm">
+                  <span className="text-slate-400">{ec.conceptName}</span><span className="text-slate-300">{fmt(ec.amount, cur)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {isHR && r.status === 'pending' && (() => {
+          const hasErrors = r.exceptions.some(e => e.severity === 'error');
+          return (
+            <div className="px-6 py-4 border-t border-slate-700 shrink-0 space-y-2">
+              {hasErrors && (
+                <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-xs text-red-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>This payslip has critical errors. Fix them before approving to avoid incorrect payments.</span>
+                </div>
+              )}
+              <div className="flex gap-3">
+                {r.payslipUrl && (
+                  <button onClick={() => downloadFile(r.payslipUrl!, 'payslip.pdf').catch(err => alert(err.message))}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-600 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">
+                    <Download className="h-4 w-4" /> Payslip
+                  </button>
+                )}
+                {hasErrors && (
+                  <a href={`/en/employees/${r.employeeId}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold transition-colors">
+                    Fix Issues
+                  </a>
+                )}
+                <button onClick={() => { onApprove(); onClose(); }} disabled={hasErrors}
+                  title={hasErrors ? 'Resolve errors before approving' : undefined}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                  <Check className="h-4 w-4" /> Approve
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
+// ── Exceptions Panel ──────────────────────────────────────────────────────────
+
+function ExceptionsPanel({ cycleId, onClose }: { cycleId: string; onClose: () => void }) {
+  const [items, setItems] = useState<PayrollResult[]>([]);
+  useEffect(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/payroll/cycles/${cycleId}/exceptions`, showToast: false,
+      thenFn: r => setItems(r.data?.data ?? []) });
+  }, [cycleId]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="text-base font-bold text-slate-100">Payroll Exceptions</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {(['error','warning'] as const).map(sev => {
+            const filtered = items.filter(r => r.exceptions.some(e => e.severity === sev));
+            if (!filtered.length) return null;
+            return (
+              <div key={sev}>
+                <p className={cn('text-xs font-bold uppercase tracking-wide mb-2', sev === 'error' ? 'text-red-400' : 'text-amber-400')}>
+                  {sev === 'error' ? '🔴 Errors (must fix)' : '🟡 Warnings'}
+                </p>
+                <div className="space-y-2">
+                  {filtered.map(r => r.exceptions.filter(e => e.severity === sev).map((ex, i) => (
+                    <div key={i} className={cn('px-4 py-3 rounded-xl border text-xs', sev === 'error' ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20')}>
+                      <p className="font-semibold text-slate-200">{r.employee?.fullName}</p>
+                      <p className={cn('mt-0.5', sev === 'error' ? 'text-red-400' : 'text-amber-400')}>{ex.message}</p>
+                    </div>
+                  )))}
+                </div>
+              </div>
+            );
+          })}
+          {!items.length && <p className="text-center text-slate-600 py-8">No exceptions.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+export default function PayrollPage() {
+  const { isHR } = useAuth();
+  const [cycles,       setCycles]       = useState<PayrollCycle[]>([]);
+  const [activeCycle,  setActiveCycle]  = useState<PayrollCycle | null>(null);
+  const [results,      setResults]      = useState<PayrollResult[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [newOpen,      setNewOpen]      = useState(false);
+  const [excOpen,      setExcOpen]      = useState(false);
+  const [detailR,      setDetailR]      = useState<PayrollResult | null>(null);
+  const [advancing,    setAdvancing]    = useState(false);
+
+  const fetchCycles = useCallback(() => {
+    setLoading(true);
+    apiCallFunction<any>({ url: `${API_BASE_URL}/payroll/cycles?limit=50`, showToast: false,
+      thenFn: r => {
+        const all: PayrollCycle[] = r.data?.data ?? [];
+        setCycles(all);
+        setActiveCycle(all.find(c => c.status !== 'closed') ?? all[0] ?? null);
+      },
+      finallyFn: () => setLoading(false),
+    });
+  }, []);
+
+  useEffect(() => { fetchCycles(); }, [fetchCycles]);
+
+  const fetchResults = useCallback(() => {
+    if (!activeCycle || activeCycle.status === 'open') { setResults([]); return; }
+    apiCallFunction<any>({ url: `${API_BASE_URL}/payroll/cycles/${activeCycle._id}/results?limit=200`, showToast: false,
+      thenFn: r => setResults(r.data?.data ?? []) });
+  }, [activeCycle]);
+
+  useEffect(() => { fetchResults(); }, [fetchResults]);
+
+  const advanceStatus = () => {
+    if (!activeCycle) return;
+    setAdvancing(true);
+    apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles/${activeCycle._id}/status`, method: 'PUT', data: {},
+      thenFn: () => fetchCycles(), finallyFn: () => setAdvancing(false) });
+  };
+
+  const approveEmployee = (resultId: string) => {
+    if (!activeCycle) return;
+    apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles/${activeCycle._id}/approve`, method: 'POST',
+      data: { employeeIds: [resultId] }, thenFn: () => fetchResults() });
+  };
+
+  const approveAll = () => {
+    if (!activeCycle) return;
+    apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles/${activeCycle._id}/approve`, method: 'POST',
+      data: { approveAll: true }, thenFn: () => fetchResults() });
+  };
+
+  const ac   = activeCycle;
+  const cfg  = ac ? STATUS_CFG[ac.status] : null;
+  const cur  = ac?.currency ?? 'KES';
+  const past = cycles.filter(c => c !== ac);
+
+  const actionLabel = ac?.status === 'open' ? 'Move to Review →'
+    : ac?.status === 'review' ? 'Lock Payroll 🔒'
+    : ac?.status === 'locked' ? 'Close & Distribute Payslips ✓'
+    : null;
+
+  return (
+    <div className="min-h-screen bg-[#0f172a]">
+      <div className="border-b border-slate-700/60 bg-slate-900/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-xl font-black text-slate-100 tracking-tight">Payroll</h1>
+            <p className="text-xs text-slate-400 mt-0.5">{ac ? ac.name : 'No active cycle'}</p>
+          </div>
+          {isHR && (
+            <div className="flex items-center gap-2">
+              <a href="/en/payroll/employees" className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Compensations</a>
+              <a href="/en/payroll/concepts"  className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Concepts</a>
+              <button onClick={() => setNewOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors">
+                <Plus className="h-4 w-4" /> New Cycle
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      <Wrapper loading={loading} error={error} onRetry={refetch}>
-        <PayrollTable records={records} onRefetch={refetch} />
-      </Wrapper>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {loading ? (
+          <div className="py-20 flex justify-center"><div className="h-6 w-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" /></div>
+        ) : !ac ? (
+          <div className="py-20 text-center space-y-3">
+            <p className="text-slate-400 font-semibold">No payroll cycles yet</p>
+            {isHR && <button onClick={() => setNewOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors"><Plus className="h-4 w-4" /> Create First Cycle</button>}
+          </div>
+        ) : (
+          <>
+            {/* Active Cycle Card */}
+            <div className={cn('bg-[#1e293b] border border-slate-700/60 rounded-2xl p-6 border-l-4', cfg!.border)}>
+              <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="text-lg font-black text-slate-100">{ac.name}</h2>
+                    <span className={cn('text-xs font-bold px-2.5 py-1 rounded-full', cfg!.badge)}>{cfg!.label}</span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {fmtDate(ac.period.startDate)} – {fmtDate(ac.period.endDate)}
+                    {ac.payDate && ` · Pay date: ${fmtDate(ac.payDate)}`} · {ac.employeeCount} employees
+                  </p>
+                </div>
+                <Pipeline status={ac.status} />
+              </div>
 
-      {showGenerate && (
-        <GeneratePayrollModal
-          defaultMonth={month}
-          defaultYear={year}
-          onClose={() => setShowGenerate(false)}
-          onSuccess={refetch}
-        />
-      )}
+              {ac.status !== 'open' && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                  {[
+                    { label: 'Total Gross',     value: fmt(ac.totalGross, cur)      },
+                    { label: 'Total Deductions',value: fmt(ac.totalDeductions, cur) },
+                    { label: 'Total Net',       value: fmt(ac.totalNet, cur)        },
+                    { label: 'Employees',       value: String(ac.employeeCount)     },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="bg-slate-900/60 rounded-xl px-4 py-3">
+                      <p className="text-[11px] text-slate-500 uppercase tracking-wide">{label}</p>
+                      <p className="text-base font-bold text-slate-100 mt-0.5">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {ac.hasExceptions && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2 text-sm text-amber-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    {ac.exceptionCount} employee{ac.exceptionCount !== 1 ? 's have' : ' has'} issues that need attention
+                  </div>
+                  <button onClick={() => setExcOpen(true)} className="text-xs font-bold text-amber-400 hover:text-amber-300 underline">Review exceptions</button>
+                </div>
+              )}
+
+              {isHR && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  {actionLabel && (
+                    <button onClick={advanceStatus} disabled={advancing}
+                      className={cn('px-5 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50',
+                        ac.status === 'review' ? 'bg-amber-500 hover:bg-amber-400 text-white' :
+                        ac.status === 'locked' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' :
+                                                  'bg-indigo-600 hover:bg-indigo-500 text-white')}>
+                      {advancing && <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                      {actionLabel}
+                    </button>
+                  )}
+                  {(ac.status === 'review' || ac.status === 'locked') && results.some(r => r.status === 'pending') && (
+                    <button onClick={approveAll} className="px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-sm font-bold hover:bg-emerald-500/20 transition-colors">Approve All</button>
+                  )}
+                  {(ac.status === 'locked' || ac.status === 'closed') && (
+                    <button onClick={() => downloadFile(`${API_BASE_URL}/payroll/cycles/${ac._id}/export`, `payroll-${ac._id}.csv`).catch(err => alert(err.message))}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">
+                      <Download className="h-4 w-4" /> Export CSV
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Employee Results Table */}
+            {results.length > 0 && (
+              <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-100">Employee Payroll Review</h3>
+                  <span className="text-xs text-slate-500">{results.length} employees</span>
+                </div>
+                <div className="grid border-b border-slate-700 bg-slate-800/60" style={{ gridTemplateColumns: '1fr 110px 110px 110px 80px 80px' }}>
+                  {['Employee','Gross','Deductions','Net','Status','Actions'].map(h => (
+                    <div key={h} className="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{h}</div>
+                  ))}
+                </div>
+                {results.map(r => {
+                  const initials = (r.employee?.fullName ?? '?').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+                  const sCfg = r.status === 'paid' || r.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400'
+                    : r.hasException ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400';
+                  const sLabel = r.status === 'paid' ? 'Paid' : r.status === 'approved' ? 'Approved' : r.hasException ? 'Issues' : 'Pending';
+                  return (
+                    <div key={r._id} onClick={() => setDetailR(r)} style={{ gridTemplateColumns: '1fr 110px 110px 110px 80px 80px' }}
+                      className="grid border-b border-slate-700/60 last:border-0 hover:bg-slate-800/30 transition-colors cursor-pointer items-center">
+                      <div className="px-4 py-3 flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-300 shrink-0">{initials}</div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-200 truncate">{r.employee?.fullName}</p>
+                          <p className="text-[10px] text-slate-500">{r.employee?.department}</p>
+                        </div>
+                        {r.hasException && <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
+                      </div>
+                      <div className="px-4 py-3 text-sm text-slate-300">{fmt(r.grossPay, cur)}</div>
+                      <div className="px-4 py-3 text-sm text-slate-300">{fmt(r.totalDeductions, cur)}</div>
+                      <div className="px-4 py-3 text-sm font-bold text-slate-100">{fmt(r.netPay, cur)}</div>
+                      <div className="px-4 py-3"><span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', sCfg)}>{sLabel}</span></div>
+                      <div className="px-4 py-3 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        {isHR && r.status === 'pending' && (
+                          <button onClick={() => approveEmployee(r._id)} className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-colors">
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {r.payslipUrl && (
+                          <button onClick={e => { e.stopPropagation(); downloadFile(r.payslipUrl!, 'payslip.pdf').catch(err => alert(err.message)); }}
+                            className="h-7 w-7 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Past Cycles */}
+            {past.length > 0 && (
+              <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-700"><h3 className="text-sm font-bold text-slate-100">Past Cycles</h3></div>
+                <div className="grid border-b border-slate-700 bg-slate-800/60" style={{ gridTemplateColumns: '1fr 110px 80px 120px 120px 90px' }}>
+                  {['Period','Pay Date','Employees','Gross','Net','Status'].map(h => (
+                    <div key={h} className="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{h}</div>
+                  ))}
+                </div>
+                {past.map(c => (
+                  <div key={c._id} style={{ gridTemplateColumns: '1fr 110px 80px 120px 120px 90px' }}
+                    className="grid border-b border-slate-700/60 last:border-0 hover:bg-slate-800/30 transition-colors items-center">
+                    <div className="px-4 py-3 text-sm font-medium text-slate-200">{c.name}</div>
+                    <div className="px-4 py-3 text-xs text-slate-400">{fmtDate(c.payDate)}</div>
+                    <div className="px-4 py-3 text-sm text-slate-300">{c.employeeCount}</div>
+                    <div className="px-4 py-3 text-sm text-slate-300">{fmt(c.totalGross, c.currency)}</div>
+                    <div className="px-4 py-3 text-sm font-semibold text-slate-100">{fmt(c.totalNet, c.currency)}</div>
+                    <div className="px-4 py-3"><span className={cn('text-[10px] font-bold px-2.5 py-1 rounded-full', STATUS_CFG[c.status].badge)}>{STATUS_CFG[c.status].label}</span></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {newOpen   && <NewCycleModal onClose={() => setNewOpen(false)} onCreated={fetchCycles} />}
+      {excOpen   && ac && <ExceptionsPanel cycleId={ac._id} onClose={() => setExcOpen(false)} />}
+      {detailR   && ac && <ResultModal r={detailR} cur={cur} onClose={() => setDetailR(null)} onApprove={() => approveEmployee(detailR._id)} isHR={isHR} />}
     </div>
   );
 }

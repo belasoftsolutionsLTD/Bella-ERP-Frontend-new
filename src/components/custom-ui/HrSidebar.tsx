@@ -1,31 +1,39 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import {
-  LayoutDashboard, Users, UserPlus, ClipboardList, Calendar,
-  CheckSquare, DollarSign, TrendingUp, Menu, X, UserCircle,
+  LayoutDashboard, Users, UserPlus, ClipboardList,
+  DollarSign, TrendingUp, Menu, X, UserCircle,
   Settings, ShieldCheck, Megaphone, BarChart2, Award, ListTodo,
-  Receipt, CalendarDays, ChevronDown,
+  Receipt, Search, LogOut, Clock, ChevronLeft, ChevronRight,
+  GitBranch, FolderOpen, UserMinus, Building2, ShoppingCart,
+  Briefcase, CalendarDays, Monitor, BookOpen, Bell, Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 
-interface NavItem { href: string; label: string; icon: React.ElementType; roles?: string[] }
-interface NavGroup { label: string; icon: React.ElementType; color: string; items: NavItem[] }
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  roles?: string[];
+}
 
 export function HrSidebar() {
-  const [collapsed, setCollapsed]       = useState(false);
-  const [mobileOpen, setMobileOpen]     = useState(false);
-  const [openGroups, setOpenGroups]     = useState<Record<string, boolean>>({});
-  const [companyName, setCompanyName]   = useState('');
-  const [hasLogo, setHasLogo]           = useState(false);
+  const [collapsed, setCollapsed]   = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [hasLogo, setHasLogo]       = useState(false);
+  const [search, setSearch]         = useState('');
+
   const locale   = useLocale();
   const pathname = usePathname();
-  const { userData } = useAuth();
+  const router   = useRouter();
+  const { userData, logout } = useAuth();
   const role = userData?.role ?? '';
 
   useEffect(() => {
@@ -40,185 +48,269 @@ export function HrSidebar() {
     });
   }, []);
 
-  // ── Nav groups definition ─────────────────────────────────────────────────
-  const allGroups: NavGroup[] = [
-    {
-      label: 'People',
-      icon: Users,
-      color: '#818cf8',
-      items: [
-        { href: `/${locale}/employees`,   label: 'Employees',   icon: Users,        roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/recruitment`, label: 'Recruitment', icon: UserPlus,     roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/onboarding`,  label: 'Onboarding',  icon: ClipboardList,roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/performance`, label: 'Performance', icon: TrendingUp,   roles: ['super_admin', 'hr_manager', 'department_head'] },
-      ],
-    },
-    {
-      label: 'Time & Attendance',
-      icon: Calendar,
-      color: '#fbbf24',
-      items: [
-        { href: `/${locale}/leave`,       label: 'Leave',       icon: Calendar,     roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/attendance`,  label: 'Attendance',  icon: CheckSquare,  roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/events`,      label: 'Events',      icon: CalendarDays, roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/tasks`,       label: 'Tasks',       icon: ListTodo,     roles: ['super_admin', 'hr_manager'] },
-      ],
-    },
-    {
-      label: 'Finance',
-      icon: DollarSign,
-      color: '#34d399',
-      items: [
-        { href: `/${locale}/payroll`,     label: 'Payroll',     icon: DollarSign,   roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/expenses`,    label: 'Expenses',    icon: Receipt,      roles: ['super_admin', 'hr_manager'] },
-      ],
-    },
-    {
-      label: 'Insights & Admin',
-      icon: BarChart2,
-      color: '#c084fc',
-      items: [
-        { href: `/${locale}/communications`, label: 'Communications', icon: Megaphone,  roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/reports`,        label: 'Reports',        icon: BarChart2,  roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/certifications`, label: 'Awards',         icon: Award,      roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/config`,         label: 'Configuration',  icon: Settings,   roles: ['super_admin', 'hr_manager'] },
-        { href: `/${locale}/accounts`,       label: 'User Accounts',  icon: ShieldCheck,roles: ['super_admin', 'hr_manager'] },
-      ],
-    },
+  // ── Nav definitions ──────────────────────────────────────────────────────────
+  const youItems: NavItem[] = [
+    { href: `/${locale}/staff-portal`,  label: 'Staff Portal',  icon: UserCircle, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] },
+    { href: `/${locale}/tasks`,         label: 'Tasks',         icon: ListTodo,   roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/inbox`,         label: 'Inbox',         icon: Inbox,      roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/training`,      label: 'Training',      icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/notifications`, label: 'Notifications', icon: Bell,       roles: ['super_admin', 'hr_manager', 'department_head'] },
   ];
 
-  // Standalone items (not inside any group)
-  const standaloneTop: NavItem[] = [
+  const overviewItems: NavItem[] = [
     { href: `/${locale}/dashboard`, label: 'Dashboard', icon: LayoutDashboard, roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/reports`,   label: 'Reports',   icon: BarChart2,       roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/org-chart`, label: 'Org Chart', icon: GitBranch,       roles: ['super_admin', 'hr_manager', 'department_head'] },
   ];
-  const standaloneBottom: NavItem[] = [
-    { href: `/${locale}/staff-portal`, label: 'Staff Portal', icon: UserCircle, roles: ['super_admin', 'hr_manager', 'staff', 'department_head'] },
+
+  const hrPeopleItems: NavItem[] = [
+    { href: `/${locale}/employees`,   label: 'Employees',    icon: Users,        roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/recruitment`, label: 'Recruitment',  icon: UserPlus,     roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/onboarding`,  label: 'Onboarding',   icon: ClipboardList,roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/offboarding`, label: 'Offboarding',  icon: UserMinus,    roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/documents`,   label: 'Documents',    icon: FolderOpen,   roles: ['super_admin', 'hr_manager'] },
   ];
 
-  // Filter by role
-  const visibleGroups = allGroups.map(g => ({
-    ...g,
-    items: g.items.filter(i => !i.roles || i.roles.includes(role)),
-  })).filter(g => g.items.length > 0);
+  const timeWorkItems: NavItem[] = [
+    { href: `/${locale}/leave-management`, label: 'Leave',          icon: CalendarDays, roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/attendance`,       label: 'Time & Attendance', icon: Clock,     roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/performance`,      label: 'Performance',    icon: TrendingUp,   roles: ['super_admin', 'hr_manager', 'department_head'] },
+  ];
 
-  const filterStandalone = (items: NavItem[]) => items.filter(i => !i.roles || i.roles.includes(role));
+  const financeItems: NavItem[] = [
+    { href: `/${locale}/payroll`,          label: 'Payroll',            icon: DollarSign, roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/expenses`,         label: 'Expenses',           icon: Receipt,    roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/finance/workspace`,label: 'Financial Workspace',icon: Building2,  roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/projects`,         label: 'Projects',           icon: Briefcase,  roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/spending`,         label: 'Spending',           icon: ShoppingCart, roles: ['super_admin', 'hr_manager'] },
+  ];
 
-  // Auto-open the group that contains the active route
-  useEffect(() => {
-    const initial: Record<string, boolean> = {};
-    visibleGroups.forEach(g => {
-      const hasActive = g.items.some(i => pathname.startsWith(i.href));
-      initial[g.label] = hasActive;
-    });
-    setOpenGroups(initial);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  const companyItems: NavItem[] = [
+    { href: `/${locale}/communications`, label: 'Communications',   icon: Megaphone,  roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/certifications`, label: 'Awards & Recognition', icon: Award, roles: ['super_admin', 'hr_manager', 'department_head'] },
+    { href: `/${locale}/assets-management`,  label: 'Asset Management',  icon: Monitor,    roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/settings`,       label: 'Settings',       icon: Settings,   roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/config`,         label: 'Configuration',  icon: ShieldCheck,roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/accounts`,       label: 'User Accounts',  icon: UserCircle, roles: ['super_admin', 'hr_manager'] },
+  ];
 
-  const toggleGroup = (label: string) =>
-    setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  const filter = (items: NavItem[]) =>
+    items.filter(i => !i.roles || i.roles.includes(role));
 
-  // ── Render helpers ────────────────────────────────────────────────────────
+  const filterSearch = (items: NavItem[]) =>
+    search.trim()
+      ? items.filter(i => i.label.toLowerCase().includes(search.toLowerCase()))
+      : items;
+
+  const visibleYou      = filterSearch(filter(youItems));
+  const visibleOverview = filterSearch(filter(overviewItems));
+  const visibleHrPeople = filterSearch(filter(hrPeopleItems));
+  const visibleTimeWork = filterSearch(filter(timeWorkItems));
+  const visibleFinance  = filterSearch(filter(financeItems));
+  const visibleCompany  = filterSearch(filter(companyItems));
+
+  const allSearchResults = search.trim()
+    ? [...visibleOverview, ...visibleHrPeople, ...visibleTimeWork, ...visibleFinance, ...visibleCompany]
+    : [];
+
+  const initials  = userData?.name
+    ? userData.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
+    : 'U';
+  const roleLabel = role.replace(/_/g, ' ');
+
+  const handleLogout = () => { logout(); router.push(`/${locale}/login`); };
+
+  // ── Sub-components ───────────────────────────────────────────────────────────
   const NavLink = ({ href, label, icon: Icon }: NavItem) => {
-    const active = pathname.startsWith(href);
+    const active = pathname === href || pathname.startsWith(href + '/');
     return (
-      <Link href={href} onClick={() => setMobileOpen(false)}
+      <Link
+        href={href}
+        onClick={() => setMobileOpen(false)}
+        title={collapsed ? label : undefined}
         className={cn(
-          'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium',
-          active ? 'bg-accent text-primary' : 'text-white/70 hover:bg-white/10 hover:text-white',
-        )}>
-        <Icon className="h-4.5 w-4.5 shrink-0" />
-        {!collapsed && <span>{label}</span>}
+          'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group',
+          active
+            ? 'bg-indigo-950/60 text-indigo-300 font-semibold'
+            : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200',
+        )}
+      >
+        {active && (
+          <span className="absolute left-0 inset-y-1.5 w-[3px] bg-indigo-500 rounded-r-full" />
+        )}
+        <Icon className={cn(
+          'shrink-0 transition-colors',
+          collapsed ? 'h-[18px] w-[18px]' : 'h-4 w-4',
+          active ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300',
+        )} />
+        {!collapsed && <span className="truncate">{label}</span>}
       </Link>
     );
   };
 
+  const SectionLabel = ({ label }: { label: string }) => {
+    if (collapsed) return <div className="my-2 h-px bg-slate-800" />;
+    return (
+      <p className="px-3 pt-5 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 select-none">
+        {label}
+      </p>
+    );
+  };
+
   const SidebarContent = () => (
-    <nav className="flex flex-col h-full">
-      {/* Brand header */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10">
-        <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center shrink-0 overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
+
+      {/* ── Brand header ──────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-800 shrink-0">
+        <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
           {hasLogo
             ? <img src={`${API_BASE_URL}/public/company-logo`} alt="logo" className="h-full w-full object-contain" />
-            : <span className="text-primary font-bold text-sm">{companyName ? companyName.slice(0, 2).toUpperCase() : 'SE'}</span>
+            : <span className="text-white font-bold text-xs leading-none">{companyName ? companyName.slice(0, 2).toUpperCase() : 'HR'}</span>
           }
         </div>
         {!collapsed && (
-          <span className="font-bold text-white text-sm truncate">{companyName || 'School ERP'}</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-slate-100 text-sm leading-tight truncate">{companyName || 'Bela ERP'}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">HR Management</p>
+          </div>
         )}
       </div>
 
-      {/* Scrollable nav */}
-      <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-
-        {/* Standalone: Dashboard */}
-        {filterStandalone(standaloneTop).map(item => (
-          <NavLink key={item.href} {...item} />
-        ))}
-
-        {/* Grouped sections */}
-        {visibleGroups.map(group => {
-          const isOpen = !!openGroups[group.label];
-          const hasActive = group.items.some(i => pathname.startsWith(i.href));
-
-          if (collapsed) {
-            // In collapsed mode just show icons — no group header
-            return group.items.map(item => <NavLink key={item.href} {...item} />);
-          }
-
-          return (
-            <div key={group.label} className="mt-1">
-              {/* Group header button */}
-              <button
-                onClick={() => toggleGroup(group.label)}
-                className={cn(
-                  'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold uppercase tracking-widest',
-                  hasActive ? 'text-white/90' : 'text-white/40 hover:text-white/70',
-                )}
-              >
-                <group.icon className="h-3.5 w-3.5 shrink-0" style={{ color: group.color }} />
-                <span className="flex-1 text-left">{group.label}</span>
-                <ChevronDown className={cn(
-                  'h-3 w-3 transition-transform duration-200 shrink-0',
-                  isOpen ? 'rotate-180' : '',
-                  hasActive ? 'text-white/60' : 'text-white/25',
-                )} />
-              </button>
-
-              {/* Items */}
-              {isOpen && (
-                <div className="ml-3 mt-0.5 pl-3 border-l border-white/10 space-y-0.5">
-                  {group.items.map(item => <NavLink key={item.href} {...item} />)}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Standalone: Staff Portal */}
-        <div className="mt-1">
-          {filterStandalone(standaloneBottom).map(item => (
-            <NavLink key={item.href} {...item} />
-          ))}
+      {/* ── Search ────────────────────────────────────────────────────────── */}
+      {!collapsed && (
+        <div className="px-3 py-2.5 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-2 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
+            <Search className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="flex-1 text-sm bg-transparent outline-none text-slate-300 placeholder:text-slate-600 min-w-0"
+            />
+          </div>
         </div>
+      )}
+
+      {/* ── Nav ───────────────────────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700">
+
+        {/* Overview — always first */}
+        {visibleOverview.length > 0 && (
+          <>
+            <SectionLabel label="Overview" />
+            {visibleOverview.map(item => <NavLink key={item.href} {...item} />)}
+          </>
+        )}
+
+        {/* You */}
+        {visibleYou.length > 0 && (
+          <>
+            <SectionLabel label="You" />
+            {visibleYou.map(item => <NavLink key={item.href} {...item} />)}
+          </>
+        )}
+
+        {/* Search mode: flat list across all categories */}
+        {search.trim() ? (
+          <>
+            {allSearchResults.length > 0
+              ? (<>
+                  <SectionLabel label="Results" />
+                  {allSearchResults.map(item => <NavLink key={item.href} {...item} />)}
+                </>)
+              : visibleYou.length === 0 && visibleOverview.length === 0 && (
+                  <p className="text-xs text-slate-500 text-center py-6">No results for &ldquo;{search}&rdquo;</p>
+                )
+            }
+          </>
+        ) : (
+          <>
+            {/* HR & People */}
+            {visibleHrPeople.length > 0 && (
+              <>
+                <SectionLabel label="HR & People" />
+                {visibleHrPeople.map(item => <NavLink key={item.href} {...item} />)}
+              </>
+            )}
+
+            {/* Time & Performance */}
+            {visibleTimeWork.length > 0 && (
+              <>
+                <SectionLabel label="Time & Performance" />
+                {visibleTimeWork.map(item => <NavLink key={item.href} {...item} />)}
+              </>
+            )}
+
+            {/* Finance */}
+            {visibleFinance.length > 0 && (
+              <>
+                <SectionLabel label="Finance" />
+                {visibleFinance.map(item => <NavLink key={item.href} {...item} />)}
+              </>
+            )}
+
+            {/* Company */}
+            {visibleCompany.length > 0 && (
+              <>
+                <SectionLabel label="Company" />
+                {visibleCompany.map(item => <NavLink key={item.href} {...item} />)}
+              </>
+            )}
+          </>
+        )}
+      </nav>
+
+      {/* ── Bottom: user + logout ─────────────────────────────────────────── */}
+      <div className="border-t border-slate-800 px-3 py-3 shrink-0">
+        {!collapsed ? (
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-full bg-indigo-700 flex items-center justify-center shrink-0">
+              <span className="text-white text-xs font-bold tracking-wide">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-200 truncate leading-tight">{userData?.name}</p>
+              <p className="text-[10px] text-slate-500 capitalize truncate">{roleLabel}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Log out"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-900/20 transition-colors shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleLogout}
+            title="Log out"
+            className="w-full flex justify-center p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        )}
       </div>
-    </nav>
+    </div>
   );
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-40 h-10 w-10 rounded-lg bg-primary text-white flex items-center justify-center shadow-lg">
+      {/* ── Mobile toggle ─────────────────────────────────────────────────── */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 h-10 w-10 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 flex items-center justify-center shadow-sm hover:bg-slate-800 transition-colors"
+      >
         <Menu className="h-5 w-5" />
       </button>
 
-      {/* Mobile overlay */}
+      {/* ── Mobile overlay ────────────────────────────────────────────────── */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <div className="relative z-10 w-64 bg-primary h-full">
-            <button onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 text-white/60 hover:text-white">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="relative z-10 w-64 bg-[#0f172a] h-full shadow-2xl border-r border-slate-800">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors"
+            >
               <X className="h-5 w-5" />
             </button>
             <SidebarContent />
@@ -226,14 +318,17 @@ export function HrSidebar() {
         </div>
       )}
 
-      {/* Desktop sidebar */}
+      {/* ── Desktop sidebar ───────────────────────────────────────────────── */}
       <aside className={cn(
-        'hidden md:flex flex-col bg-primary h-full transition-all duration-200 shrink-0 relative',
-        collapsed ? 'w-16' : 'w-56',
+        'hidden md:flex flex-col bg-[#0f172a] border-r border-slate-800 h-full transition-all duration-200 shrink-0 relative',
+        collapsed ? 'w-[64px]' : 'w-[240px]',
       )}>
-        <button onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-6 h-6 w-6 rounded-full bg-accent text-primary flex items-center justify-center shadow-md z-10 text-sm font-bold">
-          {collapsed ? '›' : '‹'}
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-[22px] h-6 w-6 rounded-full bg-slate-800 border border-slate-700 text-slate-500 hover:text-slate-200 hover:border-slate-500 flex items-center justify-center shadow-sm z-10 transition-colors"
+        >
+          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
         <SidebarContent />
       </aside>

@@ -6,7 +6,7 @@ import { CurrencyInput } from '@/components/custom-ui/CurrencyInput';
 import { fmtNumber } from '@/lib/utils';
 import type { ConfigItem } from '../Hooks/useHrConfig';
 
-interface Column { key: keyof ConfigItem; label: string; type?: 'number' | 'text' }
+interface Column { key: keyof ConfigItem; label: string; type?: 'number' | 'integer' | 'text' | 'checkbox' }
 
 interface Props {
   title: string;
@@ -31,7 +31,9 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
     const data: Record<string, unknown> = {};
     columns.forEach(({ key, type }) => {
       const val = form[key as string];
-      data[key as string] = type === 'number' ? (val ? Number(val) : null) : val;
+      if (type === 'number' || type === 'integer') data[key as string] = val ? Number(val) : null;
+      else if (type === 'checkbox') data[key as string] = val === 'true';
+      else data[key as string] = val;
     });
     if (editId) { onUpdate(editId, data); }
     else { onCreate(data); }
@@ -68,6 +70,27 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
                   value={form[key as string] ?? ''}
                   onChange={(raw) => setForm((f) => ({ ...f, [key as string]: raw }))}
                 />
+              ) : type === 'integer' ? (
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form[key as string] ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, [key as string]: e.target.value }))}
+                  className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
+                />
+              ) : type === 'checkbox' ? (
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, [key as string]: f[key as string] === 'true' ? 'false' : 'true' }))}
+                  className={`h-10 w-20 rounded-xl border text-xs font-semibold transition-colors ${
+                    form[key as string] === 'true'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      : 'bg-gray-50 border-gray-200 text-foreground/50'
+                  }`}
+                >
+                  {form[key as string] === 'true' ? 'Enabled' : 'Disabled'}
+                </button>
               ) : (
                 <input
                   type="text"
@@ -110,7 +133,7 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
                   const val = (item as any)[key];
                   return (
                     <td key={key as string} className="px-4 py-3">
-                      {val == null ? '—' : type === 'number' ? fmtNumber(val) : String(val)}
+                      {val == null ? '—' : type === 'number' ? fmtNumber(val) : type === 'integer' ? String(val) : type === 'checkbox' ? (val ? 'Enabled' : 'Disabled') : String(val)}
                     </td>
                   );
                 })}

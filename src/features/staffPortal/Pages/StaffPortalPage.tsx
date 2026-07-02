@@ -54,7 +54,7 @@ export default function StaffPortalPage() {
 }
 
 function HrStaffPortalView() {
-  const { employees, listLoading, search, setSearch, selectedId, selectEmployee, detail } = useStaffPortal();
+  const { employees, listLoading, search, setSearch, total, hasMore, loadMore, selectedId, selectEmployee, detail } = useStaffPortal();
   const [detailTab, setDetailTab] = useState<DetailTab>('profile');
   const [showLeaveModal, setShowLeaveModal] = useState(false);
 
@@ -77,7 +77,7 @@ function HrStaffPortalView() {
         </div>
         <div className="hidden sm:flex items-center gap-6 text-sm shrink-0">
           <div className="text-center">
-            <p className="text-2xl font-bold">{employees.length}</p>
+            <p className="text-2xl font-bold">{total}</p>
             <p className="text-white/60 text-xs">Total Staff</p>
           </div>
           <div className="w-px h-10 bg-white/20" />
@@ -151,8 +151,19 @@ function HrStaffPortalView() {
             )}
           </div>
 
+          {hasMore && (
+            <div className="px-3 py-2 border-t">
+              <button
+                onClick={loadMore}
+                disabled={listLoading}
+                className="w-full text-xs font-semibold text-primary hover:text-primary/80 py-1.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+              >
+                {listLoading ? 'Loading…' : `Load more (${total - employees.length} remaining)`}
+              </button>
+            </div>
+          )}
           <div className="px-4 py-2 border-t bg-gray-50 text-xs text-foreground/40 font-medium">
-            {employees.length} staff member{employees.length !== 1 ? 's' : ''}
+            {search ? `${employees.length} of ${total} staff` : `${total} staff member${total !== 1 ? 's' : ''}`}
           </div>
         </div>
 
@@ -268,7 +279,8 @@ function ProfileView({ emp }: { emp: StaffEmployee }) {
       <InfoCard icon={Mail}         label="Email"           value={emp.email || '—'}         color="text-blue-600" />
       <InfoCard icon={Phone}        label="Phone"           value={emp.phone || '—'}         color="text-green-600" />
       <InfoCard icon={Briefcase}    label="Department"      value={emp.department || '—'}    color="text-violet-600" />
-      <InfoCard icon={UserCheck}    label="Employment Type" value={emp.staffCategory || '—'} color="text-amber-600" />
+      <InfoCard icon={UserCheck}    label="Employment Type" value={emp.employmentType || '—'} color="text-amber-600" />
+      <InfoCard icon={Users}        label="Staff Category"  value={emp.staffCategory || '—'} color="text-teal-600" />
       <InfoCard icon={CalendarDays} label="Date of Hire"    value={emp.dateOfHire ? new Date(emp.dateOfHire).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-rose-600" />
     </div>
   );

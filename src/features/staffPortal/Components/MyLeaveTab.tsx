@@ -10,7 +10,7 @@ export function MyLeaveTab({ balance, requests, employeeId, onRefresh }: Props) 
   return (
     <div className="space-y-5">
       {balance && <LeaveBalanceCard balance={balance} />}
-      <LeaveRequestForm employeeId={employeeId} onSuccess={onRefresh} />
+      <LeaveRequestForm employeeId={employeeId} balance={balance} onSuccess={onRefresh} />
       <LeaveRequestTable requests={requests} />
     </div>
   );

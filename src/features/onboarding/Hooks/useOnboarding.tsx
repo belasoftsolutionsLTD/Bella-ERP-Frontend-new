@@ -5,7 +5,7 @@ import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 
 export interface OnboardingEntry {
-  employee: { _id: string; fullName: string; staffNumber: string; department: string };
+  employee: { _id: string; fullName: string; staffNumber: string; department: string; designation?: string };
   total: number;
   completed: number;
   percentage: number;

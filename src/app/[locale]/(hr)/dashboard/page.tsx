@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
-import HrDashboardPage from '@/features/hrDashboard/Pages/HrDashboardPage';
+import DashboardPage from '@/features/dashboard/Pages/DashboardPage';
 
 export default function Page({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
-  return <HrDashboardPage />;
+  return <DashboardPage />;
 }

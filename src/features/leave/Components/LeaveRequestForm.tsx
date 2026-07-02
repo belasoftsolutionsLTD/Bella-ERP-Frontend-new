@@ -7,8 +7,17 @@ import { Button } from '@/components/ui/button';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { leaveRequestSchema, type LeaveRequestFormValues } from './LeaveSchema';
+import type { LeaveBalance } from './useLeave';
 
-export function LeaveRequestForm({ employeeId, onSuccess }: { employeeId: string; onSuccess?: () => void }) {
+export function LeaveRequestForm({
+  employeeId,
+  onSuccess,
+  balance,
+}: {
+  employeeId: string;
+  onSuccess?: () => void;
+  balance?: LeaveBalance | null;
+}) {
   const t = useTranslations('Leave');
   const tc = useTranslations('Common');
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<LeaveRequestFormValues>({
@@ -23,7 +32,19 @@ export function LeaveRequestForm({ employeeId, onSuccess }: { employeeId: string
     thenFn: () => onSuccess?.(),
   });
 
-  const leaveOptions = ['annual','sick','maternity','paternity','unpaid','emergency'].map((v) => ({ value: v, label: (t as any)(v) }));
+  const fallbackLeaveTypes = ['annual', 'sick', 'maternity', 'paternity', 'unpaid', 'emergency'];
+  const leaveOptions = Object.entries(balance?.balances ?? {})
+    .map(([value]) => ({
+      value,
+      label: (t as any)(value) || value.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    }))
+    .filter((opt) => opt.value)
+    .concat(
+      balance ? [] : fallbackLeaveTypes.map((value) => ({
+        value,
+        label: (t as any)(value) || value.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      }))
+    );
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-4">

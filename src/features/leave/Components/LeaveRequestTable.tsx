@@ -13,7 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending:  'bg-yellow-100 text-yellow-700',
   approved: 'bg-emerald-100 text-emerald-700',
   rejected: 'bg-red-100 text-red-700',
-  disputed: 'bg-orange-100 text-orange-700',
+  disputed: 'bg-amber-100 text-amber-700',
 };
 
 interface Props {
@@ -67,10 +67,10 @@ export function LeaveRequestTable({ requests, onApprove, onReject, onRevoke, onR
 
   const closeModal = () => { setModal(null); setComment(''); };
 
-  const act = async (fn?: (id: string, ...args: any[]) => void, ...args: any[]) => {
+  const act = (fn?: (id: string, ...args: any[]) => void, ...args: any[]) => {
     if (!fn || !modal) return;
     setBusy(true);
-    await fn(modal._id, ...args);
+    fn(modal._id, ...args);
     setBusy(false);
     closeModal();
   };
@@ -150,11 +150,11 @@ export function LeaveRequestTable({ requests, onApprove, onReject, onRevoke, onR
                           </>
                         )}
                         {r.status === 'approved' && (
-                          <ActionBtn icon={RotateCcw} label="Revoke" color="text-orange-500 hover:bg-orange-50"
+                          <ActionBtn icon={RotateCcw} label="Revoke" color="text-amber-500 hover:bg-amber-50"
                             onClick={() => { setModal(r); setComment(''); }} />
                         )}
                         {r.status === 'disputed' && (
-                          <ActionBtn icon={AlertTriangle} label="Review Dispute" color="text-orange-600 hover:bg-orange-50"
+                          <ActionBtn icon={AlertTriangle} label="Review Dispute" color="text-amber-600 hover:bg-amber-50"
                             onClick={() => { setModal(r); setComment(''); }} />
                         )}
                         {/* Delete — confirm inline */}
@@ -187,7 +187,7 @@ export function LeaveRequestTable({ requests, onApprove, onReject, onRevoke, onR
             <div className={cn('px-6 py-4 flex items-center justify-between',
               modal.status === 'pending'  ? 'bg-yellow-50 border-b border-yellow-200' :
               modal.status === 'approved' ? 'bg-emerald-50 border-b border-emerald-200' :
-              modal.status === 'disputed' ? 'bg-orange-50 border-b border-orange-200' :
+              modal.status === 'disputed' ? 'bg-amber-50 border-b border-amber-200' :
               'bg-red-50 border-b border-red-200')}>
               <div>
                 <h2 className="font-bold text-foreground text-base capitalize">
@@ -236,11 +236,11 @@ export function LeaveRequestTable({ requests, onApprove, onReject, onRevoke, onR
 
               {/* Dispute reason */}
               {modal.disputeReason && (
-                <div className="rounded-xl bg-orange-50 border border-orange-200 p-3">
-                  <p className="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                     <AlertTriangle className="h-3.5 w-3.5" /> Dispute Reason
                   </p>
-                  <p className="text-sm text-orange-800 leading-relaxed">{modal.disputeReason}</p>
+                  <p className="text-sm text-amber-800 leading-relaxed">{modal.disputeReason}</p>
                 </div>
               )}
 
@@ -280,7 +280,7 @@ export function LeaveRequestTable({ requests, onApprove, onReject, onRevoke, onR
                     {modal.status === 'approved' && (
                       <ActionModalBtn
                         icon={RotateCcw} label="Revoke Leave" busy={busy}
-                        cls="bg-orange-600 text-white hover:bg-orange-700"
+                        cls="bg-amber-600 text-white hover:bg-amber-700"
                         onClick={() => act(onRevoke, comment || undefined)}
                       />
                     )}

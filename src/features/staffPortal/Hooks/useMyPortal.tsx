@@ -22,7 +22,8 @@ export interface Notification {
   _id: string;
   title: string;
   body: string;
-  type: 'payroll' | 'leave' | 'announcement' | 'onboarding' | 'general';
+  subtitle?: string;
+  type: 'payroll' | 'leave' | 'announcement' | 'onboarding' | 'task' | 'general';
   link?: string;
   read: boolean;
   createdAt: string;
@@ -56,14 +57,28 @@ export interface AppraisalRecord {
   createdAt: string;
 }
 
+export interface OffboardingTask {
+  _id: string;
+  taskTitle: string;
+  taskSection: 'before_last_day' | 'last_day' | 'after_departure';
+  assignedDepartment: string;
+  dueDate: string;
+  status: 'pending' | 'completed';
+  completedAt?: string;
+}
+
 export interface EmployeeTask {
   _id: string;
   title: string;
   description?: string;
+  notes?: string;
   dueDate: string;
   priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in_progress' | 'completed';
+  status: 'not_started' | 'pending' | 'in_progress' | 'completed' | 'overdue' | 'blocked';
+  type?: string;
+  module?: string;
   assignedBy?: string;
+  assignedToName?: string;
   completedAt?: string;
 }
 
@@ -74,6 +89,53 @@ export interface EmpAward {
   year: number;
   notes?: string;
   awardedAt: string;
+}
+
+export interface MyGoal {
+  _id: string;
+  title: string;
+  description?: string;
+  category: string;
+  period: string;
+  status: 'not_started' | 'in_progress' | 'at_risk' | 'completed';
+  progress: number;
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+}
+
+export interface ReviewResult {
+  _id: string;
+  reviewType: 'self' | 'manager';
+  overallRating: number | null;
+  responses: { question?: string; answer?: string }[];
+  cycleName: string | null;
+  submittedAt: string;
+  recommendation?: string | null;
+}
+
+export interface MyProjectTimeEntry {
+  _id: string;
+  hours: number;
+  date: string;
+  description?: string | null;
+  task?: string | null;
+  billable: boolean;
+}
+
+export interface MyProject {
+  _id: string;
+  name: string;
+  code: string;
+  description?: string | null;
+  clientName?: string | null;
+  status: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  currency: string;
+  myRole: string;
+  myHours: number;
+  myRecentEntries: MyProjectTimeEntry[];
 }
 
 export interface ScheduledEvent {
@@ -95,13 +157,17 @@ interface MyPortalState {
   payslips: PayrollSummary[];
   attendance: AttendanceGroup[];
   onboardingTasks: OnboardingTask[];
+  offboardingTasks: OffboardingTask[];
   notifications: Notification[];
   announcements: Announcement[];
   documents: MyDocument[];
   appraisals: AppraisalRecord[];
+  goals: MyGoal[];
+  reviewResults: ReviewResult[];
   awards: EmpAward[];
   events: ScheduledEvent[];
   myTasks: EmployeeTask[];
+  myProjects: MyProject[];
   loading: boolean;
 }
 
@@ -110,8 +176,8 @@ interface Envelope { data: any }
 export function useMyPortal() {
   const [state, setState] = useState<MyPortalState>({
     profile: null, leaveBalance: null, leaveRequests: [], payslips: [],
-    attendance: [], onboardingTasks: [], notifications: [], announcements: [],
-    documents: [], appraisals: [], awards: [], events: [], myTasks: [], loading: true,
+    attendance: [], onboardingTasks: [], offboardingTasks: [], notifications: [], announcements: [],
+    documents: [], appraisals: [], goals: [], reviewResults: [], awards: [], events: [], myTasks: [], myProjects: [], loading: true,
   });
 
   const set = (patch: Partial<MyPortalState>) =>
@@ -125,19 +191,37 @@ export function useMyPortal() {
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/leave/requests`,showToast: false, thenFn: r => set({ leaveRequests: r.data ?? [] }),    catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/payslips`,      showToast: false, thenFn: r => set({ payslips: r.data ?? [] }),         catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/attendance`,    showToast: false, thenFn: r => set({ attendance: r.data ?? [] }),       catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/onboarding`,    showToast: false, thenFn: r => set({ onboardingTasks: r.data ?? [] }),  catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/hr/notifications`, showToast: false, thenFn: r => set({ notifications: r.data ?? [] }),    catchFn: () => {} }),
+      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/onboarding`,    showToast: false, thenFn: r => set({ onboardingTasks: r.data ?? [] }),   catchFn: () => {} }),
+      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/offboarding`,  showToast: false, thenFn: r => set({ offboardingTasks: r.data ?? [] }),  catchFn: () => {} }),
+      apiCallFunction<any>({
+        url: `${API_BASE_URL}/notifications?limit=10&unread=true`,
+        showToast: false,
+        thenFn: r => set({ notifications: (r.data?.data ?? []).map((n: Notification) => ({ ...n, body: n.body || n.subtitle || '' })) }),
+        catchFn: () => {},
+      }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/announcements`, showToast: false, thenFn: r => set({ announcements: r.data ?? [] }),    catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/documents`,     showToast: false, thenFn: r => set({ documents: r.data ?? [] }),        catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/performance`,   showToast: false, thenFn: r => set({ appraisals: r.data ?? [] }),       catchFn: () => {} }),
+      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/performance`, showToast: false, thenFn: r => {
+        const d = r.data;
+        if (d && typeof d === 'object' && 'appraisals' in d) {
+          set({ appraisals: d.appraisals ?? [], goals: d.goals ?? [], reviewResults: d.reviews ?? [] });
+        } else {
+          set({ appraisals: Array.isArray(d) ? d : [] });
+        }
+      }, catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/awards`,        showToast: false, thenFn: r => set({ awards: r.data ?? [] }),            catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/events`,        showToast: false, thenFn: r => set({ events: r.data ?? [] }),            catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/tasks`,         showToast: false, thenFn: r => set({ myTasks: r.data ?? [] }),           catchFn: () => {} }),
+      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/projects`,      showToast: false, thenFn: r => set({ myProjects: r.data ?? [] }),        catchFn: () => {} }),
     ]).finally(() => set({ loading: false }));
   }, []);
 
   const refreshOnboarding = useCallback(() => {
     apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/onboarding`, showToast: false, thenFn: r => set({ onboardingTasks: r.data ?? [] }), catchFn: () => {} });
+  }, []);
+
+  const refreshOffboarding = useCallback(() => {
+    apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/offboarding`, showToast: false, thenFn: r => set({ offboardingTasks: r.data ?? [] }), catchFn: () => {} });
   }, []);
 
   const refreshLeave = useCallback(() => {
@@ -148,23 +232,28 @@ export function useMyPortal() {
   }, []);
 
   const refreshNotifications = useCallback(() => {
-    apiCallFunction<Envelope>({ url: `${API_BASE_URL}/hr/notifications`, showToast: false, thenFn: r => set({ notifications: r.data ?? [] }), catchFn: () => {} });
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/notifications?limit=10&unread=true`,
+      showToast: false,
+      thenFn: r => set({ notifications: (r.data?.data ?? []).map((n: Notification) => ({ ...n, body: n.body || n.subtitle || '' })) }),
+      catchFn: () => {},
+    });
     apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/announcements`, showToast: false, thenFn: r => set({ announcements: r.data ?? [] }), catchFn: () => {} });
   }, []);
 
   const markNotifRead = (id: string) => {
-    apiCallFunction({ url: `${API_BASE_URL}/hr/notifications/${id}/read`, method: 'PATCH', showToast: false });
-    set({ notifications: state.notifications.filter(n => n._id !== id) });
+    apiCallFunction({ url: `${API_BASE_URL}/notifications/${id}/read`, method: 'PUT', showToast: false });
+    setState(prev => ({ ...prev, notifications: prev.notifications.filter(n => n._id !== id) }));
   };
 
   const markAllNotifsRead = () => {
-    apiCallFunction({ url: `${API_BASE_URL}/hr/notifications/read-all`, method: 'PATCH', showToast: false });
-    set({ notifications: [] });
+    apiCallFunction({ url: `${API_BASE_URL}/notifications/read-all`, method: 'PUT', showToast: false });
+    setState(prev => ({ ...prev, notifications: [] }));
   };
 
   const markAnnouncementRead = (id: string) => {
     apiCallFunction({ url: `${API_BASE_URL}/me/announcements/${id}/read`, method: 'PATCH', showToast: false });
-    set({ announcements: state.announcements.map(a => a._id === id ? { ...a, isRead: true } : a) });
+    setState(prev => ({ ...prev, announcements: prev.announcements.map(a => a._id === id ? { ...a, isRead: true } : a) }));
   };
 
   const updateProfile = (data: Record<string, string>) =>
@@ -181,7 +270,7 @@ export function useMyPortal() {
 
   const deleteDocument = (docId: string) => {
     apiCallFunction({ url: `${API_BASE_URL}/me/documents/${docId}`, method: 'DELETE', showToast: false,
-      thenFn: () => set({ documents: state.documents.filter(d => d.docId !== docId) }) });
+      thenFn: () => setState(prev => ({ ...prev, documents: prev.documents.filter(d => d.docId !== docId) })) });
   };
 
   // Poll for new notifications every 60 seconds
@@ -192,5 +281,5 @@ export function useMyPortal() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchAll, refreshNotifications]);
 
-  return { ...state, fetchAll, refreshLeave, refreshNotifications, refreshOnboarding, updateProfile, disputeLeave, markNotifRead, markAllNotifsRead, markAnnouncementRead, refreshDocuments, deleteDocument };
+  return { ...state, fetchAll, refreshLeave, refreshNotifications, refreshOnboarding, refreshOffboarding, updateProfile, disputeLeave, markNotifRead, markAllNotifsRead, markAnnouncementRead, refreshDocuments, deleteDocument };
 }

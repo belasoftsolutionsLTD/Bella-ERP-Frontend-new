@@ -4,25 +4,30 @@ import { useState, useEffect, useRef, Fragment } from 'react';
 import {
   User, CalendarDays, DollarSign, Clock, ClipboardList, Loader2,
   Mail, Phone, Briefcase, Building2, MessageSquare, Plus,
-  CheckCircle2, Circle, ChevronRight, Pencil, X, Save,
+  CheckCircle2, CheckCircle, Circle, ChevronRight, Pencil, X, Save,
   CreditCard, Landmark, Smartphone, AlertTriangle, Bell,
   CheckCheck, FileText, BarChart3, FolderOpen, Shield,
   Upload, Trash2, Download, Printer, Star, TrendingUp, TrendingDown,
-  Trophy, BookOpen, Dumbbell, MapPin, BellOff,
+  Trophy, BookOpen, Dumbbell, MapPin, BellOff, Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/configs/constants';
+import { downloadFile, openFile } from '@/functions/downloadFile';
 import { apiCallFunction } from '@/functions/apiCallFunction';
-import { useMyPortal, type OnboardingTask, type MyDocument, type AppraisalRecord, type EmpAward, type ScheduledEvent, type EmployeeTask } from '../Hooks/useMyPortal';
-import { ChatPanel } from './ChatPanel';
+import { useMyPortal, type OnboardingTask, type OffboardingTask, type MyDocument, type AppraisalRecord, type EmpAward, type ScheduledEvent, type EmployeeTask, type MyGoal, type ReviewResult, type MyProject, type MyProjectTimeEntry } from '../Hooks/useMyPortal';
+import { MyShiftsTab } from './MyShiftsTab';
+import CommunicationPage from '@/features/communication/Pages/CommunicationPage';
+import InboxPage from '@/features/inbox/Pages/InboxPage';
+import AwardsPage from '@/features/awards/Pages/AwardsPage';
 import { LeaveBalanceCard } from '@/features/leave/Components/LeaveBalanceCard';
 import { PayrollTable } from '@/features/payroll/Components/PayrollTable';
 import { AttendanceGrid } from '@/features/attendance/Components/AttendanceGrid';
 import { ClockInWidget } from '@/features/attendance/Components/ClockInWidget';
+import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
 import { LogLeaveModal } from '@/features/leave/Components/LogLeaveModal';
 import type { LeaveRequest } from '@/features/leave/Hooks/useLeave';
 
-type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'onboarding' | 'tasks' | 'payment' | 'messages' | 'documents' | 'performance' | 'awards' | 'events' | 'jd' | 'terms';
+type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'training' | 'jd' | 'terms' | 'expenses' | 'notifications' | 'projects';
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-600',
@@ -43,36 +48,54 @@ const NOTIF_COLORS: Record<string, string> = {
   leave:        'bg-blue-100 text-blue-700',
   announcement: 'bg-violet-100 text-violet-700',
   onboarding:   'bg-amber-100 text-amber-700',
+  task:         'bg-indigo-100 text-indigo-700',
   general:      'bg-gray-100 text-gray-600',
 };
 
 const NAV: { key: Section; label: string; icon: typeof User; description: string }[] = [
-  { key: 'profile',     label: 'My Profile',     icon: User,           description: 'Personal & contact info' },
-  { key: 'leave',       label: 'Leave',           icon: CalendarDays,   description: 'Balance & requests' },
-  { key: 'payslips',    label: 'Payslips',        icon: DollarSign,     description: 'Monthly payroll history' },
-  { key: 'attendance',  label: 'Attendance',      icon: Clock,          description: 'Daily records' },
-  { key: 'onboarding',  label: 'Onboarding',      icon: ClipboardList,  description: 'Tasks & checklist' },
-  { key: 'tasks',       label: 'My Tasks',        icon: CheckCircle2,   description: 'Tasks assigned by HR' },
-  { key: 'documents',   label: 'My Documents',    icon: FolderOpen,     description: 'Certificates & files' },
-  { key: 'performance', label: 'My Performance',  icon: BarChart3,      description: 'Appraisal history' },
-  { key: 'awards',      label: 'My Awards',       icon: Trophy,         description: 'Certifications & recognition' },
-  { key: 'events',      label: 'Events & Schedule', icon: CalendarDays, description: 'Upcoming training & team building' },
-  { key: 'jd',          label: 'Job Description', icon: FileText,       description: 'Your role & responsibilities' },
-  { key: 'payment',     label: 'Payment Methods', icon: CreditCard,     description: 'Bank & M-Pesa details' },
-  { key: 'messages',    label: 'Communication',   icon: MessageSquare,  description: 'Chat & announcements' },
-  { key: 'terms',       label: 'Terms & Conditions', icon: Shield,      description: 'Policies & agreements' },
+  // ── Daily essentials ──
+  { key: 'profile',      label: 'My Profile',          icon: User,          description: 'Personal & contact info' },
+  { key: 'notifications',label: 'Notifications',        icon: Bell,          description: 'Your alerts & updates' },
+  { key: 'inbox',        label: 'Inbox',                icon: Bell,          description: 'Approvals & action items' },
+  // ── Time & attendance ──
+  { key: 'attendance',   label: 'Attendance',           icon: Clock,         description: 'Daily records & clock-in' },
+  { key: 'timesheets',   label: 'Timesheets',           icon: Clock,         description: 'Weekly timesheets & hours logged' },
+  { key: 'shifts',       label: 'My Shifts',            icon: CalendarDays,  description: 'Upcoming shifts & open shift applications' },
+  { key: 'leave',        label: 'Leave',                icon: CalendarDays,  description: 'Balance & requests' },
+  // ── Tasks & work ──
+  { key: 'tasks',        label: 'My Tasks',             icon: CheckCircle2,  description: 'Tasks assigned by HR' },
+  { key: 'projects',     label: 'My Projects',          icon: Briefcase,     description: 'Projects you are a member of' },
+  { key: 'jd',           label: 'Job Description',      icon: FileText,      description: 'Your role & responsibilities' },
+  // ── Finance ──
+  { key: 'payslips',     label: 'Payslips',             icon: DollarSign,    description: 'Monthly payroll history' },
+  { key: 'expenses',     label: 'Expenses',             icon: DollarSign,    description: 'Submit & track claims' },
+  { key: 'payment',      label: 'Payment Methods',      icon: CreditCard,    description: 'Bank & M-Pesa details' },
+  // ── Growth ──
+  { key: 'training',     label: 'Training',             icon: BookOpen,      description: 'Enroll in published courses' },
+  { key: 'performance',  label: 'My Performance',       icon: BarChart3,     description: 'Goals, reviews & appraisal history' },
+  { key: 'awards',       label: 'Awards & Recognition', icon: Trophy,        description: 'Kudos, leaderboard & certifications' },
+  // ── Communication ──
+  { key: 'messages',     label: 'Communication',        icon: MessageSquare, description: 'Feed, 1:1 meetings & announcements' },
+  { key: 'events',       label: 'Events & Schedule',    icon: CalendarDays,  description: 'Upcoming training & team building' },
+  // ── Documents & onboarding ──
+  { key: 'documents',    label: 'My Documents',         icon: FolderOpen,    description: 'Certificates & files' },
+  { key: 'onboarding',   label: 'Onboarding',           icon: ClipboardList, description: 'Tasks & checklist' },
+  { key: 'offboarding',  label: 'Offboarding',          icon: ClipboardList, description: 'Exit checklist' },
+  // ── Policies ──
+  { key: 'terms',        label: 'Terms & Conditions',   icon: Shield,        description: 'Policies & agreements' },
 ];
 
 export function MyPortalView() {
   const {
-    profile, leaveBalance, leaveRequests, payslips, attendance, onboardingTasks,
-    notifications, announcements, documents, appraisals, awards, events, myTasks, loading,
-    refreshLeave, refreshOnboarding, updateProfile, disputeLeave,
-    markNotifRead, markAllNotifsRead, markAnnouncementRead,
+    profile, leaveBalance, leaveRequests, payslips, attendance, onboardingTasks, offboardingTasks,
+    notifications, announcements, documents, appraisals, goals, reviewResults, events, myTasks, myProjects, loading,
+    refreshLeave, refreshOnboarding, refreshOffboarding, updateProfile, disputeLeave,
+    markNotifRead, markAllNotifsRead,
     refreshDocuments, deleteDocument,
   } = useMyPortal();
 
   const [active, setActive]           = useState<Section>('profile');
+  const [showSidebar, setShowSidebar] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [notifsOn, setNotifsOn]       = useState(true);
@@ -107,10 +130,10 @@ export function MyPortalView() {
   );
 
   if (!profile) return (
-    <div className="flex flex-col items-center justify-center h-64 text-foreground/40 gap-3">
-      <User className="h-12 w-12 opacity-30" />
-      <p className="text-sm font-medium">No employee record linked to your account.</p>
-      <p className="text-xs">Contact HR to link your account to an employee record.</p>
+    <div className="flex flex-col items-center justify-center h-64 gap-3">
+      <User className="h-12 w-12 text-slate-500 opacity-50" />
+      <p className="text-sm font-medium text-slate-300">No employee record linked to your account.</p>
+      <p className="text-xs text-slate-500">Contact HR to link your account to an employee record.</p>
     </div>
   );
 
@@ -119,12 +142,15 @@ export function MyPortalView() {
   const unreadNotifs = notifications.length;
   const totalUnread  = unreadNotifs + unreadAnnouncements;
 
-  const pendingTasks = myTasks.filter(t => t.status !== 'completed').length;
+  const pendingTasks        = myTasks.filter(t => t.status !== 'completed').length;
+  const pendingOffboarding  = offboardingTasks.filter(t => t.status !== 'completed').length;
 
   const navBadge = (key: Section) => {
-    if (key === 'onboarding') return pendingOnboarding || null;
-    if (key === 'messages')   return unreadAnnouncements || null;
-    if (key === 'tasks')      return pendingTasks || null;
+    if (key === 'onboarding')    return pendingOnboarding || null;
+    if (key === 'offboarding')   return pendingOffboarding || null;
+    if (key === 'messages')      return unreadAnnouncements || null;
+    if (key === 'tasks')         return pendingTasks || null;
+    if (key === 'notifications') return unreadNotifs || null;
     return null;
   };
 
@@ -139,19 +165,37 @@ export function MyPortalView() {
         />
       )}
 
+      {/* Mobile sidebar backdrop */}
+      {showSidebar && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setShowSidebar(false)} />
+      )}
+
       <div className="flex gap-5 h-[calc(100vh-5rem)] min-h-0">
 
         {/* ── Left sidebar ── */}
-        <aside className="w-64 shrink-0 flex flex-col rounded-2xl border bg-white shadow-sm overflow-hidden">
+        <aside className={cn(
+          'shrink-0 flex flex-col rounded-2xl border bg-white shadow-sm overflow-hidden transition-all',
+          'lg:w-64',
+          showSidebar
+            ? 'fixed inset-y-4 left-4 z-50 w-72 max-h-[calc(100vh-2rem)]'
+            : 'hidden lg:flex',
+        )}>
           <div className="bg-gradient-to-br from-primary to-[#1a3461] p-5 text-white">
             <div className="flex items-center gap-3 mb-3">
               <div className={cn('h-12 w-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg font-bold text-white shrink-0', avatarColor(profile.fullName))}>
                 {profile.fullName.charAt(0).toUpperCase()}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-bold text-sm truncate">{profile.fullName}</p>
                 <p className="text-white/60 text-xs truncate">{profile.designation}</p>
               </div>
+              <button
+                onClick={() => setShowSidebar(false)}
+                className="lg:hidden h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0"
+                aria-label="Close menu"
+              >
+                <X className="h-4 w-4 text-white" />
+              </button>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-mono bg-white/20 px-2 py-0.5 rounded-md">{profile.staffNumber}</span>
@@ -167,7 +211,7 @@ export function MyPortalView() {
               const isActive = active === key;
               const badge = navBadge(key);
               return (
-                <button key={key} onClick={() => setActive(key)}
+                <button key={key} onClick={() => { setActive(key); setShowSidebar(false); }}
                   className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all mb-0.5',
                     isActive ? 'bg-primary text-white shadow-sm' : 'text-foreground/70 hover:bg-gray-50 hover:text-foreground')}>
                   <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0', isActive ? 'bg-white/20' : 'bg-gray-100')}>
@@ -196,15 +240,22 @@ export function MyPortalView() {
               const Icon = item.icon;
               return (
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <button
+                    onClick={() => setShowSidebar(true)}
+                    className="lg:hidden h-9 w-9 rounded-xl bg-gray-100 text-foreground/60 flex items-center justify-center hover:bg-gray-200 transition-colors shrink-0"
+                    aria-label="Open menu"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </button>
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
-                  <div>
-                    <h2 className="font-bold text-foreground">{item.label}</h2>
-                    <p className="text-xs text-foreground/40">{item.description}</p>
+                  <div className="min-w-0">
+                    <h2 className="font-bold text-foreground truncate">{item.label}</h2>
+                    <p className="text-xs text-foreground/40 hidden sm:block">{item.description}</p>
                   </div>
 
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-2 shrink-0">
                     {active === 'leave' && (
                       <button onClick={() => setShowLeaveModal(true)}
                         className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors">
@@ -248,10 +299,10 @@ export function MyPortalView() {
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-semibold text-foreground leading-tight">{n.title}</p>
-                                  <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body}</p>
+                                  <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body || (n as any).subtitle || ''}</p>
                                   <p className="text-xs text-foreground/30 mt-1">{new Date(n.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
                                 </div>
-                                <button onClick={() => markNotifRead(n._id)} className="text-foreground/20 hover:text-foreground shrink-0">
+                                <button onClick={() => markNotifRead(n._id)} className="text-foreground/20 hover:text-foreground shrink-0" aria-label="Dismiss notification">
                                   <X className="h-3.5 w-3.5" />
                                 </button>
                               </div>
@@ -277,7 +328,7 @@ export function MyPortalView() {
           {showNotifPanel && <div className="fixed inset-0 z-40" onClick={() => setShowNotifPanel(false)} />}
 
           <div className="p-6">
-            {active === 'profile'    && <ProfilePanel profile={profile} onSave={updateProfile} />}
+            {active === 'profile'    && <ProfilePanel profile={profile} onSave={updateProfile} onEditPayment={() => setActive('payment')} />}
             {active === 'payment'    && <PaymentPanel profile={profile} onSave={updateProfile} />}
             {active === 'leave'      && <LeavePanel leaveBalance={leaveBalance} leaveRequests={leaveRequests} onDispute={disputeLeave} />}
             {active === 'payslips'   && (
@@ -297,15 +348,37 @@ export function MyPortalView() {
                 </div>
               </div>
             )}
+            {active === 'timesheets'  && <div className="-mx-6"><TimesheetsTab /></div>}
+            {active === 'shifts'      && <MyShiftsTab />}
             {active === 'onboarding'  && <OnboardingTasksPanel tasks={onboardingTasks} onComplete={() => refreshOnboarding()} />}
+            {active === 'offboarding' && <OffboardingPanel tasks={offboardingTasks} onComplete={refreshOffboarding} />}
             {active === 'tasks'       && <MyTasksPanel tasks={myTasks} />}
+            {active === 'projects'    && <MyProjectsPanel projects={myProjects} />}
             {active === 'documents'   && <DocumentsPanel docs={documents} onDeleted={deleteDocument} onUploaded={refreshDocuments} employeeId={profile._id} />}
-            {active === 'performance' && <PerformancePanel appraisals={appraisals} />}
-            {active === 'awards'      && <MyAwardsPanel awards={awards} />}
+            {active === 'performance' && <PerformancePanel appraisals={appraisals} goals={goals} reviewResults={reviewResults} />}
+            {active === 'awards'      && <div className="-m-6"><AwardsPage embedded /></div>}
             {active === 'events'      && <MyEventsPanel events={events} />}
+            {active === 'training'    && <TrainingPanel />}
             {active === 'jd'          && <JobDescriptionPanel jd={(profile as any).jobDescription} />}
-            {active === 'terms'       && <TermsPanel />}
-            {active === 'messages'    && <ChatPanel announcements={announcements} onReadAnnouncement={markAnnouncementRead} />}
+            {active === 'expenses'    && <ExpensesPanel />}
+            {active === 'terms'          && <TermsPanel />}
+            {active === 'messages'       && <div className="-m-6"><CommunicationPage /></div>}
+            {active === 'inbox'          && <div className="-m-6"><InboxPage /></div>}
+            {active === 'notifications'  && (
+              <NotificationsPanel
+                notifications={notifications}
+                onMarkRead={markNotifRead}
+                onMarkAllRead={markAllNotifsRead}
+                onNavigate={(link) => {
+                  const MAP: Record<string, Section> = {
+                    '/leave': 'leave', '/tasks': 'tasks', '/onboarding': 'onboarding',
+                    '/offboarding': 'offboarding', '/payslips': 'payslips', '/attendance': 'attendance',
+                  };
+                  const section = link ? MAP[link] ?? MAP[link.split('/').slice(0, 2).join('/')] : undefined;
+                  if (section) setActive(section);
+                }}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -314,22 +387,46 @@ export function MyPortalView() {
 }
 
 // ── Profile panel ──────────────────────────────────────────────────────────────
-function ProfilePanel({ profile, onSave }: { profile: any; onSave: (d: Record<string, string>) => void }) {
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  bank_transfer: 'Bank Transfer', mpesa: 'M-Pesa', cash: 'Cash', paypal: 'PayPal', crypto: 'Crypto',
+};
+
+function ProfilePanel({ profile, onSave, onEditPayment }: {
+  profile: any;
+  onSave: (d: Record<string, string>) => void;
+  onEditPayment?: () => void;
+}) {
   const [editing, setEditing]     = useState(false);
   const [email, setEmail]         = useState(profile.email || '');
   const [phone, setPhone]         = useState(profile.phone || '');
   const [nextOfKin, setNextOfKin] = useState(profile.nextOfKin || '');
   const [saving, setSaving]       = useState(false);
 
-  const save = () => {
+  const save = async () => {
     setSaving(true);
-    onSave({ email, phone, nextOfKin });
-    setSaving(false);
-    setEditing(false);
+    try {
+      await onSave({ email, phone, nextOfKin });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const paymentMethod = profile.paymentMethod || 'bank_transfer';
+  const paymentLabel  = PAYMENT_METHOD_LABEL[paymentMethod] ?? paymentMethod;
+  const paymentDetail = paymentMethod === 'bank_transfer'
+    ? [profile.bankName, profile.bankAccountNumber].filter(Boolean).join(' · ') || '—'
+    : paymentMethod === 'mpesa'
+      ? profile.mpesaNumber || '—'
+      : paymentMethod === 'paypal'
+        ? profile.paypalEmail || '—'
+        : paymentMethod === 'cash'
+          ? 'Paid in cash'
+          : profile.cryptoWalletAddress || '—';
 
   return (
     <div className="space-y-5">
+      {/* Personal info */}
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Personal Information</p>
         {!editing
@@ -346,12 +443,39 @@ function ProfilePanel({ profile, onSave }: { profile: any; onSave: (d: Record<st
         {editing ? <EditField icon={Phone} label="Phone" value={phone} onChange={setPhone} color="text-green-600" />
                  : <InfoRow  icon={Phone}  label="Phone" value={profile.phone || '—'}      color="text-green-600" />}
         <InfoRow icon={Building2}    label="Department"      value={profile.department || '—'}    color="text-violet-600" />
-        <InfoRow icon={Briefcase}    label="Employment Type" value={profile.staffCategory || '—'} color="text-amber-600" />
+        <InfoRow icon={Briefcase}    label="Designation"     value={profile.designation || '—'}   color="text-indigo-600" />
         <InfoRow icon={CalendarDays} label="Date of Hire"    value={profile.dateOfHire ? new Date(profile.dateOfHire).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-rose-600" />
         {editing ? <EditField icon={User} label="Next of Kin" value={nextOfKin} onChange={setNextOfKin} color="text-primary" />
                  : <InfoRow  icon={User}  label="Next of Kin" value={profile.nextOfKin || '—'}              color="text-primary" />}
       </div>
       {editing && <p className="text-xs text-foreground/40 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">You can update your email, phone number and next of kin. For other changes, contact HR.</p>}
+
+      {/* Employment details */}
+      <div className="border-t pt-5">
+        <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Employment Details</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <InfoRow icon={Briefcase}    label="Employment Type"  value={profile.employmentType || '—'}                  color="text-amber-600" />
+          <InfoRow icon={Building2}    label="Staff Category"   value={profile.staffCategory || '—'}                  color="text-teal-600" />
+          <InfoRow icon={User}         label="Staff Number"     value={profile.staffNumber || '—'}                        color="text-slate-500" />
+          <InfoRow icon={CalendarDays} label="Probation End"    value={profile.probationEndDate ? new Date(profile.probationEndDate).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-orange-600" />
+        </div>
+      </div>
+
+      {/* Payment summary */}
+      <div className="border-t pt-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Payment Details</p>
+          {onEditPayment && (
+            <button onClick={onEditPayment} className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <InfoRow icon={CreditCard} label="Payment Method" value={paymentLabel}     color="text-primary" />
+          <InfoRow icon={Landmark}   label="Account Details" value={paymentDetail}   color="text-emerald-600" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -376,11 +500,14 @@ function PaymentPanel({ profile, onSave }: { profile: any; onSave: (d: Record<st
   const [wallet, setWallet]     = useState(profile.cryptoWalletAddress || '');
   const [network, setNetwork]   = useState(profile.cryptoNetwork || '');
 
-  const save = () => {
+  const save = async () => {
     setSaving(true);
-    onSave({ paymentMethod: method, bankName, bankAccountNumber: bankAcct, mpesaNumber: mpesa, paypalEmail: paypal, cryptoWalletAddress: wallet, cryptoNetwork: network });
-    setSaving(false);
-    setEditing(false);
+    try {
+      await onSave({ paymentMethod: method, bankName, bankAccountNumber: bankAcct, mpesaNumber: mpesa, paypalEmail: paypal, cryptoWalletAddress: wallet, cryptoNetwork: network });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const methodLabel = PAYMENT_METHODS.find(m => m.value === method)?.label ?? method;
@@ -487,11 +614,16 @@ function LeavePanel({ leaveBalance, leaveRequests, onDispute }: { leaveBalance: 
   const [disputeReason, setDisputeReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const submitDispute = (id: string) => {
+  const submitDispute = async (id: string) => {
     if (!disputeReason.trim()) return;
     setSubmitting(true);
-    onDispute(id, disputeReason);
-    setDisputingId(null); setDisputeReason(''); setSubmitting(false);
+    try {
+      await onDispute(id, disputeReason);
+      setDisputingId(null);
+      setDisputeReason('');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const STATUS_COLORS: Record<string, string> = {
@@ -525,17 +657,17 @@ function LeavePanel({ leaveBalance, leaveRequests, onDispute }: { leaveBalance: 
                         <div className="flex items-center gap-2 flex-wrap">
                           {r.status === 'rejected' && <button onClick={() => { setDisputingId(r._id); setDisputeReason(''); }} className="flex items-center gap-1 text-xs font-medium text-orange-600 hover:underline"><AlertTriangle className="h-3.5 w-3.5" /> Dispute</button>}
                           {r.status === 'disputed' && <span className="text-xs text-orange-500 font-medium">Under review</span>}
-                          <a
-                            href={`${API_BASE_URL}/me/leave/requests/${r._id}/pdf`}
-                            download={`leave-${r._id}.pdf`}
+                          <button
+                            onClick={() => downloadFile(`${API_BASE_URL}/me/leave/requests/${r._id}/pdf`, `leave-${r._id}.pdf`).catch(err => alert(err.message))}
                             className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
-                            target="_blank" rel="noreferrer"
+                            aria-label="Download leave letter"
                           >
                             <Download className="h-3.5 w-3.5" /> Download
-                          </a>
+                          </button>
                           <button
-                            onClick={() => window.open(`${API_BASE_URL}/me/leave/requests/${r._id}/pdf`, '_blank')}
+                            onClick={() => openFile(`${API_BASE_URL}/me/leave/requests/${r._id}/pdf`).catch(err => alert(err.message))}
                             className="flex items-center gap-1 text-xs font-medium text-foreground/50 hover:text-foreground hover:underline"
+                            aria-label="Print leave letter"
                           >
                             <Printer className="h-3.5 w-3.5" /> Print
                           </button>
@@ -611,7 +743,32 @@ function OnboardingTasksPanel({ tasks, onComplete }: { tasks: OnboardingTask[]; 
   const done = tasks.filter(t => t.status === 'completed');
   const pending = tasks.filter(t => t.status !== 'completed');
   const pct = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0;
+  const allDone = tasks.length > 0 && pending.length === 0;
+
   if (tasks.length === 0) return <EmptyState icon={ClipboardList} text="No onboarding tasks assigned." />;
+
+  if (allDone) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+        <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center">
+          <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Successfully Onboarded!</h3>
+          <p className="text-sm text-foreground/50 mt-1">All {tasks.length} onboarding tasks have been completed. Welcome aboard!</p>
+        </div>
+        <div className="w-full max-w-xs bg-gray-50 rounded-xl border p-4">
+          <div className="flex justify-between text-xs mb-1"><span className="text-foreground/40">Onboarding Progress</span><span className="text-emerald-600 font-bold">100%</span></div>
+          <div className="h-2 rounded-full bg-gray-200"><div className="h-full bg-emerald-500 rounded-full w-full" /></div>
+        </div>
+        <details className="w-full max-w-xs">
+          <summary className="text-xs text-foreground/40 cursor-pointer hover:text-foreground/60">View completed tasks</summary>
+          <div className="mt-3 space-y-2">{done.map(t => <TaskRow key={t._id} task={t} onComplete={onComplete} />)}</div>
+        </details>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl border p-4 bg-gray-50">
@@ -663,6 +820,128 @@ function TaskRow({ task, onComplete }: { task: OnboardingTask; onComplete: (id: 
   );
 }
 
+// ── Offboarding panel ──────────────────────────────────────────────────────────
+
+const SECTION_LABELS: Record<string, string> = {
+  before_last_day: 'Before Last Day',
+  last_day:        'Last Day',
+  after_departure: 'After Departure',
+};
+
+function OffboardingPanel({ tasks, onComplete }: { tasks: OffboardingTask[]; onComplete: () => void }) {
+  const [marking, setMarking] = useState<string | null>(null);
+
+  if (tasks.length === 0) {
+    return (
+      <EmptyState icon={ClipboardList} text="No offboarding tasks assigned."
+        sub="Tasks will appear here when HR starts your offboarding process." />
+    );
+  }
+
+  const sections = ['before_last_day', 'last_day', 'after_departure'] as const;
+  const done  = tasks.filter(t => t.status === 'completed').length;
+  const pct   = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+  const allDone = tasks.length > 0 && done === tasks.length;
+
+  const completeTask = async (taskId: string) => {
+    setMarking(taskId);
+    try {
+      const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
+      const res = await fetch(`${API_BASE_URL}/me/offboarding/tasks/${taskId}/complete`, {
+        method: 'PATCH',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) onComplete();
+    } finally { setMarking(null); }
+  };
+
+  if (allDone) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+        <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center">
+          <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Successfully Offboarded</h3>
+          <p className="text-sm text-foreground/50 mt-1">All {tasks.length} offboarding tasks have been completed. Wishing you all the best!</p>
+        </div>
+        <div className="w-full max-w-xs bg-gray-50 rounded-xl border p-4">
+          <div className="flex justify-between text-xs mb-1"><span className="text-foreground/40">Exit Checklist</span><span className="text-emerald-600 font-bold">100%</span></div>
+          <div className="h-2 rounded-full bg-gray-200"><div className="h-full bg-emerald-500 rounded-full w-full" /></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Progress */}
+      <div className="rounded-xl border p-4 bg-gray-50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold">Exit Checklist Progress</span>
+          <span className={cn('text-sm font-bold', pct === 100 ? 'text-emerald-600' : 'text-orange-500')}>{pct}%</span>
+        </div>
+        <div className="h-2.5 rounded-full bg-gray-200 overflow-hidden">
+          <div className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-emerald-500' : 'bg-orange-500')} style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-xs text-foreground/40 mt-2">{done} of {tasks.length} tasks completed</p>
+      </div>
+
+      {/* Task sections */}
+      {sections.map(section => {
+        const sectionTasks = tasks.filter(t => t.taskSection === section);
+        if (!sectionTasks.length) return null;
+        return (
+          <div key={section}>
+            <h4 className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">
+              {SECTION_LABELS[section]}
+            </h4>
+            <div className="space-y-2">
+              {sectionTasks.map(task => {
+                const isDone    = task.status === 'completed';
+                const isMarking = marking === task._id;
+                const overdue   = !isDone && new Date(task.dueDate) < new Date();
+                return (
+                  <div key={task._id} className={cn(
+                    'flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors',
+                    isDone ? 'bg-emerald-50/50 border-emerald-100' : overdue ? 'bg-red-50/30 border-red-200' : 'bg-white hover:bg-gray-50'
+                  )}>
+                    {isDone
+                      ? <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                      : <Circle className="h-5 w-5 text-foreground/20 shrink-0 mt-0.5" />}
+                    <div className="flex-1 min-w-0">
+                      <p className={cn('text-sm font-medium', isDone && 'line-through text-foreground/40')}>{task.taskTitle}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs text-foreground/40">{task.assignedDepartment}</span>
+                        <span className={cn('text-xs', overdue && !isDone ? 'text-red-600 font-semibold' : 'text-foreground/40')}>
+                          {overdue && !isDone && <AlertTriangle className="inline h-3 w-3 mr-0.5" />}
+                          Due {new Date(task.dueDate).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
+                        </span>
+                        {isDone && task.completedAt && (
+                          <span className="text-xs text-emerald-600 font-medium">
+                            · Done {new Date(task.completedAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {!isDone && (
+                      <button onClick={() => completeTask(task._id)} disabled={!!isMarking}
+                        className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors shrink-0">
+                        {isMarking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                        {isMarking ? '…' : 'Mark Done'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Documents panel ────────────────────────────────────────────────────────────
 const DOC_TYPES = ['National ID', 'Passport', 'Driving License', 'Degree Certificate', 'Diploma Certificate', 'Professional Certificate', 'KRA PIN', 'NHIF Card', 'NSSF Card', 'Other'];
 
@@ -673,7 +952,6 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
   const [file, setFile]         = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const { API_BASE_URL } = require('@/configs/constants');
 
   const handleUpload = async () => {
     if (!file) return;
@@ -735,11 +1013,13 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
                   <p className="text-xs text-foreground/40 truncate">{d.fileName} · {new Date(d.uploadedAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <a href={`${API_BASE_URL}/me/documents/${d.docId}/download`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-primary/10 flex items-center justify-center text-foreground/40 hover:text-primary transition-colors">
+                  <button
+                    onClick={() => downloadFile(`${API_BASE_URL}/me/documents/${d.docId}/download`, d.fileName ?? 'document').catch(err => alert(err.message))}
+                    className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-primary/10 flex items-center justify-center text-foreground/40 hover:text-primary transition-colors"
+                    aria-label={`Download ${d.docType}`}
+                  >
                     <Download className="h-3.5 w-3.5" />
-                  </a>
+                  </button>
                   {confirmId === d.docId ? (
                     <div className="flex items-center gap-1">
                       <button onClick={() => { onDeleted(d.docId); setConfirmId(null); }} className="text-xs text-red-600 font-semibold hover:underline">Yes</button>
@@ -747,8 +1027,11 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
                       <button onClick={() => setConfirmId(null)} className="text-xs text-foreground/40 hover:underline">No</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmId(d.docId)}
-                      className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-red-50 flex items-center justify-center text-foreground/30 hover:text-red-500 transition-colors">
+                    <button
+                      onClick={() => setConfirmId(d.docId)}
+                      className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-red-50 flex items-center justify-center text-foreground/30 hover:text-red-500 transition-colors"
+                      aria-label={`Delete ${d.docType}`}
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   )}
@@ -774,70 +1057,463 @@ function StarRow({ rating }: { rating: number }) {
   );
 }
 
-function PerformancePanel({ appraisals }: { appraisals: AppraisalRecord[] }) {
-  if (appraisals.length === 0)
-    return <EmptyState icon={BarChart3} text="No appraisals recorded yet." sub="Your performance reviews will appear here once HR or your manager submits one." />;
+// ── My Projects panel ──────────────────────────────────────────────────────────
+const PROJECT_STATUS_STYLE: Record<string, { label: string; cls: string }> = {
+  active:    { label: 'Active',    cls: 'bg-emerald-100 text-emerald-700' },
+  on_hold:   { label: 'On Hold',   cls: 'bg-amber-100 text-amber-700' },
+  completed: { label: 'Completed', cls: 'bg-blue-100 text-blue-700' },
+  cancelled: { label: 'Cancelled', cls: 'bg-gray-100 text-gray-500' },
+};
 
-  const avg = appraisals.reduce((s, r) => s + r.rating, 0) / appraisals.length;
+const ROLE_STYLE: Record<string, string> = {
+  lead:     'bg-violet-100 text-violet-700',
+  reviewer: 'bg-sky-100 text-sky-700',
+  member:   'bg-gray-100 text-gray-600',
+};
+
+function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [logForm, setLogForm] = useState<{ hours: string; date: string; task: string; description: string; billable: boolean }>({
+    hours: '', date: new Date().toISOString().slice(0, 10), task: '', description: '', billable: false,
+  });
+  const [saving, setSaving] = useState(false);
+  const [localEntries, setLocalEntries] = useState<Record<string, MyProjectTimeEntry[]>>({});
+
+  const entries = (id: string) => localEntries[id] ?? projects.find(p => p._id === id)?.myRecentEntries ?? [];
+
+  if (projects.length === 0)
+    return <EmptyState icon={Briefcase} text="No projects assigned." sub="You will appear here once HR adds you to a project." />;
+
+  const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—';
+  const fmtHours = (h: number) => h === 1 ? '1 hr' : `${h} hrs`;
+
+  const submitTimeEntry = (projectId: string) => {
+    if (!logForm.hours || Number(logForm.hours) <= 0) return;
+    setSaving(true);
+    apiCallFunction<{ data: { _id: string } }>({
+      url: `${API_BASE_URL}/projects/${projectId}/time-entries`,
+      method: 'POST',
+      data: {
+        hours: Number(logForm.hours),
+        date: logForm.date,
+        task: logForm.task || null,
+        description: logForm.description || null,
+        billable: logForm.billable,
+      },
+      returnResponse: true,
+      thenFn: r => {
+        const newEntry: MyProjectTimeEntry = {
+          _id: r?.data?._id ?? Date.now().toString(),
+          hours: Number(logForm.hours),
+          date: logForm.date,
+          task: logForm.task || null,
+          description: logForm.description || null,
+          billable: logForm.billable,
+        };
+        setLocalEntries(prev => ({ ...prev, [projectId]: [newEntry, ...(prev[projectId] ?? projects.find(p => p._id === projectId)?.myRecentEntries ?? [])] }));
+        setLogForm(f => ({ ...f, hours: '', task: '', description: '' }));
+      },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+      {projects.map(p => {
+        const st = PROJECT_STATUS_STYLE[p.status] ?? PROJECT_STATUS_STYLE.active;
+        const roleStyle = ROLE_STYLE[p.myRole] ?? ROLE_STYLE.member;
+        const isOpen = expanded === p._id;
+        const myEntries = entries(p._id);
+
+        return (
+          <div key={p._id} className="rounded-xl border bg-white overflow-hidden">
+            {/* Project header */}
+            <button
+              onClick={() => setExpanded(isOpen ? null : p._id)}
+              className="w-full flex items-start gap-4 p-5 text-left hover:bg-gray-50 transition-colors"
+            >
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Briefcase className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-foreground">{p.name}</p>
+                  <span className="text-[10px] font-bold text-foreground/30">{p.code}</span>
+                </div>
+                {p.clientName && <p className="text-xs text-foreground/50 mt-0.5">Client: {p.clientName}</p>}
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full', st.cls)}>{st.label}</span>
+                  <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', roleStyle)}>{p.myRole}</span>
+                  <span className="text-[11px] text-foreground/40 flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {fmtHours(p.myHours)} logged
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-foreground/30 shrink-0 text-right">
+                {p.startDate && <div>{fmtDate(p.startDate)}</div>}
+                {p.endDate   && <div>→ {fmtDate(p.endDate)}</div>}
+                <ChevronRight className={cn('h-4 w-4 mt-1 ml-auto transition-transform', isOpen && 'rotate-90')} />
+              </div>
+            </button>
+
+            {/* Expanded: time log form + recent entries */}
+            {isOpen && (
+              <div className="border-t bg-gray-50 p-5 space-y-5">
+                {p.description && (
+                  <p className="text-sm text-foreground/60 italic">{p.description}</p>
+                )}
+
+                {/* Log time form */}
+                <div className="rounded-xl border bg-white p-4 space-y-3">
+                  <p className="text-xs font-bold text-foreground/40 uppercase tracking-wide">Log Time</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] text-foreground/50 block mb-1">Hours *</label>
+                      <input
+                        type="number" min="0.25" step="0.25"
+                        value={logForm.hours}
+                        onChange={e => setLogForm(f => ({ ...f, hours: e.target.value }))}
+                        placeholder="e.g. 2.5"
+                        className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-foreground/50 block mb-1">Date *</label>
+                      <input
+                        type="date"
+                        value={logForm.date}
+                        onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))}
+                        className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-foreground/50 block mb-1">Task / Activity</label>
+                    <input
+                      value={logForm.task}
+                      onChange={e => setLogForm(f => ({ ...f, task: e.target.value }))}
+                      placeholder="e.g. Frontend design, Client meeting"
+                      className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-foreground/50 block mb-1">Description</label>
+                    <textarea
+                      value={logForm.description}
+                      onChange={e => setLogForm(f => ({ ...f, description: e.target.value }))}
+                      rows={2}
+                      placeholder="What did you work on?"
+                      className="w-full px-3 py-2 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-foreground/60">
+                      <input
+                        type="checkbox"
+                        checked={logForm.billable}
+                        onChange={e => setLogForm(f => ({ ...f, billable: e.target.checked }))}
+                        className="h-4 w-4 rounded"
+                      />
+                      Billable
+                    </label>
+                    <button
+                      onClick={() => submitTimeEntry(p._id)}
+                      disabled={saving || !logForm.hours || Number(logForm.hours) <= 0}
+                      className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                    >
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                      Log Time
+                    </button>
+                  </div>
+                </div>
+
+                {/* Recent time entries */}
+                {myEntries.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-wide mb-2">My Recent Entries</p>
+                    <div className="space-y-1.5">
+                      {myEntries.map(e => (
+                        <div key={e._id} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-white border text-sm">
+                          <div className="shrink-0 font-bold text-primary w-12 text-right">{fmtHours(e.hours)}</div>
+                          <div className="flex-1 min-w-0">
+                            {e.task && <p className="font-medium text-foreground/80 text-xs">{e.task}</p>}
+                            {e.description && <p className="text-foreground/50 text-xs truncate">{e.description}</p>}
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-[11px] text-foreground/40">{fmtDate(e.date)}</p>
+                            {e.billable && <span className="text-[10px] text-emerald-600 font-semibold">Billable</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const GOAL_STATUS_STYLE: Record<string, { label: string; cls: string }> = {
+  not_started: { label: 'Not Started', cls: 'bg-gray-100 text-gray-500' },
+  in_progress: { label: 'In Progress', cls: 'bg-blue-100 text-blue-700' },
+  at_risk:     { label: 'At Risk',     cls: 'bg-amber-100 text-amber-700' },
+  completed:   { label: 'Completed',   cls: 'bg-emerald-100 text-emerald-700' },
+};
+
+function AddGoalModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({ title: '', description: '', category: 'Professional', period: 'annual', startDate: '', endDate: '' });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const save = () => {
+    if (!form.title.trim()) return;
+    setSaving(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/performance/goals`,
+      method: 'POST',
+      data: form,
+      thenFn: () => { onSaved(); onClose(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4">
+        <h3 className="text-base font-bold text-gray-900">Set a New Goal</h3>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Title *</label>
+          <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. Complete leadership training"
+            className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Description</label>
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Optional details…"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary resize-none" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
+            <select value={form.category} onChange={e => set('category', e.target.value)}
+              className="w-full h-9 px-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary">
+              {['Professional', 'Skills', 'Leadership', 'Teamwork', 'Personal'].map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Period</label>
+            <select value={form.period} onChange={e => set('period', e.target.value)}
+              className="w-full h-9 px-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary">
+              <option value="q1">Q1</option><option value="q2">Q2</option>
+              <option value="q3">Q3</option><option value="q4">Q4</option>
+              <option value="annual">Annual</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Start Date</label>
+            <input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)}
+              className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">End Date</label>
+            <input type="date" value={form.endDate} onChange={e => set('endDate', e.target.value)}
+              className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+          <button onClick={save} disabled={saving || !form.title.trim()}
+            className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+            {saving ? 'Saving…' : 'Set Goal'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PerformancePanel({ appraisals, goals: initialGoals, reviewResults }: {
+  appraisals: AppraisalRecord[];
+  goals: MyGoal[];
+  reviewResults: ReviewResult[];
+}) {
+  const [goals, setGoals] = useState<MyGoal[]>(initialGoals);
+  const [showAddGoal, setShowAddGoal] = useState(false);
+
+  const refreshGoals = () => {
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/performance/goals`,
+      showToast: false,
+      thenFn: r => setGoals(r.data ?? []),
+    });
+  };
+
+  const avg = appraisals.length > 0 ? appraisals.reduce((s, r) => s + r.rating, 0) / appraisals.length : null;
   const trend = appraisals.length >= 2 ? appraisals[0].rating - appraisals[1].rating : null;
 
   return (
-    <div className="space-y-5">
-      {/* Summary bar */}
-      <div className="rounded-xl border bg-gray-50 p-4 flex items-center gap-6">
-        <div className="flex-1">
-          <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1">Average Rating</p>
-          <div className="flex items-center gap-2">
-            <StarRow rating={Math.round(avg)} />
-            <span className="text-lg font-bold text-foreground">{avg.toFixed(1)}</span>
-            {trend !== null && trend !== 0 && (
-              trend > 0
-                ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-                : <TrendingDown className="h-4 w-4 text-red-500" />
-            )}
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-2xl font-bold text-primary">{appraisals.length}</p>
-          <p className="text-xs text-foreground/40">Appraisal{appraisals.length !== 1 ? 's' : ''}</p>
-        </div>
+    <>
+    {showAddGoal && <AddGoalModal onClose={() => setShowAddGoal(false)} onSaved={refreshGoals} />}
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <button onClick={() => setShowAddGoal(true)}
+          className="flex items-center gap-1.5 text-sm font-semibold text-primary border border-primary/30 px-4 py-2 rounded-xl hover:bg-primary/5 transition-colors">
+          <Plus className="h-4 w-4" /> Set Goal
+        </button>
       </div>
 
-      {/* Appraisal cards */}
-      <div className="space-y-4">
-        {appraisals.map(r => (
-          <div key={r._id} className="rounded-xl border bg-white p-5 space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-bold text-foreground">{r.reviewPeriod}</p>
-                <p className="text-xs text-foreground/40 mt-0.5">{new Date(r.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <StarRow rating={r.rating} />
-                <span className={cn('text-xs font-semibold px-2.5 py-0.5 rounded-full border', RATING_COLOR[r.rating])}>
-                  {RATING_LABEL[r.rating]}
-                </span>
-              </div>
-            </div>
-            {r.comments && <p className="text-sm text-foreground/70 italic border-l-2 border-gray-200 pl-3">"{r.comments}"</p>}
-            <div className="grid grid-cols-2 gap-4">
-              {r.goalsSet?.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-foreground/40 uppercase tracking-wide mb-1.5">Goals Set</p>
-                  <ul className="space-y-1">{r.goalsSet.map((g, i) => <li key={i} className="text-xs text-foreground/60 flex gap-1.5"><span className="text-primary/40 shrink-0">·</span>{g}</li>)}</ul>
-                </div>
-              )}
-              {r.goalsAchieved?.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-foreground/40 uppercase tracking-wide mb-1.5">Goals Achieved</p>
-                  <ul className="space-y-1">{r.goalsAchieved.map((g, i) => <li key={i} className="text-xs text-foreground/60 flex gap-1.5"><span className="text-emerald-500 shrink-0">✓</span>{g}</li>)}</ul>
-                </div>
+      {appraisals.length === 0 && goals.length === 0 && reviewResults.length === 0 && (
+        <EmptyState icon={BarChart3} text="No performance data yet." sub="Set your first goal above or wait for HR to run appraisals." />
+      )}
+
+      {/* ── Summary bar (only when appraisals exist) ── */}
+      {avg !== null && (
+        <div className="rounded-xl border bg-gray-50 p-4 flex items-center gap-6">
+          <div className="flex-1">
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-1">Average Rating</p>
+            <div className="flex items-center gap-2">
+              <StarRow rating={Math.round(avg)} />
+              <span className="text-lg font-bold text-foreground">{avg.toFixed(1)}</span>
+              {trend !== null && trend !== 0 && (
+                trend > 0
+                  ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  : <TrendingDown className="h-4 w-4 text-red-500" />
               )}
             </div>
           </div>
-        ))}
-      </div>
+          <div className="text-right shrink-0">
+            <p className="text-2xl font-bold text-primary">{appraisals.length}</p>
+            <p className="text-xs text-foreground/40">Appraisal{appraisals.length !== 1 ? 's' : ''}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Goals ── */}
+      {goals.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">My Goals ({goals.length})</p>
+          <div className="space-y-3">
+            {goals.map(g => {
+              const s = GOAL_STATUS_STYLE[g.status] ?? GOAL_STATUS_STYLE.not_started;
+              return (
+                <div key={g._id} className="rounded-xl border bg-white p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground text-sm">{g.title}</p>
+                      <p className="text-xs text-foreground/40 mt-0.5">{g.category} · {g.period.replace('_', ' ').toUpperCase()}</p>
+                    </div>
+                    <span className={cn('text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0', s.cls)}>{s.label}</span>
+                  </div>
+                  {g.description && <p className="text-xs text-foreground/60">{g.description}</p>}
+                  <div>
+                    <div className="flex justify-between text-[11px] text-foreground/40 mb-1">
+                      <span>Progress</span><span>{g.progress}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-full', g.status === 'completed' ? 'bg-emerald-500' : g.status === 'at_risk' ? 'bg-amber-400' : 'bg-primary')}
+                        style={{ width: `${Math.min(g.progress, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Formal review results ── */}
+      {reviewResults.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">Review Results ({reviewResults.length})</p>
+          <div className="space-y-3">
+            {reviewResults.map(r => (
+              <div key={r._id} className="rounded-xl border bg-white p-4 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">
+                      {r.cycleName ?? 'Review Cycle'}
+                    </p>
+                    <p className="text-xs text-foreground/40 mt-0.5 capitalize">
+                      {r.reviewType === 'self' ? 'Self Review' : 'Manager Review'} ·{' '}
+                      {r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : ''}
+                    </p>
+                  </div>
+                  {r.overallRating != null && (
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <StarRow rating={r.overallRating} />
+                      <span className={cn('text-xs font-semibold px-2.5 py-0.5 rounded-full border', RATING_COLOR[r.overallRating])}>
+                        {RATING_LABEL[r.overallRating]}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {r.recommendation && (
+                  <p className="text-xs text-foreground/60 border-l-2 border-gray-200 pl-3 italic">{r.recommendation}</p>
+                )}
+                {r.responses?.length > 0 && (
+                  <div className="space-y-1.5 pt-1 border-t">
+                    {r.responses.map((resp, i) => (
+                      <div key={i}>
+                        {resp.question && <p className="text-[11px] font-semibold text-foreground/50">{resp.question}</p>}
+                        {resp.answer && <p className="text-xs text-foreground/70">{resp.answer}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Legacy appraisal cards ── */}
+      {appraisals.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">Appraisal History ({appraisals.length})</p>
+          <div className="space-y-4">
+            {appraisals.map(r => (
+              <div key={r._id} className="rounded-xl border bg-white p-5 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-bold text-foreground">{r.reviewPeriod}</p>
+                    <p className="text-xs text-foreground/40 mt-0.5">{new Date(r.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <StarRow rating={r.rating} />
+                    <span className={cn('text-xs font-semibold px-2.5 py-0.5 rounded-full border', RATING_COLOR[r.rating])}>
+                      {RATING_LABEL[r.rating]}
+                    </span>
+                  </div>
+                </div>
+                {r.comments && <p className="text-sm text-foreground/70 italic border-l-2 border-gray-200 pl-3">"{r.comments}"</p>}
+                <div className="grid grid-cols-2 gap-4">
+                  {r.goalsSet?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-foreground/40 uppercase tracking-wide mb-1.5">Goals Set</p>
+                      <ul className="space-y-1">{r.goalsSet.map((g, i) => <li key={i} className="text-xs text-foreground/60 flex gap-1.5"><span className="text-primary/40 shrink-0">·</span>{g}</li>)}</ul>
+                    </div>
+                  )}
+                  {r.goalsAchieved?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-foreground/40 uppercase tracking-wide mb-1.5">Goals Achieved</p>
+                      <ul className="space-y-1">{r.goalsAchieved.map((g, i) => <li key={i} className="text-xs text-foreground/60 flex gap-1.5"><span className="text-emerald-500 shrink-0">✓</span>{g}</li>)}</ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 }
 
@@ -872,10 +1548,10 @@ const DEFAULT_TERMS = [
 ];
 
 // ── My Tasks panel ─────────────────────────────────────────────────────────────
-const TASK_PRIORITY: Record<string, string> = {
-  low:    'bg-gray-100 text-gray-600',
-  medium: 'bg-amber-100 text-amber-700',
-  high:   'bg-red-100 text-red-700',
+const TASK_PRIORITY_STYLE: Record<string, string> = {
+  low:    'bg-slate-700 text-slate-300',
+  medium: 'bg-amber-900/40 text-amber-400',
+  high:   'bg-red-900/40 text-red-400',
 };
 
 function MyTasksPanel({ tasks }: { tasks: EmployeeTask[] }) {
@@ -884,64 +1560,90 @@ function MyTasksPanel({ tasks }: { tasks: EmployeeTask[] }) {
 
   useEffect(() => { setLocalTasks(tasks); }, [tasks]);
 
-  const updateStatus = (id: string, status: EmployeeTask['status']) => {
+  const updateStatus = (id: string, status: string) => {
     setUpdating(id);
-    setLocalTasks(prev => prev.map(t => t._id === id ? { ...t, status } : t));
+    setLocalTasks(prev => prev.map(t => t._id === id ? { ...t, status: status as EmployeeTask['status'] } : t));
     apiCallFunction({
       url: `${API_BASE_URL}/tasks/${id}/status`,
       method: 'PATCH',
       data: { status },
-      showToast: false,
+      showToast: true,
       finallyFn: () => setUpdating(null),
     });
   };
 
-  const pending   = localTasks.filter(t => t.status === 'pending');
-  const inProg    = localTasks.filter(t => t.status === 'in_progress');
+  const now = new Date();
+  const isOverdue = (t: EmployeeTask) =>
+    t.status !== 'completed' && t.status !== 'blocked' && t.dueDate && new Date(t.dueDate) < now;
+
+  const overdue   = localTasks.filter(t => t.status === 'overdue' || isOverdue(t));
+  const inProg    = localTasks.filter(t => t.status === 'in_progress' && !isOverdue(t));
+  const pending   = localTasks.filter(t => (t.status === 'not_started' || t.status === 'pending') && !isOverdue(t));
+  const blocked   = localTasks.filter(t => t.status === 'blocked');
   const completed = localTasks.filter(t => t.status === 'completed');
 
   if (localTasks.length === 0)
     return <EmptyState icon={CheckCircle2} text="No tasks assigned." sub="Tasks assigned by HR will appear here." />;
 
   const TaskCard = ({ task }: { task: EmployeeTask }) => {
-    const overdue = task.status !== 'completed' && new Date(task.dueDate) < new Date();
+    const isTaskOverdue = task.status === 'overdue' || isOverdue(task);
+    const isDone = task.status === 'completed';
+    const isBlocked = task.status === 'blocked';
+    const isStartable = task.status === 'not_started' || task.status === 'pending';
     return (
-      <div className={cn('rounded-xl border bg-white p-4 space-y-3', overdue && 'border-red-200 bg-red-50/30')}>
+      <div className={cn(
+        'rounded-xl border p-4 space-y-3 transition-colors',
+        isDone     ? 'bg-emerald-900/20 border-emerald-700/30' :
+        isTaskOverdue ? 'bg-red-900/20 border-red-700/40' :
+        isBlocked  ? 'bg-slate-800/60 border-slate-700' :
+        'bg-[#0f172a] border-slate-700/60 hover:border-slate-600'
+      )}>
         <div className="flex items-start gap-3">
           <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
-            task.status === 'completed' ? 'bg-emerald-50' : overdue ? 'bg-red-50' : 'bg-primary/10')}>
-            {task.status === 'completed'
-              ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            isDone ? 'bg-emerald-900/40' : isTaskOverdue ? 'bg-red-900/30' : isBlocked ? 'bg-slate-700' : 'bg-indigo-900/30')}>
+            {isDone
+              ? <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               : task.status === 'in_progress'
-                ? <Clock className="h-4 w-4 text-violet-500" />
-                : <Circle className="h-4 w-4 text-primary/60" />}
+                ? <Clock className="h-4 w-4 text-indigo-400" />
+                : isTaskOverdue
+                  ? <AlertTriangle className="h-4 w-4 text-red-400" />
+                  : <Circle className="h-4 w-4 text-slate-500" />}
           </div>
           <div className="flex-1 min-w-0">
-            <p className={cn('font-semibold text-sm', task.status === 'completed' && 'line-through text-foreground/40')}>{task.title}</p>
-            {task.description && <p className="text-xs text-foreground/50 mt-0.5">{task.description}</p>}
+            <p className={cn('font-semibold text-sm', isDone ? 'line-through text-slate-500' : 'text-slate-200')}>{task.title}</p>
+            {task.description && <p className="text-xs text-slate-400 mt-0.5 leading-snug">{task.description}</p>}
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize', TASK_PRIORITY[task.priority])}>
+              <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize', TASK_PRIORITY_STYLE[task.priority] ?? TASK_PRIORITY_STYLE.medium)}>
                 {task.priority}
               </span>
-              <span className={cn('text-xs', overdue ? 'text-red-600 font-semibold' : 'text-foreground/40')}>
-                {overdue && <AlertTriangle className="inline h-3 w-3 mr-0.5" />}
-                Due {new Date(task.dueDate).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
-              </span>
-              {task.assignedBy && <span className="text-xs text-foreground/30">· from {task.assignedBy}</span>}
+              {task.dueDate && (
+                <span className={cn('text-xs flex items-center gap-0.5', isTaskOverdue && !isDone ? 'text-red-400 font-semibold' : 'text-slate-500')}>
+                  {isTaskOverdue && !isDone && <AlertTriangle className="h-3 w-3" />}
+                  Due {new Date(task.dueDate).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
+                </span>
+              )}
+              {task.module && <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded capitalize">{task.module}</span>}
             </div>
           </div>
         </div>
-        {task.status !== 'completed' && (
+        {isBlocked && (
+          <div className="flex items-center gap-1.5 pt-1 text-xs text-slate-500 font-medium">
+            <span className="inline-block w-2 h-2 rounded-full bg-slate-500" />
+            Blocked — waiting on prerequisite tasks
+          </div>
+        )}
+        {!isDone && !isBlocked && (
           <div className="flex gap-2 pt-1">
-            {task.status === 'pending' && (
+            {isStartable && (
               <button disabled={updating === task._id} onClick={() => updateStatus(task._id, 'in_progress')}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1">
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-900/40 text-indigo-400 hover:bg-indigo-900/60 disabled:opacity-50 flex items-center gap-1 border border-indigo-700/40">
                 <Clock className="h-3 w-3" /> Start
               </button>
             )}
             <button disabled={updating === task._id} onClick={() => updateStatus(task._id, 'completed')}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Mark Done
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50 disabled:opacity-50 flex items-center gap-1 border border-emerald-700/30">
+              <CheckCircle2 className="h-3 w-3" />
+              {updating === task._id ? '…' : 'Mark Done'}
             </button>
           </div>
         )}
@@ -950,17 +1652,29 @@ function MyTasksPanel({ tasks }: { tasks: EmployeeTask[] }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {overdue.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Overdue ({overdue.length})</p>
+          {overdue.map(t => <TaskCard key={t._id} task={t} />)}
+        </div>
+      )}
       {pending.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Pending ({pending.length})</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending ({pending.length})</p>
           {pending.map(t => <TaskCard key={t._id} task={t} />)}
         </div>
       )}
       {inProg.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-violet-400 uppercase tracking-widest">In Progress ({inProg.length})</p>
+          <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> In Progress ({inProg.length})</p>
           {inProg.map(t => <TaskCard key={t._id} task={t} />)}
+        </div>
+      )}
+      {blocked.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Blocked ({blocked.length})</p>
+          {blocked.map(t => <TaskCard key={t._id} task={t} />)}
         </div>
       )}
       {completed.length > 0 && (
@@ -1093,6 +1807,274 @@ function MyEventsPanel({ events }: { events: ScheduledEvent[] }) {
   );
 }
 
+const PORTAL_TRAINING_TYPE_LABELS: Record<string, string> = {
+  one_on_one: '1-on-1',
+  time_based: 'Time-Based',
+  one_time:   'One-Time',
+  refresher:  'Refresher',
+  self_paced: 'Self-Paced',
+};
+
+interface TrainingCourse {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  trainingType: string;
+  objectives: string[];
+  duration: number;
+  enrolledCount: number;
+  isMandatory: boolean;
+  myEnrollment?: {
+    _id: string;
+    status: 'not_started' | 'in_progress' | 'completed';
+    progress: number;
+    completedObjectives: number[];
+    objectives: string[];
+    trainingType: string;
+  } | null;
+}
+
+function TrainingPanel() {
+  const [courses, setCourses] = useState<TrainingCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [startingId, setStartingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [savingObjective, setSavingObjective] = useState(false);
+  const [localObjectives, setLocalObjectives] = useState<Record<string, { completed: number[]; progress: number }>>({});
+
+  const fetchCourses = () => {
+    setLoading(true);
+    apiCallFunction<{ data: TrainingCourse[] }>({
+      url: `${API_BASE_URL}/training/courses?status=published`,
+      showToast: false,
+      returnResponse: true,
+      thenFn: r => {
+        const list = r?.data ?? [];
+        setCourses(list);
+        const seed: Record<string, { completed: number[]; progress: number }> = {};
+        for (const c of list) {
+          if (c.myEnrollment?._id) {
+            seed[c.myEnrollment._id] = {
+              completed: c.myEnrollment.completedObjectives ?? [],
+              progress: c.myEnrollment.progress ?? 0,
+            };
+          }
+        }
+        setLocalObjectives(seed);
+      },
+      finallyFn: () => setLoading(false),
+    });
+  };
+
+  useEffect(() => { fetchCourses(); }, []);
+
+  const enroll = (courseId: string) => {
+    apiCallFunction({
+      url: `${API_BASE_URL}/training/courses/${courseId}/enroll`,
+      method: 'POST',
+      thenFn: fetchCourses,
+    });
+  };
+
+  const startCourse = (courseId: string) => {
+    setStartingId(courseId);
+    apiCallFunction({
+      url: `${API_BASE_URL}/training/courses/${courseId}/start`,
+      method: 'POST',
+      thenFn: fetchCourses,
+      finallyFn: () => setStartingId(null),
+    });
+  };
+
+  const toggleObjective = (enrollmentId: string, idx: number) => {
+    setSavingObjective(true);
+    apiCallFunction<{ data: { completedObjectives: number[]; progress: number } }>({
+      url: `${API_BASE_URL}/training/enrollments/${enrollmentId}/objective`,
+      method: 'PATCH',
+      data: { index: idx },
+      showToast: false,
+      returnResponse: true,
+      thenFn: r => {
+        if (r?.data) {
+          setLocalObjectives(prev => ({
+            ...prev,
+            [enrollmentId]: { completed: r.data.completedObjectives, progress: r.data.progress },
+          }));
+        }
+      },
+      finallyFn: () => setSavingObjective(false),
+    });
+  };
+
+  const markComplete = (enrollmentId: string) => {
+    apiCallFunction({
+      url: `${API_BASE_URL}/training/enrollments/${enrollmentId}/progress`,
+      method: 'PUT',
+      data: { progress: 100 },
+      thenFn: fetchCourses,
+    });
+  };
+
+  const levelStyle = (level: TrainingCourse['level']) =>
+    level === 'advanced'
+      ? 'bg-rose-100 text-rose-700'
+      : level === 'intermediate'
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-emerald-100 text-emerald-700';
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary/40" /></div>;
+  }
+
+  if (courses.length === 0) {
+    return <EmptyState icon={BookOpen} text="No training courses available." sub="Published courses created by HR will appear here." />;
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {courses.map(course => {
+        const enrollment = course.myEnrollment;
+        const enrollmentId = enrollment?._id;
+        const localState = enrollmentId ? localObjectives[enrollmentId] : null;
+        const completedObjs = localState?.completed ?? enrollment?.completedObjectives ?? [];
+        const progress = localState?.progress ?? enrollment?.progress ?? 0;
+        const objectives = enrollment?.objectives?.length ? enrollment.objectives : (course.objectives ?? []);
+        const isSelfPaced = (enrollment?.trainingType ?? course.trainingType) === 'self_paced';
+        const isExpanded = expandedId === course._id;
+        const canComplete = isSelfPaced
+          ? (objectives.length === 0 || progress >= 100)
+          : true;
+
+        return (
+          <div key={course._id} className="rounded-xl border bg-white overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+            <div className="h-1.5 bg-gradient-to-r from-blue-400 to-indigo-500" />
+            <div className="p-4 space-y-3 flex flex-col flex-1">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                  <BookOpen className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-foreground leading-tight">{course.title}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize">
+                      {course.category}
+                    </span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${levelStyle(course.level)}`}>
+                      {course.level}
+                    </span>
+                    {course.trainingType && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                        {PORTAL_TRAINING_TYPE_LABELS[course.trainingType] ?? course.trainingType}
+                      </span>
+                    )}
+                    {course.isMandatory && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                        Mandatory
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-foreground/60 leading-relaxed line-clamp-3">{course.description}</p>
+
+              <div className="flex items-center justify-between text-[11px] text-foreground/50">
+                <span>{course.duration ? `${course.duration} min` : 'Duration not set'}</span>
+                <span>{course.enrolledCount ?? 0} enrolled</span>
+              </div>
+
+              {enrollment?.status === 'in_progress' && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] text-foreground/60">
+                    <span>Progress</span>
+                    <span className="font-semibold text-indigo-600">{progress}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                    <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {isSelfPaced && enrollment?.status === 'in_progress' && objectives.length > 0 && (
+                <div>
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : course._id)}
+                    className="flex items-center gap-1 text-[11px] text-indigo-600 font-semibold hover:text-indigo-800 transition-colors"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Objectives ({completedObjs.length}/{objectives.length})
+                    <span className="ml-1 text-foreground/30">{isExpanded ? '▲' : '▼'}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="mt-2 space-y-1.5 border rounded-lg p-2 bg-gray-50">
+                      {objectives.map((obj, i) => {
+                        const isDone = completedObjs.includes(i);
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => enrollmentId && !savingObjective && toggleObjective(enrollmentId, i)}
+                            disabled={savingObjective}
+                            className="w-full flex items-center gap-2 text-left px-2 py-1.5 rounded-lg hover:bg-white transition-colors disabled:opacity-60"
+                          >
+                            <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                              isDone ? 'bg-emerald-500 border-emerald-500' : 'border-gray-400'
+                            }`}>
+                              {isDone && <CheckCircle className="h-2.5 w-2.5 text-white" />}
+                            </div>
+                            <span className={`text-xs ${isDone ? 'text-emerald-600 line-through' : 'text-foreground/80'}`}>{obj}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-auto pt-1">
+                {!enrollment ? (
+                  <button
+                    onClick={() => enroll(course._id)}
+                    className="w-full h-9 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    Enroll
+                  </button>
+                ) : enrollment.status === 'not_started' ? (
+                  <button
+                    onClick={() => startCourse(course._id)}
+                    disabled={startingId === course._id}
+                    className="w-full h-9 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {startingId === course._id ? 'Starting…' : 'Start Course'}
+                  </button>
+                ) : enrollment.status === 'in_progress' ? (
+                  canComplete ? (
+                    <button
+                      onClick={() => enrollmentId && markComplete(enrollmentId)}
+                      className="w-full h-9 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
+                    >
+                      Mark as Complete
+                    </button>
+                  ) : (
+                    <div className="w-full h-9 rounded-xl bg-gray-100 text-gray-400 text-sm font-semibold flex items-center justify-center cursor-not-allowed">
+                      Complete all objectives first
+                    </div>
+                  )
+                ) : (
+                  <div className="w-full h-9 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-semibold flex items-center justify-center gap-1.5">
+                    <CheckCircle className="h-4 w-4" /> Completed
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 
 // ── Terms & Conditions panel ───────────────────────────────────────────────────
 function TermsPanel() {
@@ -1124,7 +2106,8 @@ function TermsPanel() {
     const sections = DEFAULT_TERMS.map(
       ({ title, body }) => `<h3>${title}</h3><p>${body}</p>`
     ).join('');
-    return `<html><head><title>Terms & Conditions</title><style>body{font-family:sans-serif;padding:2rem;font-size:13px;color:#333;max-width:800px;margin:0 auto}h3{font-size:14px;margin:16px 0 4px;font-weight:600}p{margin-bottom:12px;line-height:1.6;color:#555}</style></head><body><h2 style="margin-bottom:4px">Terms & Conditions</h2><p style="color:#999;font-size:11px;margin-bottom:24px">Last updated: June 2026</p>${sections}</body></html>`;
+    const now = new Date().toLocaleDateString('en-KE', { month: 'long', year: 'numeric' });
+    return `<html><head><title>Terms & Conditions</title><style>body{font-family:sans-serif;padding:2rem;font-size:13px;color:#333;max-width:800px;margin:0 auto}h3{font-size:14px;margin:16px 0 4px;font-weight:600}p{margin-bottom:12px;line-height:1.6;color:#555}</style></head><body><h2 style="margin-bottom:4px">Terms & Conditions</h2><p style="color:#999;font-size:11px;margin-bottom:24px">Last updated: ${now}</p>${sections}</body></html>`;
   };
 
   const handleView = () => {
@@ -1211,9 +2194,306 @@ function TermsPanel() {
               <p>{body}</p>
             </div>
           ))}
-          <p className="text-xs text-foreground/30 border-t pt-4 mt-2">Last updated: June 2026 · For queries contact HR at hr@school.ac.ke</p>
+          <p className="text-xs text-foreground/30 border-t pt-4 mt-2">For queries, please contact your HR department.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Expenses Panel ─────────────────────────────────────────────────────────────
+const CLAIM_STATUS_STYLE: Record<string, string> = {
+  submitted: 'bg-amber-100 text-amber-700',
+  approved:  'bg-emerald-100 text-emerald-700',
+  rejected:  'bg-red-100 text-red-700',
+  draft:     'bg-gray-100 text-gray-500',
+};
+
+const EXPENSE_CATEGORIES = ['Meals', 'Transport', 'Accommodation', 'Office Supplies', 'Communication', 'Training', 'Other'];
+
+function ExpensesPanel() {
+  const [claims, setClaims]       = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [showForm, setShowForm]   = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [type, setType]           = useState<'regular' | 'per_diem' | 'mileage'>('regular');
+  const [category, setCategory]   = useState('');
+  const [amount, setAmount]       = useState('');
+  const [date, setDate]           = useState(new Date().toISOString().slice(0, 10));
+  const [description, setDesc]    = useState('');
+  const [destination, setDest]    = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate]     = useState('');
+  const [distanceKm, setDist]     = useState('');
+  const [isRoundTrip, setRound]   = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
+  const fetchClaims = () => {
+    setLoading(true);
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/expense-claims`,
+      showToast: false,
+      thenFn: r => setClaims(r.data?.data ?? []),
+      finallyFn: () => setLoading(false),
+    });
+  };
+
+  useEffect(() => { fetchClaims(); }, []);
+
+  const resetForm = () => {
+    setType('regular'); setCategory(''); setAmount(''); setDate(new Date().toISOString().slice(0, 10));
+    setDesc(''); setDest(''); setStartDate(''); setEndDate(''); setDist(''); setRound(false);
+    setReceiptFile(null);
+    setShowForm(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const fd = new FormData();
+    fd.append('type', type);
+    if (category) fd.append('category', category);
+    fd.append('amount', String(Number(amount)));
+    fd.append('date', date);
+    if (description) fd.append('description', description);
+    if (type === 'per_diem') { fd.append('destination', destination); fd.append('startDate', startDate); fd.append('endDate', endDate); }
+    if (type === 'mileage') { fd.append('distanceKm', String(Number(distanceKm))); fd.append('isRoundTrip', String(isRoundTrip)); }
+    fd.append('receipt', receiptFile!);
+    apiCallFunction({
+      url: `${API_BASE_URL}/expense-claims`,
+      method: 'POST',
+      data: fd,
+      thenFn: () => { resetForm(); fetchClaims(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-foreground">My Expense Claims</h2>
+          <p className="text-xs text-foreground/50 mt-0.5">Submit and track your reimbursement requests</p>
+        </div>
+        {!showForm && (
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
+            <Plus className="h-4 w-4" /> New Claim
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-muted/40 border rounded-xl p-5 space-y-4">
+          <p className="text-sm font-bold text-foreground">Submit Expense Claim</p>
+
+          {/* Type */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/50 uppercase tracking-wide mb-1.5">Expense Type</label>
+            <div className="flex gap-2">
+              {(['regular', 'per_diem', 'mileage'] as const).map(t => (
+                <button key={t} type="button" onClick={() => setType(t)}
+                  className={cn('flex-1 py-2 rounded-lg border text-xs font-semibold capitalize transition-all',
+                    type === t ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground/40 hover:border-foreground/20')}>
+                  {t === 'per_diem' ? 'Per Diem' : t === 'mileage' ? 'Mileage' : 'Regular'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Regular fields */}
+          {type === 'regular' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-foreground/50 mb-1">Category</label>
+                <select value={category} onChange={e => setCategory(e.target.value)}
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                  <option value="">Select…</option>
+                  {EXPENSE_CATEGORIES.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-foreground/50 mb-1">Amount (KES)</label>
+                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" required
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+              </div>
+            </div>
+          )}
+
+          {/* Per diem fields */}
+          {type === 'per_diem' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-foreground/50 mb-1">Destination</label>
+                <input value={destination} onChange={e => setDest(e.target.value)} placeholder="e.g. Mombasa" required
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-foreground/50 mb-1">Start Date</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required
+                    className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="block text-xs text-foreground/50 mb-1">End Date</label>
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required
+                    className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mileage fields */}
+          {type === 'mileage' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-foreground/50 mb-1">Distance (km)</label>
+                <input type="number" value={distanceKm} onChange={e => setDist(e.target.value)} placeholder="0" required
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 text-sm text-foreground/60 cursor-pointer">
+                  <input type="checkbox" checked={isRoundTrip} onChange={e => setRound(e.target.checked)} className="rounded" />
+                  Round trip
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Date + description */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-foreground/50 mb-1">Date</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+            </div>
+            <div>
+              <label className="block text-xs text-foreground/50 mb-1">Description</label>
+              <input value={description} onChange={e => setDesc(e.target.value)} placeholder="What was this for?"
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+            </div>
+          </div>
+
+          {/* Receipt */}
+          <div>
+            <label className="block text-xs text-foreground/50 mb-1">
+              Receipt <span className="text-red-500">*</span>
+              <span className="text-foreground/30 ml-1">PDF, JPG, PNG, WebP · max 5 MB</span>
+            </label>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              required
+              onChange={e => setReceiptFile(e.target.files?.[0] ?? null)}
+              className="w-full text-sm border border-border rounded-lg bg-background px-2 py-1.5 focus:outline-none file:mr-2 file:text-xs file:font-medium file:border-0 file:bg-primary/10 file:text-primary file:rounded-md file:px-2 file:py-1 file:cursor-pointer"
+            />
+            {receiptFile
+              ? <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {receiptFile.name}</p>
+              : <p className="text-xs text-foreground/30 mt-1">A receipt is required for all expense claims.</p>
+            }
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" onClick={resetForm} className="px-4 py-2 text-sm text-foreground/50 border border-border rounded-lg hover:bg-muted transition-colors">Cancel</button>
+            <button type="submit" disabled={saving || !receiptFile}
+              className="px-5 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+              {saving ? 'Submitting…' : 'Submit Claim'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary/40" /></div>
+      ) : claims.length === 0 ? (
+        <EmptyState icon={DollarSign} text="No expense claims yet." sub="Submit a claim to get reimbursed for work-related expenses." />
+      ) : (
+        <div className="space-y-2">
+          {claims.map(c => (
+            <div key={c._id} className="flex items-center justify-between bg-muted/30 border rounded-xl px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{c.description || `${c.type} expense`}</p>
+                <p className="text-xs text-foreground/40 mt-0.5">
+                  {c.category && <span className="capitalize mr-2">{c.category}</span>}
+                  {new Date(c.date).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-sm font-bold text-foreground">KES {(c.amount || 0).toLocaleString()}</span>
+                <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', CLAIM_STATUS_STYLE[c.status] ?? CLAIM_STATUS_STYLE.draft)}>
+                  {c.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Notifications panel ────────────────────────────────────────────────────────
+function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, onNavigate }: {
+  notifications: { _id: string; title: string; body: string; type: string; link?: string; read: boolean; createdAt: string }[];
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+  onNavigate: (link?: string) => void;
+}) {
+  const TYPE_COLORS: Record<string, string> = {
+    payroll: 'bg-emerald-100 text-emerald-700', leave: 'bg-blue-100 text-blue-700',
+    announcement: 'bg-violet-100 text-violet-700', onboarding: 'bg-amber-100 text-amber-700',
+    task: 'bg-indigo-100 text-indigo-700', general: 'bg-gray-100 text-gray-600',
+  };
+
+  function timeAgo(iso: string) {
+    const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return new Date(iso).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' });
+  }
+
+  if (notifications.length === 0) {
+    return <EmptyState icon={Bell} text="You're all caught up!" sub="New notifications will appear here." />;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">{notifications.length} unread</p>
+        <button onClick={onMarkAllRead}
+          className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
+          <CheckCheck className="h-3.5 w-3.5" /> Mark all read
+        </button>
+      </div>
+      <div className="space-y-2">
+        {notifications.map(n => (
+          <div key={n._id} className="flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors hover:bg-gray-50">
+            <button
+              onClick={() => { onMarkRead(n._id); onNavigate(n.link); }}
+              className="flex items-start gap-3 flex-1 min-w-0 text-left"
+              aria-label={`View notification: ${n.title}`}
+            >
+              <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 mt-0.5 capitalize', TYPE_COLORS[n.type] ?? TYPE_COLORS.general)}>
+                {n.type}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground leading-tight">{n.title}</p>
+                {n.body && <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body}</p>}
+                <p className="text-xs text-foreground/30 mt-1">{timeAgo(n.createdAt)}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => onMarkRead(n._id)}
+              className="text-foreground/20 hover:text-foreground/60 shrink-0 mt-0.5 transition-colors"
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

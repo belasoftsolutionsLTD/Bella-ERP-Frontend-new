@@ -43,7 +43,7 @@ export default function RegisterPage() {
             <div className="h-14 w-14 rounded-xl bg-primary mx-auto flex items-center justify-center mb-4">
               <span className="text-accent font-bold text-xl">SE</span>
             </div>
-            <h1 className="text-2xl font-bold text-primary">School ERP</h1>
+            <h1 className="text-2xl font-bold text-primary">Bella ERP</h1>
             <p className="text-sm text-foreground/50 mt-1">Create your account</p>
           </div>
           <form onSubmit={handleSubmit(submit)} className="space-y-4">

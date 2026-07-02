@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 
@@ -10,11 +10,19 @@ export interface StaffEmployee {
   staffNumber: string;
   designation: string;
   department: string;
+  employmentType?: string;
   status: string;
   email: string;
   phone?: string;
   dateOfHire: string;
   staffCategory: string;
+  paymentMethod?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  mpesaNumber?: string;
+  paypalEmail?: string;
+  cryptoWalletAddress?: string;
+  cryptoNetwork?: string;
 }
 
 export interface EmployeeDetail {
@@ -25,31 +33,51 @@ export interface EmployeeDetail {
   loading: boolean;
 }
 
+const PAGE_SIZE = 500;
+
 export function useStaffPortal() {
   const [employees, setEmployees] = useState<StaffEmployee[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<EmployeeDetail>({
     profile: null, leaveBalance: null, leaveRequests: [], attendance: [], loading: false,
   });
 
-  // Load full employee list
-  const fetchList = useCallback(() => {
+  const fetchPage = useCallback((pageNum: number, query: string, append: boolean) => {
     setListLoading(true);
     apiCallFunction<any>({
       url: `${API_BASE_URL}/employees`,
-      params: { limit: 200 },
+      params: { limit: PAGE_SIZE, page: pageNum, ...(query.trim() ? { search: query.trim() } : {}) },
       showToast: false,
-      thenFn: (res) => setEmployees(res.data?.data ?? []),
+      thenFn: (res) => {
+        const data: StaffEmployee[] = res.data?.data ?? [];
+        const pagination = res.data?.pagination ?? {};
+        setEmployees(prev => append ? [...prev, ...data] : data);
+        setTotal(pagination.total ?? data.length);
+        setPage(pageNum);
+        setHasMore((pagination.page ?? 1) < (pagination.pages ?? 1));
+      },
       finallyFn: () => setListLoading(false),
     });
   }, []);
 
-  useEffect(() => { fetchList(); }, [fetchList]);
+  // Debounced search — immediate on clear, 300ms delay when typing
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fetchPage(1, search, false), search ? 300 : 0);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [search, fetchPage]);
 
-  // Load detail for selected employee
+  const loadMore = useCallback(() => {
+    if (!listLoading && hasMore) fetchPage(page + 1, search, true);
+  }, [listLoading, hasMore, page, search, fetchPage]);
+
   const selectEmployee = useCallback((emp: StaffEmployee) => {
     setSelectedId(emp._id);
     setDetail((d) => ({ ...d, profile: emp, loading: true }));
@@ -77,11 +105,11 @@ export function useStaffPortal() {
     ]).finally(() => setDetail((d) => ({ ...d, loading: false })));
   }, []);
 
-  const filtered = employees.filter((e) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return e.fullName.toLowerCase().includes(q) || e.staffNumber.toLowerCase().includes(q);
-  });
+  const refetch = useCallback(() => fetchPage(1, search, false), [fetchPage, search]);
 
-  return { employees: filtered, listLoading, search, setSearch, selectedId, selectEmployee, detail, refetch: fetchList };
+  return {
+    employees, listLoading, search, setSearch,
+    total, hasMore, loadMore,
+    selectedId, selectEmployee, detail, refetch,
+  };
 }

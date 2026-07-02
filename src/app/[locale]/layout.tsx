@@ -1,13 +1,16 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import { Inter } from 'next/font/google';
 import { routing } from '@/i18n/routing';
 import Providers from './providers';
 import './globals.css';
 
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
+
 export const metadata: Metadata = {
-  title: 'School ERP',
-  description: 'School ERP / LMS',
+  title: 'Bella ERP',
+  description: 'Bella ERP – HR Management System',
 };
 
 export default async function LocaleLayout({
@@ -28,12 +31,10 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
-      <body>
-        <Providers locale={locale} messages={messages}>
-          {children}
-        </Providers>
-      </body>
-    </html>
+    <Providers locale={locale} messages={messages}>
+      <div className={inter.className}>
+        {children}
+      </div>
+    </Providers>
   );
 }

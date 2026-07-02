@@ -2,16 +2,17 @@
 import { cn } from '@/lib/utils';
 
 const COLORS: Record<string, string> = {
-  present:  'bg-success/20 text-success',
-  absent:   'bg-danger/20 text-danger',
-  late:     'bg-warning/20 text-yellow-700',
-  half_day: 'bg-blue-100 text-blue-700',
-  remote:   'bg-purple-100 text-purple-700',
+  present:    'bg-emerald-500/20 text-emerald-400',
+  absent:     'bg-red-500/20 text-red-400',
+  late:       'bg-amber-500/20 text-amber-400',
+  incomplete: 'bg-orange-500/20 text-orange-400',
+  half_day:   'bg-blue-500/20 text-blue-400',
+  remote:     'bg-violet-500/20 text-violet-400',
 };
-const LABELS: Record<string, string> = { present: 'P', absent: 'A', late: 'L', half_day: 'H', remote: 'R' };
+const LABELS: Record<string, string> = { present: 'P', absent: 'A', late: 'L', incomplete: 'I', half_day: 'H', remote: 'R' };
 
 export function AttendanceCell({ status, offsite }: { status?: string; offsite?: boolean }) {
-  if (!status) return <div className="w-8 h-8 rounded bg-gray-50 border" />;
+  if (!status) return <div className="w-8 h-8 rounded border border-slate-700/50 bg-slate-800/30" />;
   return (
     <div className="relative inline-flex">
       <div className={cn('w-8 h-8 rounded flex items-center justify-center text-xs font-bold', COLORS[status] ?? 'bg-gray-100')}>

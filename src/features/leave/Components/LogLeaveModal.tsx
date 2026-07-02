@@ -6,6 +6,20 @@ import { Button } from '@/components/ui/button';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 
+function countWorkingDays(start: string, end: string): number {
+  const s = new Date(start);
+  const e = new Date(end);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+  let count = 0;
+  const cur = new Date(s);
+  while (cur <= e) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
 const LEAVE_TYPES = [
   { value: 'annual',     label: 'Annual Leave' },
   { value: 'sick',       label: 'Sick Leave' },
@@ -49,7 +63,8 @@ export function LogLeaveModal({ employeeId, employeeName, onClose, onSuccess }: 
 
   const set = (field: keyof typeof form, val: string) => setForm((f) => ({ ...f, [field]: val }));
 
-  const days = (() => {
+  const workingDays = (form.startDate && form.endDate) ? countWorkingDays(form.startDate, form.endDate) : null;
+  const calendarDays = (() => {
     if (!form.startDate || !form.endDate) return null;
     const diff = (new Date(form.endDate).getTime() - new Date(form.startDate).getTime()) / 86400000 + 1;
     return diff > 0 ? diff : null;
@@ -168,12 +183,23 @@ export function LogLeaveModal({ employeeId, employeeName, onClose, onSuccess }: 
           </div>
 
           {/* Day count pill */}
-          {days !== null && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
-                {days} day{days !== 1 ? 's' : ''}
-              </span>
-              <span className="text-foreground/40 text-xs">total leave duration</span>
+          {calendarDays !== null && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm">
+                {workingDays !== null && workingDays > 0 ? (
+                  <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                    {workingDays} working day{workingDays !== 1 ? 's' : ''}
+                  </span>
+                ) : null}
+                {calendarDays !== workingDays && calendarDays !== null && (
+                  <span className="text-foreground/40 text-xs">{calendarDays} calendar days</span>
+                )}
+              </div>
+              {workingDays === 0 && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  ⚠ Your selected dates fall entirely on weekends or holidays. Please include at least one working day.
+                </p>
+              )}
             </div>
           )}
 
@@ -201,7 +227,7 @@ export function LogLeaveModal({ employeeId, employeeName, onClose, onSuccess }: 
             type="submit"
             form="log-leave-form"
             variant="accent"
-            disabled={submitting || !form.leaveType}
+            disabled={submitting || !form.leaveType || workingDays === 0}
           >
             {submitting ? 'Submitting…' : 'Submit Request'}
           </Button>

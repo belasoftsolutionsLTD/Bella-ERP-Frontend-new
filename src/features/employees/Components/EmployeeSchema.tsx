@@ -7,6 +7,7 @@ export const employeeSchema = z.object({
   employmentType: z.enum(['permanent', 'contract', 'part-time', 'intern']),
   department: z.string().min(1, 'Department is required'),
   dateOfHire: z.string().min(1, 'Date of hire is required'),
+  dateOfBirth: z.string().optional(),
   contractEndDate: z.string().optional(),
   salaryGrade: z.string().min(1, 'Salary grade is required'),
   grossPay: z.string().optional(),
@@ -19,7 +20,9 @@ export const employeeSchema = z.object({
   cryptoNetwork: z.string().optional(),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
-  staffCategory: z.enum(['teaching', 'non-teaching']),
+  staffCategory: z.string().optional(),
+  location: z.string().optional(),
+  costCenter: z.string().optional(),
   nokName: z.string().optional(),
   nokRelationship: z.string().optional(),
   nokPhone: z.string().optional(),
@@ -30,12 +33,15 @@ export const employeeSchema = z.object({
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
 export const DEPARTMENTS = [
-  'Lower Primary', 'Upper Primary', 'Junior Secondary', 'Senior Secondary',
-  'Administration', 'Finance', 'ICT', 'Library', 'Games and Sports', 'Guidance and Counselling',
+  'Administration', 'Human Resources', 'Finance & Accounts', 'Information Technology',
+  'Operations', 'Sales & Marketing', 'Customer Service', 'Legal & Compliance',
+  'Procurement', 'Logistics & Supply Chain', 'Research & Development', 'Communications',
+  'Health & Safety', 'Facilities Management', 'Executive',
 ];
 
 export const DESIGNATIONS = [
-  'Class Teacher', 'Subject Teacher', 'Head of Department', 'Deputy Principal', 'Principal',
-  'Bursar', 'Accounts Clerk', 'School Nurse', 'IT Technician', 'Librarian',
-  'Games Teacher', 'Counsellor', 'Support Staff',
+  'Chief Executive Officer', 'Chief Operations Officer', 'Chief Finance Officer',
+  'General Manager', 'Department Manager', 'Head of Department', 'Team Lead',
+  'Senior Officer', 'Officer', 'Junior Officer', 'Coordinator', 'Administrator',
+  'Analyst', 'Specialist', 'Technician', 'Assistant', 'Intern', 'Support Staff',
 ];

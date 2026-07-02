@@ -20,6 +20,7 @@ export interface Applicant {
   positionApplied?: string;
   positionTitle?: string;
   stage: string;
+  source?: string;
   approvalStatus?: string;
   cvPath?: string;
   cvFilename?: string;
@@ -30,7 +31,6 @@ export interface Applicant {
   interviewSchedule?: InterviewSchedule;
   offeredSalary?: number;
   offerLetterSentAt?: string;
-  source?: string;
   appliedAt?: string;
   createdAt: string;
 }
@@ -45,7 +45,7 @@ export function useRecruitment() {
     apiCallFunction<any>({
       url: `${API_BASE_URL}/hr/applicants`,
       showToast: false,
-      thenFn: (res) => setApplicants(res.data?.data ?? []),
+      thenFn: res => setApplicants(res.data?.data ?? []),
       catchFn: (e: any) => setError(e?.message || 'Error'),
       finallyFn: () => setLoading(false),
     });
@@ -90,6 +90,15 @@ export function useRecruitment() {
       thenFn: () => { fetch(); onSuccess?.(); },
     });
 
+  const addNote = (id: string, note: string, onSuccess?: () => void) =>
+    apiCallFunction({
+      url: `${API_BASE_URL}/hr/applicants/${id}/note`,
+      method: 'POST',
+      data: { note },
+      thenFn: () => { fetch(); onSuccess?.(); },
+    });
+
   useEffect(() => { fetch(); }, [fetch]);
-  return { applicants, loading, error, refetch: fetch, moveStage, bulkMoveStage, sendOfferLetter, updateApplicant, deleteApplicant };
+
+  return { applicants, loading, error, refetch: fetch, moveStage, bulkMoveStage, sendOfferLetter, updateApplicant, deleteApplicant, addNote };
 }

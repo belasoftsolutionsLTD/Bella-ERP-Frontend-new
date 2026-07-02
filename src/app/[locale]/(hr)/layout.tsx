@@ -4,9 +4,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { ClockInProvider } from '@/contexts/ClockInContext';
 import { HrSidebar } from '@/components/custom-ui/HrSidebar';
 import { HrTopBar } from '@/components/custom-ui/HrTopBar';
-import { Footer } from '@/components/custom-ui/Footer';
 import { Toaster } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { apiCallFunction } from '@/functions/apiCallFunction';
@@ -127,19 +127,20 @@ export default function HrLayout({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {showReset && <PasswordResetPrompt onDone={handleResetDone} />}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <HrSidebar />
-        <div className="flex flex-col flex-1 min-h-0">
-          <HrTopBar />
-          <main className="flex-1 overflow-y-auto px-8 py-6 md:px-12 md:py-8">
-            {children}
-          </main>
-          <Footer />
+    <ClockInProvider>
+      <div className="flex flex-col h-screen bg-[#0f172a] overflow-hidden">
+        {showReset && <PasswordResetPrompt onDone={handleResetDone} />}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <HrSidebar />
+          <div className="flex flex-col flex-1 min-h-0">
+            <HrTopBar />
+            <main className="flex-1 overflow-y-auto px-8 py-6 md:px-10 md:py-8 bg-[#0f172a]">
+              {children}
+            </main>
+          </div>
         </div>
+        <Toaster richColors position="top-right" />
       </div>
-      <Toaster richColors position="top-right" />
-    </div>
+    </ClockInProvider>
   );
 }

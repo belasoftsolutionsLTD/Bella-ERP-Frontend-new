@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Bell, BellOff, CheckCheck, X, LogOut, Globe, ChevronDown, Camera, Save, Loader2, UserCircle } from 'lucide-react';
+import { Bell, BellOff, CheckCheck, X, Globe, ChevronDown, Camera, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
@@ -8,14 +8,45 @@ import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { cn } from '@/lib/utils';
 
+const PAGE_LABELS: Record<string, string> = {
+  dashboard:        'Dashboard',
+  employees:        'Organization',
+  recruitment:      'Recruitment',
+  onboarding:       'Onboarding',
+  offboarding:      'Offboarding',
+  'org-chart':      'Org Chart',
+  documents:        'Documents',
+  leave:            'Leave Management',
+  attendance:       'Time & Attendance',
+  payroll:          'Payroll',
+  performance:      'Performance',
+  expenses:         'Expenses',
+  communications:   'Communications',
+  reports:          'Reports',
+  certifications:   'Awards & Recognition',
+  config:           'Configuration',
+  accounts:         'User Accounts',
+  'staff-portal':   'My Portal',
+  tasks:            'Tasks',
+  events:           'Calendar',
+  inbox:            'Inbox',
+  'it-management':      'Asset Management',
+  'assets-management':  'Asset Management',
+  settings:         'Settings',
+  training:         'Training',
+  notifications:    'Notifications',
+};
+
 interface HrNotification {
   _id: string;
   title: string;
   body: string;
+  subtitle?: string;
   type: string;
+  isRead: boolean;
+  navigateTo?: string | null;
   createdAt: string;
 }
-interface NotifEnvelope { data: HrNotification[] }
 
 const LOCALES = [
   { code: 'en', label: 'English',    flag: '🇬🇧' },
@@ -29,18 +60,22 @@ const LOCALES = [
 ];
 
 export function HrTopBar() {
-  const [notifs, setNotifs]             = useState<HrNotification[]>([]);
-  const [showNotifs, setShowNotifs]     = useState(false);
-  const [notifsOn, setNotifsOn]         = useState(true);
+  const [notifs, setNotifs]               = useState<HrNotification[]>([]);
+  const [showNotifs, setShowNotifs]       = useState(false);
+  const [notifsOn, setNotifsOn]           = useState(true);
   const [togglingNotif, setTogglingNotif] = useState(false);
-  const [showLang, setShowLang]         = useState(false);
-  const [showProfile, setShowProfile]   = useState(false);
+  const [showLang, setShowLang]           = useState(false);
+  const [showProfile, setShowProfile]     = useState(false);
   const locale    = useLocale();
-  const { logout, userData, refreshUser } = useAuth();
+  const { userData, refreshUser } = useAuth();
   const router    = useRouter();
   const pathname  = usePathname();
   const notifRef  = useRef<HTMLDivElement>(null);
   const langRef   = useRef<HTMLDivElement>(null);
+
+  // Derive page title from the URL segment after the locale
+  const pageKey   = pathname.split('/').filter(Boolean)[1] ?? '';
+  const pageTitle = PAGE_LABELS[pageKey] ?? 'Bella ERP';
 
   const role      = userData?.role ?? '';
   const roleLabel = role.replace(/_/g, ' ');
@@ -50,17 +85,18 @@ export function HrTopBar() {
 
   const fetchNotifs = () => {
     if (!userData) return;
-    apiCallFunction<NotifEnvelope>({
-      url: `${API_BASE_URL}/hr/notifications`,
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/notifications?limit=10&unread=true`,
       showToast: false,
-      thenFn: r => setNotifs(r.data ?? []),
+      returnResponse: true,
+      thenFn: r => setNotifs((r?.data?.data ?? []).map((n: HrNotification) => ({ ...n, body: n.body || n.subtitle || '' }))),
       catchFn: () => {},
     });
   };
 
   useEffect(() => {
     fetchNotifs();
-    const id = setInterval(fetchNotifs, 60000);
+    const id = setInterval(fetchNotifs, 30000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
@@ -88,12 +124,12 @@ export function HrTopBar() {
   };
 
   const dismissNotif = (id: string) => {
-    apiCallFunction({ url: `${API_BASE_URL}/hr/notifications/${id}/read`, method: 'PATCH', showToast: false });
+    apiCallFunction({ url: `${API_BASE_URL}/notifications/${id}`, method: 'DELETE', showToast: false });
     setNotifs(prev => prev.filter(n => n._id !== id));
   };
 
   const dismissAll = () => {
-    apiCallFunction({ url: `${API_BASE_URL}/hr/notifications/read-all`, method: 'PATCH', showToast: false });
+    apiCallFunction({ url: `${API_BASE_URL}/notifications/read-all`, method: 'PUT', showToast: false });
     setNotifs([]);
   };
 
@@ -103,8 +139,6 @@ export function HrTopBar() {
     segments[1] = code;
     router.push(segments.join('/'));
   };
-
-  const handleLogout = () => { logout(); router.push(`/${locale}/login`); };
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -119,123 +153,136 @@ export function HrTopBar() {
   const currentLocale = LOCALES.find(l => l.code === locale) ?? LOCALES[0];
 
   return (
-    <header className="h-14 shrink-0 border-b bg-white flex items-center justify-end px-6 gap-2 shadow-sm">
+    <>
+      <header className="h-14 shrink-0 border-b border-slate-800 bg-[#0f172a] flex items-center justify-between px-6 gap-4">
+        {/* Left: page title */}
+        <h1 className="text-[15px] font-bold text-slate-100 tracking-tight truncate">{pageTitle}</h1>
 
-      {/* Language switcher */}
-      <div ref={langRef} className="relative">
-        <button
-          onClick={() => setShowLang(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-foreground/60 hover:bg-gray-100 hover:text-foreground transition-colors"
-        >
-          <Globe className="h-4 w-4" />
-          <span className="font-medium">{currentLocale.flag} {currentLocale.code.toUpperCase()}</span>
-          <ChevronDown className="h-3 w-3" />
-        </button>
-        {showLang && (
-          <div className="absolute right-0 top-full mt-1 w-44 bg-white border rounded-xl shadow-lg z-50 overflow-hidden py-1 max-h-72 overflow-y-auto">
-            {LOCALES.map(l => (
-              <button key={l.code} onClick={() => switchLocale(l.code)}
-                className={cn('w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors',
-                  l.code === locale
-                    ? 'bg-primary/5 text-primary font-semibold'
-                    : 'text-foreground/70 hover:bg-gray-50'
-                )}>
-                <span className="text-base">{l.flag}</span>
-                <span>{l.label}</span>
-              </button>
-            ))}
+        {/* Right: actions */}
+        <div className="flex items-center gap-2 shrink-0">
+
+          {/* Language switcher */}
+          <div ref={langRef} className="relative">
+            <button
+              onClick={() => setShowLang(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="font-medium">{currentLocale.flag} {currentLocale.code.toUpperCase()}</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {showLang && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden py-1 max-h-72 overflow-y-auto">
+                {LOCALES.map(l => (
+                  <button key={l.code} onClick={() => switchLocale(l.code)}
+                    className={cn('w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors',
+                      l.code === locale
+                        ? 'bg-indigo-950/60 text-indigo-300 font-semibold'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                    )}>
+                    <span className="text-base">{l.flag}</span>
+                    <span>{l.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Divider */}
-      <div className="h-6 w-px bg-gray-200 mx-1" />
+          <div className="h-6 w-px bg-slate-800" />
 
-      {/* Notification bell */}
-      <div ref={notifRef} className="relative">
-        <button
-          onClick={() => setShowNotifs(v => !v)}
-          className={cn(
-            'relative h-9 w-9 rounded-lg flex items-center justify-center transition-colors',
-            showNotifs ? 'bg-primary/10 text-primary' : 'text-foreground/50 hover:bg-gray-100 hover:text-foreground'
-          )}
-        >
-          {notifsOn ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5 opacity-40" />}
-          {notifsOn && notifs.length > 0 && (
-            <span className="absolute top-1 right-1 h-4 min-w-4 px-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
-              {notifs.length > 9 ? '9+' : notifs.length}
-            </span>
-          )}
-        </button>
-
-        {showNotifs && (
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border z-50 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
-              <span className="text-sm font-bold text-foreground">Notifications</span>
-              {notifs.length > 0 && (
-                <button onClick={dismissAll}
-                  className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
-                  <CheckCheck className="h-3.5 w-3.5" /> Mark all read
-                </button>
+          {/* Notification bell */}
+          <div ref={notifRef} className="relative">
+            <button
+              onClick={() => setShowNotifs(v => !v)}
+              className={cn(
+                'relative h-9 w-9 rounded-lg flex items-center justify-center transition-colors',
+                showNotifs ? 'bg-indigo-950/60 text-indigo-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               )}
-            </div>
-            <div className="max-h-72 overflow-y-auto divide-y">
-              {notifs.length === 0 ? (
-                <div className="py-10 text-center text-foreground/30 text-sm">No new notifications</div>
-              ) : notifs.map(n => (
-                <div key={n._id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50">
-                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Bell className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground leading-tight">{n.title}</p>
-                    <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body}</p>
-                    <p className="text-xs text-foreground/30 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <button onClick={() => dismissNotif(n._id)}
-                    className="text-foreground/20 hover:text-foreground/60 shrink-0 mt-1 transition-colors">
-                    <X className="h-3.5 w-3.5" />
+            >
+              {notifsOn ? <Bell className="h-[18px] w-[18px]" /> : <BellOff className="h-[18px] w-[18px] opacity-40" />}
+              {notifsOn && notifs.length > 0 && (
+                <span className="absolute top-1 right-1 h-4 min-w-4 px-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                  {notifs.length > 9 ? '9+' : notifs.length}
+                </span>
+              )}
+            </button>
+
+            {showNotifs && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-slate-900 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-slate-700 z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-800/60 border-b border-slate-700">
+                  <span className="text-sm font-bold text-slate-200">Notifications</span>
+                  {notifs.length > 0 && (
+                    <button onClick={dismissAll}
+                      className="text-xs text-indigo-400 font-medium hover:text-indigo-300 flex items-center gap-1">
+                      <CheckCheck className="h-3.5 w-3.5" /> Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-800">
+                  {notifs.length === 0 ? (
+                    <div className="py-10 text-center text-slate-500 text-sm">No new notifications</div>
+                  ) : notifs.map(n => (
+                    <div key={n._id}
+                      onClick={() => {
+                        apiCallFunction({ url: `${API_BASE_URL}/notifications/${n._id}/read`, method: 'PUT', showToast: false });
+                        setNotifs(prev => prev.filter(x => x._id !== n._id));
+                        if (n.navigateTo) { setShowNotifs(false); router.push(`/${locale}${n.navigateTo}`); }
+                      }}
+                      className={cn('flex items-start gap-3 px-4 py-3 hover:bg-slate-800/40 transition-colors', n.navigateTo ? 'cursor-pointer' : '')}>
+                      <div className="h-7 w-7 rounded-full bg-indigo-900/60 flex items-center justify-center shrink-0 mt-0.5">
+                        <Bell className="h-3.5 w-3.5 text-indigo-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-200 leading-tight">{n.title}</p>
+                        <p className="text-xs text-slate-400 mt-0.5 leading-snug">{n.body}</p>
+                        <p className="text-xs text-slate-600 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); dismissNotif(n._id); }}
+                        className="text-slate-600 hover:text-slate-400 shrink-0 mt-1 transition-colors">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-700 bg-slate-800/40">
+                  <span className="text-xs text-slate-500">Notifications {notifsOn ? 'on' : 'off'}</span>
+                  <button onClick={toggleNotifPref} disabled={togglingNotif}
+                    className={cn(
+                      'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none',
+                      notifsOn ? 'bg-indigo-600' : 'bg-slate-700'
+                    )}>
+                    <span className={cn(
+                      'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
+                      notifsOn ? 'translate-x-4' : 'translate-x-1'
+                    )} />
                   </button>
                 </div>
-              ))}
-            </div>
-            <div className="flex items-center justify-between px-4 py-2.5 border-t bg-gray-50">
-              <span className="text-xs text-foreground/50">Notifications {notifsOn ? 'on' : 'off'}</span>
-              <button onClick={toggleNotifPref} disabled={togglingNotif}
-                className={cn(
-                  'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none',
-                  notifsOn ? 'bg-primary' : 'bg-gray-300'
-                )}>
-                <span className={cn(
-                  'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
-                  notifsOn ? 'translate-x-4' : 'translate-x-1'
-                )} />
-              </button>
-            </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Divider */}
-      <div className="h-6 w-px bg-gray-200 mx-1" />
+          <div className="h-6 w-px bg-slate-800" />
 
-      {/* User chip — clickable to open profile modal */}
-      {userData && (
-        <button
-          onClick={() => setShowProfile(true)}
-          className="flex items-center gap-2.5 pl-1 rounded-xl px-2 py-1 hover:bg-gray-100 transition-colors"
-        >
-          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
-            <ProfileAvatar initials={initials} />
-          </div>
-          <div className="hidden sm:block leading-tight text-left">
-            <p className="text-sm font-semibold text-foreground">{userData.name}</p>
-            <p className="text-[11px] text-foreground/40 capitalize">{roleLabel}</p>
-          </div>
-        </button>
-      )}
+          {/* User avatar — opens profile modal */}
+          {userData && (
+            <button
+              onClick={() => setShowProfile(true)}
+              className="flex items-center gap-2.5 px-2 py-1 rounded-xl hover:bg-slate-800 transition-colors"
+            >
+              <div className="h-8 w-8 rounded-full bg-indigo-700 flex items-center justify-center shrink-0 overflow-hidden">
+                <ProfileAvatar initials={initials} />
+              </div>
+              <div className="hidden sm:block leading-tight text-left">
+                <p className="text-sm font-semibold text-slate-200">{userData.name}</p>
+                <p className="text-[11px] text-slate-500 capitalize">{roleLabel}</p>
+              </div>
+            </button>
+          )}
 
-      {/* Profile modal */}
+        </div>
+      </header>
+
+      {/* Profile modal — rendered outside the header so it's not clipped */}
       {showProfile && userData && (
         <ProfileModal
           userData={userData}
@@ -244,16 +291,7 @@ export function HrTopBar() {
           onSaved={(updates) => { refreshUser(updates); setShowProfile(false); }}
         />
       )}
-
-      {/* Logout button */}
-      <button
-        onClick={handleLogout}
-        className="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-500 border border-red-100 hover:bg-red-50 hover:border-red-200 transition-colors"
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="hidden sm:inline">Logout</span>
-      </button>
-    </header>
+    </>
   );
 }
 

@@ -15,6 +15,7 @@ export interface Employee {
   dateOfHire: string;
   contractEndDate?: string;
   salaryGrade: string;
+  grossPay?: number;
   email: string;
   phone?: string;
   staffCategory: string;
