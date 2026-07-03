@@ -10,6 +10,26 @@ export const STAGE_CONFIG = {
 export type StageKey = keyof typeof STAGE_CONFIG;
 export const STAGES = Object.keys(STAGE_CONFIG) as StageKey[];
 
+/** The linear progression order — rejected can happen from any stage */
+export const STAGE_ORDER: StageKey[] = [
+  'applied',
+  'shortlisted',
+  'interview_scheduled',
+  'offer_sent',
+  'hired',
+];
+
+/**
+ * Returns the one valid next stage from the current stage (forward-only).
+ * rejected is always allowed as a parallel exit.
+ */
+export function allowedNextStages(current: string): StageKey[] {
+  const idx = STAGE_ORDER.indexOf(current as StageKey);
+  if (idx === -1 || idx >= STAGE_ORDER.length - 1) return ['rejected'];
+  const next = STAGE_ORDER[idx + 1];
+  return [next, 'rejected'];
+}
+
 export function stageCfg(stage: string) {
   return STAGE_CONFIG[stage as StageKey] ?? {
     label: stage.replace(/_/g, ' '),

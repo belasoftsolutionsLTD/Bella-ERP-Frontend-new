@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Lock, AlertTriangle, Download, Check, X, ChevronRight } from 'lucide-react';
+import { Plus, AlertTriangle, Download, Check, X, ChevronRight, Mail, FileText, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { downloadFile } from '@/functions/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -142,10 +143,11 @@ function NewCycleModal({ onClose, onCreated }: { onClose: () => void; onCreated:
 
 // ── Result Detail Modal ───────────────────────────────────────────────────────
 
-function ResultModal({ r, cur, onClose, onApprove, isHR }: {
-  r: PayrollResult; cur: string; onClose: () => void; onApprove: () => void; isHR: boolean;
+function ResultModal({ r, cur, cycleYear, onClose, onApprove, isHR }: {
+  r: PayrollResult; cur: string; cycleYear: number; onClose: () => void; onApprove: () => void; isHR: boolean;
 }) {
   const [showEmp, setShowEmp] = useState(false);
+  const locale = useLocale();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -206,38 +208,46 @@ function ResultModal({ r, cur, onClose, onApprove, isHR }: {
             </div>
           )}
         </div>
-        {isHR && r.status === 'pending' && (() => {
-          const hasErrors = r.exceptions.some(e => e.severity === 'error');
-          return (
-            <div className="px-6 py-4 border-t border-slate-700 shrink-0 space-y-2">
-              {hasErrors && (
-                <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-xs text-red-400">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>This payslip has critical errors. Fix them before approving to avoid incorrect payments.</span>
-                </div>
-              )}
-              <div className="flex gap-3">
-                {r.payslipUrl && (
-                  <button onClick={() => downloadFile(r.payslipUrl!, 'payslip.pdf').catch(err => alert(err.message))}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-600 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">
-                    <Download className="h-4 w-4" /> Payslip
-                  </button>
-                )}
-                {hasErrors && (
-                  <a href={`/en/employees/${r.employeeId}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold transition-colors">
-                    Fix Issues
-                  </a>
-                )}
-                <button onClick={() => { onApprove(); onClose(); }} disabled={hasErrors}
-                  title={hasErrors ? 'Resolve errors before approving' : undefined}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
-                  <Check className="h-4 w-4" /> Approve
-                </button>
+        {isHR && (
+          <div className="px-6 py-4 border-t border-slate-700 shrink-0 space-y-2">
+            {r.status === 'pending' && r.exceptions.some(e => e.severity === 'error') && (
+              <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-xs text-red-400">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>This payslip has critical errors. Fix them before approving to avoid incorrect payments.</span>
               </div>
+            )}
+            <div className="flex gap-3 flex-wrap">
+              {r.payslipUrl && (
+                <button onClick={() => downloadFile(r.payslipUrl!, 'payslip.pdf').catch(err => alert(err.message))}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-600 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">
+                  <Download className="h-4 w-4" /> Payslip
+                </button>
+              )}
+              <button onClick={() => downloadFile(`${API_BASE_URL}/payroll/p9/${r.employeeId}?year=${cycleYear}`, `P9A-${r.employeeId}-${cycleYear}.pdf`).catch(err => alert(err.message))}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-600 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">
+                <FileText className="h-4 w-4" /> P9A ({cycleYear})
+              </button>
+              {r.status === 'pending' && (() => {
+                const hasErrors = r.exceptions.some(e => e.severity === 'error');
+                return (
+                  <>
+                    {hasErrors && (
+                      <a href={`/${locale}/employees/${r.employeeId}`}
+                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold transition-colors">
+                        Fix Issues
+                      </a>
+                    )}
+                    <button onClick={() => { onApprove(); onClose(); }} disabled={hasErrors}
+                      title={hasErrors ? 'Resolve errors before approving' : undefined}
+                      className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                      <Check className="h-4 w-4" /> Approve
+                    </button>
+                  </>
+                );
+              })()}
             </div>
-          );
-        })()}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -286,6 +296,130 @@ function ExceptionsPanel({ cycleId, onClose }: { cycleId: string; onClose: () =>
   );
 }
 
+// ── Readiness Modal ───────────────────────────────────────────────────────────
+
+interface ReadinessEmployee {
+  _id: string; fullName: string; staffNumber: string; department: string; designation: string;
+  missing: string[]; hasCritical: boolean;
+}
+
+interface ReadinessData {
+  total: number; incompleteCount: number; criticalCount: number; employees: ReadinessEmployee[];
+}
+
+function ReadinessModal({ onClose }: { onClose: () => void }) {
+  const [data,    setData]    = useState<ReadinessData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/employees/payroll-readiness`,
+      showToast: false,
+      thenFn: r => setData(r.data?.data ?? null),
+      finallyFn: () => setLoading(false),
+    });
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[88vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-indigo-400" />
+            <h2 className="text-base font-bold text-slate-100">Payroll Readiness</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {loading ? (
+            <div className="py-16 flex justify-center">
+              <div className="h-6 w-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+            </div>
+          ) : !data ? (
+            <p className="text-center text-slate-500 py-10">Failed to load readiness data.</p>
+          ) : (
+            <>
+              {/* Summary chips */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Active employees', value: data.total,           color: 'text-slate-100' },
+                  { label: 'Critical issues',  value: data.criticalCount,   color: data.criticalCount   > 0 ? 'text-red-400'   : 'text-emerald-400' },
+                  { label: 'Warnings',         value: data.incompleteCount - data.criticalCount, color: (data.incompleteCount - data.criticalCount) > 0 ? 'text-amber-400' : 'text-emerald-400' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
+                    <p className="text-[11px] text-slate-500 uppercase tracking-wide">{label}</p>
+                    <p className={`text-2xl font-black mt-0.5 ${color}`}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {data.employees.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-10">
+                  <ShieldCheck className="h-10 w-10 text-emerald-400" />
+                  <p className="font-semibold text-emerald-400">All employees are payroll-ready</p>
+                  <p className="text-sm text-slate-500">No missing critical fields detected.</p>
+                </div>
+              ) : (
+                <>
+                  {data.criticalCount > 0 && (
+                    <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span><strong>{data.criticalCount} employee{data.criticalCount !== 1 ? 's are' : ' is'} missing critical fields</strong> — payroll cannot be locked until these are fixed.</span>
+                    </div>
+                  )}
+
+                  <div className="overflow-hidden rounded-xl border border-slate-700">
+                    <div className="grid bg-slate-800/60 border-b border-slate-700" style={{ gridTemplateColumns: '1fr 110px 140px' }}>
+                      {['Employee', 'Department', 'Missing Fields'].map(h => (
+                        <div key={h} className="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{h}</div>
+                      ))}
+                    </div>
+                    {data.employees.map(emp => (
+                      <div key={emp._id} className="grid border-b border-slate-700/60 last:border-0 items-center" style={{ gridTemplateColumns: '1fr 110px 140px' }}>
+                        <div className="px-4 py-3">
+                          <p className="text-sm font-medium text-slate-200">{emp.fullName}</p>
+                          <p className="text-[10px] text-slate-500">{emp.staffNumber} · {emp.designation}</p>
+                        </div>
+                        <div className="px-4 py-3 text-xs text-slate-400">{emp.department}</div>
+                        <div className="px-4 py-3 flex flex-wrap gap-1">
+                          {emp.missing.map(m => {
+                            const isCrit = ['Gross Pay', 'Job Group'].includes(m);
+                            return (
+                              <span key={m} className={cn(
+                                'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                                isCrit ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400',
+                              )}>{m}</span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-700 shrink-0 flex justify-between items-center">
+          <p className="text-xs text-slate-500">Red = blocks payroll · Amber = recommended before disbursement</p>
+          <a href="/en/employees" className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors">
+            Go to People →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function PayrollPage() {
@@ -298,6 +432,8 @@ export default function PayrollPage() {
   const [excOpen,      setExcOpen]      = useState(false);
   const [detailR,      setDetailR]      = useState<PayrollResult | null>(null);
   const [advancing,    setAdvancing]    = useState(false);
+  const [emailing,     setEmailing]     = useState(false);
+  const [readyOpen,    setReadyOpen]    = useState(false);
 
   const fetchCycles = useCallback(() => {
     setLoading(true);
@@ -334,6 +470,13 @@ export default function PayrollPage() {
       data: { employeeIds: [resultId] }, thenFn: () => fetchResults() });
   };
 
+  const sendPayslipEmails = () => {
+    if (!activeCycle) return;
+    setEmailing(true);
+    apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles/${activeCycle._id}/email-payslips`, method: 'POST', data: {},
+      thenFn: () => {}, finallyFn: () => setEmailing(false) });
+  };
+
   const approveAll = () => {
     if (!activeCycle) return;
     apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles/${activeCycle._id}/approve`, method: 'POST',
@@ -362,6 +505,9 @@ export default function PayrollPage() {
             <div className="flex items-center gap-2">
               <a href="/en/payroll/employees" className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Compensations</a>
               <a href="/en/payroll/concepts"  className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Concepts</a>
+              <button onClick={() => setReadyOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">
+                <ShieldCheck className="h-4 w-4" /> Check Readiness
+              </button>
               <button onClick={() => setNewOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors">
                 <Plus className="h-4 w-4" /> New Cycle
               </button>
@@ -441,6 +587,13 @@ export default function PayrollPage() {
                     <button onClick={() => downloadFile(`${API_BASE_URL}/payroll/cycles/${ac._id}/export`, `payroll-${ac._id}.csv`).catch(err => alert(err.message))}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">
                       <Download className="h-4 w-4" /> Export CSV
+                    </button>
+                  )}
+                  {ac.status === 'closed' && (
+                    <button onClick={sendPayslipEmails} disabled={emailing}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 text-indigo-400 text-sm font-semibold hover:bg-indigo-500/20 disabled:opacity-50 transition-colors">
+                      {emailing ? <span className="h-4 w-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> : <Mail className="h-4 w-4" />}
+                      {emailing ? 'Sending…' : 'Email Payslips'}
                     </button>
                   )}
                 </div>
@@ -526,7 +679,8 @@ export default function PayrollPage() {
 
       {newOpen   && <NewCycleModal onClose={() => setNewOpen(false)} onCreated={fetchCycles} />}
       {excOpen   && ac && <ExceptionsPanel cycleId={ac._id} onClose={() => setExcOpen(false)} />}
-      {detailR   && ac && <ResultModal r={detailR} cur={cur} onClose={() => setDetailR(null)} onApprove={() => approveEmployee(detailR._id)} isHR={isHR} />}
+      {detailR   && ac && <ResultModal r={detailR} cur={cur} cycleYear={ac.period.year} onClose={() => setDetailR(null)} onApprove={() => approveEmployee(detailR._id)} isHR={isHR} />}
+      {readyOpen && <ReadinessModal onClose={() => setReadyOpen(false)} />}
     </div>
   );
 }

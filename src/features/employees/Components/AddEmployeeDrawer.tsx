@@ -6,7 +6,7 @@ import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, User, Briefcase, CalendarDays, DollarSign, CreditCard, Heart, Loader2 } from 'lucide-react';
+import { X, User, Briefcase, CalendarDays, DollarSign, CreditCard, Heart, Loader2, Upload, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
@@ -16,11 +16,21 @@ import { useHrConfig } from '@/features/config/Hooks/useHrConfig';
 const schema = employeeSchema.pick({
   fullName: true, nationalId: true, designation: true, employmentType: true,
   department: true, dateOfHire: true, dateOfBirth: true, contractEndDate: true, salaryGrade: true,
-  grossPay: true, paymentMethod: true, bankName: true, bankAccountNumber: true,
+  grossPay: true, taxId: true, paymentMethod: true, bankName: true, bankAccountNumber: true,
   mpesaNumber: true, paypalEmail: true, cryptoWalletAddress: true, cryptoNetwork: true,
   email: true, phone: true, nokName: true, nokRelationship: true, nokPhone: true,
   nokNationalId: true, nokEmail: true, location: true, costCenter: true,
   staffCategory: true,
+}).superRefine((data, ctx) => {
+  if (data.paymentMethod === 'bank_transfer' && !data.bankAccountNumber?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account number is required for bank transfer', path: ['bankAccountNumber'] });
+  }
+  if (data.paymentMethod === 'mpesa' && !data.mpesaNumber?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'M-Pesa number is required', path: ['mpesaNumber'] });
+  }
+  if (data.paymentMethod === 'paypal' && !data.paypalEmail?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'PayPal email is required', path: ['paypalEmail'] });
+  }
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -74,9 +84,10 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
     .map((d) => ({ label: d.name, value: d.name }));
 
   const submit = async (data: FormValues) => {
-    const { nokName, nokRelationship, nokPhone, nokNationalId, nokEmail, ...rest } = data;
+    const { nokName, nokRelationship, nokPhone, nokNationalId, nokEmail, taxId, ...rest } = data;
     const payload = {
       ...rest,
+      kraPin: taxId || null,
       nextOfKin: (nokName || nokPhone || nokNationalId || nokEmail)
         ? { name: nokName, relationship: nokRelationship, phone: nokPhone, nationalId: nokNationalId, email: nokEmail }
         : null,
@@ -223,14 +234,20 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
 
             {/* ── Compensation ────────────────────────────────────────── */}
             <div className="space-y-4">
-              <SectionHeader icon={DollarSign} title="Compensation" color="text-amber-600 border-amber-100" />
+              <SectionHeader icon={DollarSign} title="Compensation & Tax" color="text-amber-600 border-amber-100" />
+              {/* Payroll completeness notice */}
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700">Gross pay and job group are <strong>required for payroll</strong>. Incomplete profiles will be blocked from salary runs.</p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Gross Monthly Pay (KES)</label>
+                  <label className="text-xs font-medium text-slate-600">Gross Monthly Pay *</label>
                   <input {...register('grossPay')} type="number" placeholder="e.g. 85000" className={inp} />
+                  {errors.grossPay && <p className="text-xs text-red-500">{errors.grossPay.message}</p>}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Job Group</label>
+                  <label className="text-xs font-medium text-slate-600">Job Group *</label>
                   {jobGroups.items.length > 0 ? (
                     <select {...register('salaryGrade')} className={sel}>
                       <option value="">Select job group…</option>
@@ -239,6 +256,15 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                   ) : (
                     <input {...register('salaryGrade')} placeholder="e.g. Grade 5" className={inp} />
                   )}
+                  {errors.salaryGrade && <p className="text-xs text-red-500">{errors.salaryGrade.message}</p>}
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Tax ID / PIN</label>
+                  <input {...register('taxId')} placeholder="e.g. A000123456X / TIN-00123" className={inp} />
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Upload className="h-3 w-3 text-indigo-400 shrink-0" />
+                    <p className="text-[10px] text-indigo-600">Upload the tax certificate in the <strong>Documents</strong> tab after saving this employee.</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -259,20 +285,23 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                     <input {...register('bankName')} placeholder="e.g. Equity Bank" className={inp} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600">Account Number</label>
+                    <label className="text-xs font-medium text-slate-600">Account Number *</label>
                     <input {...register('bankAccountNumber')} placeholder="e.g. 0123456789" className={inp} />
+                    {errors.bankAccountNumber && <p className="text-xs text-red-500">{errors.bankAccountNumber.message}</p>}
                   </div>
                 </>)}
                 {paymentMethod === 'mpesa' && (
                   <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-slate-600">M-Pesa Number</label>
+                    <label className="text-xs font-medium text-slate-600">M-Pesa Number *</label>
                     <input {...register('mpesaNumber')} placeholder="+254 7XX XXX XXX" className={inp} />
+                    {errors.mpesaNumber && <p className="text-xs text-red-500">{errors.mpesaNumber.message}</p>}
                   </div>
                 )}
                 {paymentMethod === 'paypal' && (
                   <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-slate-600">PayPal Email</label>
+                    <label className="text-xs font-medium text-slate-600">PayPal Email *</label>
                     <input {...register('paypalEmail')} type="email" placeholder="jane@paypal.com" className={inp} />
+                    {errors.paypalEmail && <p className="text-xs text-red-500">{errors.paypalEmail.message}</p>}
                   </div>
                 )}
                 {paymentMethod === 'crypto' && (<>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, X, Check, XCircle, Download, ChevronLeft, ChevronRight, AlertTriangle, Eye, Pencil, Trash2, Banknote, Loader2, Paperclip, MessageSquareWarning, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { downloadFile } from '@/functions/downloadFile';
+import { downloadFile, openFile } from '@/functions/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
@@ -686,23 +686,67 @@ function ClaimDetailDrawer({ claim, isHR, onClose, onRefresh, onDisputeClick }: 
               </div>
             )}
           </div>
+
+          {/* Receipt */}
+          {claim.receiptFile && (
+            <div className="bg-slate-800/50 rounded-xl px-4 py-3 space-y-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Receipt / Evidence</p>
+              {/\.(jpg|jpeg|png|webp|gif)$/i.test(claim.receiptFile) ? (
+                <img
+                  src={`${API_BASE_URL.replace(/\/api$/, '/uploads')}/${claim.receiptFile}?token=${typeof window !== 'undefined' ? sessionStorage.getItem('token') ?? '' : ''}`}
+                  alt="Receipt"
+                  className="w-full max-h-64 object-contain rounded-lg border border-slate-700 bg-slate-900"
+                />
+              ) : (
+                <div className="flex items-center gap-2 py-2 px-3 rounded-lg border border-slate-700 bg-slate-900/60">
+                  <Download className="h-4 w-4 text-slate-500 shrink-0" />
+                  <span className="text-xs text-slate-400 truncate flex-1">{claim.receiptFile.split('/').pop()}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => openFile(`${API_BASE_URL.replace(/\/api$/, '/uploads')}/${claim.receiptFile}`).catch(() => alert('Could not open receipt.'))}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-2.5 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
+                >
+                  <Eye className="h-3.5 w-3.5" /> Preview
+                </button>
+                <button
+                  onClick={() => {
+                    const filename = claim.receiptFile!.split('/').pop() ?? 'receipt';
+                    downloadFile(`${API_BASE_URL.replace(/\/api$/, '/uploads')}/${claim.receiptFile}`, filename).catch(() => alert('Could not download receipt.'));
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 border border-slate-600 px-2.5 py-1.5 rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions footer */}
         <div className="px-6 py-4 border-t border-slate-700 shrink-0 space-y-2">
-          {isHR && claim.status === 'submitted' && (
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => act('approve', `${API_BASE_URL}/expense-claims/${claim._id}/approve`, 'PUT', {})}
-                disabled={busy !== null}
-                className="flex items-center justify-center gap-2 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
-                {busy === 'approve' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Approve
-              </button>
-              <button onClick={() => setShowReject(true)}
-                disabled={busy !== null}
-                className="flex items-center justify-center gap-2 h-9 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
-                {busy === 'reject' ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} Reject
-              </button>
-            </div>
+          {isHR && (claim.status === 'submitted' || claim.status === 'disputed') && (
+            <>
+              {claim.status === 'disputed' && (
+                <div className="flex items-start gap-2 bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2 text-xs text-orange-400 mb-1">
+                  <MessageSquareWarning className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>Employee disputed this rejection. Review and approve or re-reject below.</span>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => act('approve', `${API_BASE_URL}/expense-claims/${claim._id}/approve`, 'PUT', {})}
+                  disabled={busy !== null}
+                  className="flex items-center justify-center gap-2 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+                  {busy === 'approve' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Approve
+                </button>
+                <button onClick={() => setShowReject(true)}
+                  disabled={busy !== null}
+                  className="flex items-center justify-center gap-2 h-9 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+                  {busy === 'reject' ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} {claim.status === 'disputed' ? 'Re-reject' : 'Reject'}
+                </button>
+              </div>
+            </>
           )}
           {isHR && claim.status === 'approved' && (
             <button onClick={() => act('reimburse', `${API_BASE_URL}/expense-claims/${claim._id}/reimburse`, 'PUT', {})}

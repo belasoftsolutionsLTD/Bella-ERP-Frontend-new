@@ -2,169 +2,281 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import { useAuth } from '@/contexts/AuthContext';
 import {
-  Plus, Search, X, FolderOpen, Clock, DollarSign,
-  Users, Calendar, CheckCircle2, AlertCircle, Circle,
+  Plus, Search, X, Briefcase, CheckCircle2, Clock,
+  Users, Calendar, Check, ChevronDown, ChevronUp, AlertCircle,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
 interface Project {
   _id: string;
   name: string;
-  code: string;
-  description?: string;
-  clientName?: string;
-  budget?: number;
-  currency: string;
-  startDate?: string;
-  endDate?: string;
-  status: string;
-  billable: boolean;
-  totalHours: number;
-  totalExpenses: number;
+  description?: string | null;
+  status: 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
+  startDate?: string | null;
+  endDate?: string | null;
+  departments: string[];
+  supervisorName: string;
+  teamLeaderName?: string | null;
   memberCount: number;
-  budgetUsed: number;
+  subtaskCount: number;
+  completedSubtasks: number;
+  createdAt: string;
+}
+
+interface Employee {
+  _id: string;
+  fullName: string;
+  staffNumber?: string;
+  department?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const fmt  = (n: number, cur = 'KES') => `${cur} ${(n || 0).toLocaleString('en-KE', { maximumFractionDigits: 0 })}`;
-const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—';
 
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof Circle; color: string }> = {
-  active:    { label: 'Active',    icon: CheckCircle2, color: 'text-emerald-400 bg-emerald-500/20' },
-  paused:    { label: 'Paused',    icon: AlertCircle,  color: 'text-amber-400 bg-amber-500/20' },
-  completed: { label: 'Completed', icon: CheckCircle2, color: 'text-blue-400 bg-blue-500/20' },
-  cancelled: { label: 'Cancelled', icon: X,            color: 'text-slate-400 bg-slate-600/40' },
-};
+const STATUS_CONFIG = {
+  in_progress: { label: 'In Progress', color: 'text-indigo-400 bg-indigo-500/20' },
+  completed:   { label: 'Completed',   color: 'text-emerald-400 bg-emerald-500/20' },
+  on_hold:     { label: 'On Hold',     color: 'text-amber-400 bg-amber-500/20' },
+  cancelled:   { label: 'Cancelled',   color: 'text-slate-400 bg-slate-600/40' },
+} as const;
 
-// ── Create Project Drawer ─────────────────────────────────────────────────────
-interface CreateDrawerProps { onClose: () => void; onSaved: () => void }
-function CreateProjectDrawer({ onClose, onSaved }: CreateDrawerProps) {
-  const [form, setForm] = useState({
-    name: '', code: '', description: '', clientName: '',
-    budget: '', currency: 'KES', startDate: '', endDate: '',
-    status: 'active', billable: true,
-  });
+const fmtDate = (d?: string | null) =>
+  d ? new Date(d).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
+
+// ── MultiSelect component ─────────────────────────────────────────────────────
+
+function MultiSelectList({
+  items, selected, onToggle, getLabel, getId, placeholder,
+}: {
+  items: any[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  getLabel: (item: any) => string;
+  getId: (item: any) => string;
+  placeholder: string;
+}) {
+  const [search, setSearch] = useState('');
+  const filtered = search.trim()
+    ? items.filter(i => getLabel(i).toLowerCase().includes(search.toLowerCase()))
+    : items;
+
+  return (
+    <div className="border border-slate-700 rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-700 bg-slate-800/40">
+        <Search className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-[13px] text-slate-200 placeholder-slate-500 outline-none"
+        />
+      </div>
+      <div className="max-h-44 overflow-y-auto">
+        {filtered.length === 0 && (
+          <p className="text-[12px] text-slate-500 text-center py-4">No results</p>
+        )}
+        {filtered.map(item => {
+          const id  = getId(item);
+          const sel = selected.has(id);
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onToggle(id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-slate-700/50 last:border-0 hover:bg-slate-700/40 transition-colors ${sel ? 'bg-indigo-500/10' : ''}`}
+            >
+              <div className={`h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-indigo-500 border-indigo-500' : 'border-slate-500'}`}>
+                {sel && <Check className="h-2.5 w-2.5 text-white" />}
+              </div>
+              <span className={`text-[13px] truncate ${sel ? 'text-indigo-300 font-medium' : 'text-slate-200'}`}>
+                {getLabel(item)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Create Project Modal ──────────────────────────────────────────────────────
+
+function CreateProjectModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({ name: '', description: '', startDate: '', endDate: '' });
+  const [employees, setEmployees]           = useState<Employee[]>([]);
+  const [departments, setDepartments]       = useState<string[]>([]);
+  const [selectedDepts, setSelectedDepts]   = useState<Set<string>>(new Set());
+  const [teamLeaderId, setTeamLeaderId]     = useState('');
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
+  const [showDepts, setShowDepts]           = useState(true);
+  const [showMembers, setShowMembers]       = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
+  useEffect(() => {
+    apiCallFunction<{ data: { data: Employee[] } }>({
+      url: `${API_BASE_URL}/employees?limit=500`,
+      showToast: false,
+      returnResponse: true,
+      thenFn: r => {
+        const emps = r?.data?.data ?? [];
+        setEmployees(emps);
+        const depts = [...new Set(emps.map(e => e.department).filter(Boolean))] as string[];
+        setDepartments(depts.sort());
+      },
+    });
+  }, []);
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const toggleDept = (d: string) =>
+    setSelectedDepts(prev => { const s = new Set(prev); s.has(d) ? s.delete(d) : s.add(d); return s; });
+
+  const toggleMember = (id: string) =>
+    setSelectedMembers(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const save = () => {
-    if (!form.name.trim() || !form.code.trim()) return;
+    if (!form.name.trim()) return;
     setSaving(true);
+    const payload = {
+      name:         form.name.trim(),
+      description:  form.description || null,
+      startDate:    form.startDate || null,
+      endDate:      form.endDate   || null,
+      departments:  [...selectedDepts],
+      teamLeaderId: teamLeaderId || null,
+      memberIds:    [...selectedMembers],
+    };
     apiCallFunction({
       url: `${API_BASE_URL}/projects`,
       method: 'POST',
-      data: { ...form, budget: form.budget ? Number(form.budget) : undefined },
+      data: payload,
       thenFn: () => { onSaved(); onClose(); },
       finallyFn: () => setSaving(false),
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-          <h2 className="font-bold text-white text-lg">New Project</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-            <X className="h-5 w-5" />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(5,12,30,0.88)' }}>
+      <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col bg-[#1e293b] border border-slate-700" style={{ maxHeight: '92vh' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="text-[16px] font-bold text-slate-100">New Project</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200"><X className="h-5 w-5" /></button>
         </div>
+
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-          {/* Name + Code */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Project Name <span className="text-red-400">*</span></label>
-              <input value={form.name} onChange={e => { set('name', e.target.value); if (!form.code) set('code', e.target.value.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 10)); }}
-                placeholder="e.g. Website Redesign"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Project Code <span className="text-red-400">*</span></label>
-              <input value={form.code} onChange={e => set('code', e.target.value.toUpperCase())}
-                placeholder="WEB-001"
-                className="w-full h-9 px-3 text-sm font-mono bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Client</label>
-              <input value={form.clientName} onChange={e => set('clientName', e.target.value)}
-                placeholder="Client name"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
-            </div>
-          </div>
-
+          {/* Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Description</label>
-            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-              placeholder="Optional project description"
-              className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none" />
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
+              Project Name <span className="text-red-400">*</span>
+            </label>
+            <input
+              value={form.name}
+              onChange={e => set('name', e.target.value)}
+              placeholder="e.g. Annual Report 2026"
+              className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+            />
           </div>
 
-          {/* Budget */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Budget</label>
-              <input type="number" min="0" value={form.budget} onChange={e => set('budget', e.target.value)}
-                placeholder="0.00"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Currency</label>
-              <select value={form.currency} onChange={e => set('currency', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
-                {['KES', 'USD', 'EUR', 'GBP'].map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
+          {/* Description */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Description</label>
+            <textarea
+              value={form.description}
+              onChange={e => set('description', e.target.value)}
+              rows={2}
+              placeholder="Brief description of the project…"
+              className="w-full px-3 py-2 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+            />
           </div>
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Start Date</label>
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Start Date</label>
               <input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">End Date</label>
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">End Date</label>
               <input type="date" value={form.endDate} onChange={e => set('endDate', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500" />
             </div>
           </div>
 
-          {/* Status + Billable */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Status</label>
-              <select value={form.status} onChange={e => set('status', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 cursor-pointer pb-1">
-                <div className={`relative h-5 w-9 rounded-full transition-colors ${form.billable ? 'bg-indigo-600' : 'bg-slate-600'}`}
-                  onClick={() => set('billable', !form.billable)}>
-                  <div className={`absolute top-0.5 h-4 w-4 bg-white rounded-full shadow transition-transform ${form.billable ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                </div>
-                <span className="text-sm text-slate-300">Billable</span>
-              </label>
-            </div>
+          {/* Departments */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowDepts(!showDepts)}
+              className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2"
+            >
+              <span>Departments Involved {selectedDepts.size > 0 && <span className="text-indigo-400 ml-1">({selectedDepts.size})</span>}</span>
+              {showDepts ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            {showDepts && (
+              <MultiSelectList
+                items={departments}
+                selected={selectedDepts}
+                onToggle={toggleDept}
+                getId={d => d}
+                getLabel={d => d}
+                placeholder="Filter departments…"
+              />
+            )}
+          </div>
+
+          {/* Team Leader */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Team Leader (optional)</label>
+            <select
+              value={teamLeaderId}
+              onChange={e => setTeamLeaderId(e.target.value)}
+              className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="">— No team leader —</option>
+              {employees.map(e => (
+                <option key={e._id} value={e._id}>
+                  {e.fullName}{e.department ? ` (${e.department})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Members */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowMembers(!showMembers)}
+              className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2"
+            >
+              <span>Project Members {selectedMembers.size > 0 && <span className="text-indigo-400 ml-1">({selectedMembers.size})</span>}</span>
+              {showMembers ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            {showMembers && (
+              <MultiSelectList
+                items={employees}
+                selected={selectedMembers}
+                onToggle={toggleMember}
+                getId={e => e._id}
+                getLabel={e => `${e.fullName}${e.department ? ` · ${e.department}` : ''}`}
+                placeholder="Search employees…"
+              />
+            )}
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 pb-5 pt-3 border-t border-slate-700">
+        <div className="flex gap-3 px-6 pb-5 pt-3 border-t border-slate-700 shrink-0">
           <button onClick={onClose}
-            className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">
+            className="flex-1 h-10 rounded-xl border border-slate-600 text-[13px] text-slate-400 hover:bg-slate-800 transition-colors">
             Cancel
           </button>
-          <button onClick={save} disabled={saving || !form.name.trim() || !form.code.trim()}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+          <button onClick={save} disabled={saving || !form.name.trim()}
+            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
             {saving ? 'Creating…' : 'Create Project'}
           </button>
         </div>
@@ -174,64 +286,76 @@ function CreateProjectDrawer({ onClose, onSaved }: CreateDrawerProps) {
 }
 
 // ── Project Card ──────────────────────────────────────────────────────────────
+
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
-  const cfg = STATUS_CONFIG[project.status] ?? STATUS_CONFIG.active;
-  const StatusIcon = cfg.icon;
-  const budgetPct = Math.min(project.budgetUsed, 100);
+  const cfg = STATUS_CONFIG[project.status] ?? STATUS_CONFIG.in_progress;
+  const pct = project.subtaskCount > 0
+    ? Math.round((project.completedSubtasks / project.subtaskCount) * 100)
+    : 0;
 
   return (
-    <div onClick={onClick}
-      className="bg-slate-800 border border-slate-700 rounded-2xl p-5 cursor-pointer hover:border-indigo-500/50 transition-all group">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">{project.code}</span>
-          {project.billable && (
-            <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Billable</span>
-          )}
+    <div
+      onClick={onClick}
+      className="bg-slate-800 border border-slate-700 rounded-2xl p-5 cursor-pointer hover:border-indigo-500/50 transition-all group"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <div className="h-9 w-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+          <Briefcase className="h-4.5 w-4.5 text-indigo-400" />
         </div>
-        <span className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cfg.color}`}>
-          <StatusIcon className="h-3 w-3" />
+        <span className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>
           {cfg.label}
         </span>
       </div>
 
-      <h3 className="font-bold text-white text-base mb-0.5 group-hover:text-indigo-300 transition-colors">{project.name}</h3>
-      {project.clientName && <p className="text-xs text-slate-400 mb-3">{project.clientName}</p>}
+      <h3 className="font-bold text-white text-[15px] mb-0.5 group-hover:text-indigo-300 transition-colors leading-tight">
+        {project.name}
+      </h3>
+      <p className="text-[11px] text-slate-500 mb-3">Supervisor: {project.supervisorName}</p>
 
-      {project.budget ? (
+      {/* Departments */}
+      {(project.departments?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {project.departments.slice(0, 3).map(d => (
+            <span key={d} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{d}</span>
+          ))}
+          {project.departments.length > 3 && (
+            <span className="text-[10px] text-slate-500">+{project.departments.length - 3}</span>
+          )}
+        </div>
+      )}
+
+      {/* Subtask progress */}
+      {project.subtaskCount > 0 && (
         <div className="mb-3">
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-slate-400">Budget used</span>
-            <span className={budgetPct >= 90 ? 'text-red-400' : budgetPct >= 70 ? 'text-amber-400' : 'text-slate-400'}>
-              {Math.round(budgetPct)}%
-            </span>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-slate-400">Subtask progress</span>
+            <span className="text-slate-300 font-semibold">{project.completedSubtasks}/{project.subtaskCount}</span>
           </div>
           <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${budgetPct >= 90 ? 'bg-red-500' : budgetPct >= 70 ? 'bg-amber-500' : 'bg-indigo-500'}`}
-              style={{ width: `${budgetPct}%` }} />
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${pct}%`,
+                background: pct === 100 ? '#22c55e' : '#6366f1',
+              }}
+            />
           </div>
         </div>
-      ) : null}
+      )}
 
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className="flex items-center gap-1.5 text-slate-400">
-          <Clock className="h-3.5 w-3.5" />
-          <span>{project.totalHours.toFixed(1)}h</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-slate-400">
-          <DollarSign className="h-3.5 w-3.5" />
-          <span>{fmt(project.totalExpenses, project.currency)}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-slate-400">
-          <Users className="h-3.5 w-3.5" />
-          <span>{project.memberCount} members</span>
-        </div>
+      {/* Footer stats */}
+      <div className="flex items-center gap-4 text-[11px] text-slate-500">
+        <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {project.memberCount} members</span>
+        {project.teamLeaderName && (
+          <span className="flex items-center gap-1.5 truncate">Lead: {project.teamLeaderName}</span>
+        )}
       </div>
 
       {(project.startDate || project.endDate) && (
-        <div className="mt-3 pt-3 border-t border-slate-700 flex items-center gap-1.5 text-xs text-slate-500">
+        <div className="mt-3 pt-3 border-t border-slate-700 flex items-center gap-1.5 text-[11px] text-slate-500">
           <Calendar className="h-3 w-3" />
-          <span>{fmtDate(project.startDate)} – {fmtDate(project.endDate)}</span>
+          <span>{fmtDate(project.startDate) ?? '—'} → {fmtDate(project.endDate) ?? '—'}</span>
         </div>
       )}
     </div>
@@ -239,11 +363,17 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+
 export default function ProjectsPage() {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
+  const locale = useLocale();
+  const { userData } = useAuth() as any;
+  const role = userData?.role ?? '';
+  const canCreate = ['super_admin', 'hr_manager', 'department_head'].includes(role);
+
+  const [projects, setProjects]         = useState<Project[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreate, setShowCreate]     = useState(false);
 
@@ -262,59 +392,108 @@ export default function ProjectsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const inProgress = projects.filter(p => p.status === 'in_progress');
+  const completed  = projects.filter(p => p.status === 'completed');
+  const other      = projects.filter(p => p.status !== 'in_progress' && p.status !== 'completed');
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Projects</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Track projects, time, budgets, and team</p>
+          <h1 className="text-[22px] font-bold text-white">Projects</h1>
+          <p className="text-[13px] text-slate-400 mt-0.5">Cross-department project coordination</p>
         </div>
-        <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-500 transition-colors shadow-sm">
-          <Plus className="h-4 w-4" /> New Project
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 bg-indigo-600 text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-500 transition-colors"
+          >
+            <Plus className="h-4 w-4" /> New Project
+          </button>
+        )}
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-52">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             placeholder="Search projects…"
-            className="w-full pl-9 pr-3 h-9 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+            className="w-full pl-9 pr-3 h-9 text-[13px] bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+          />
         </div>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="h-9 px-3 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="h-9 px-3 text-[13px] bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+        >
           <option value="">All Statuses</option>
-          {['active', 'paused', 'completed', 'cancelled'].map(s => (
-            <option key={s} value={s}>{STATUS_CONFIG[s]?.label ?? s}</option>
+          {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+            <option key={k} value={k}>{v.label}</option>
           ))}
         </select>
       </div>
 
-      {/* Grid */}
+      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center h-48">
           <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
         </div>
       ) : projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 text-slate-500 gap-2">
-          <FolderOpen className="h-10 w-10 opacity-30" />
-          <p className="text-sm">No projects found.</p>
-          <button onClick={() => setShowCreate(true)} className="text-indigo-400 text-sm hover:text-indigo-300 transition-colors">
-            Create your first project →
-          </button>
+          <Briefcase className="h-10 w-10 opacity-30" />
+          <p className="text-[13px]">No projects found.</p>
+          {canCreate && (
+            <button onClick={() => setShowCreate(true)} className="text-indigo-400 text-[13px] hover:text-indigo-300">
+              Create your first project →
+            </button>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {projects.map(p => (
-            <ProjectCard key={p._id} project={p} onClick={() => router.push(`/en/projects/${p._id}`)} />
-          ))}
+        <div className="space-y-6">
+          {inProgress.length > 0 && (
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5 text-indigo-400" /> In Progress ({inProgress.length})
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {inProgress.map(p => (
+                  <ProjectCard key={p._id} project={p} onClick={() => router.push(`/${locale}/projects/${p._id}`)} />
+                ))}
+              </div>
+            </div>
+          )}
+          {completed.length > 0 && (
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Completed ({completed.length})
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {completed.map(p => (
+                  <ProjectCard key={p._id} project={p} onClick={() => router.push(`/${locale}/projects/${p._id}`)} />
+                ))}
+              </div>
+            </div>
+          )}
+          {other.length > 0 && (
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-400" /> Other ({other.length})
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {other.map(p => (
+                  <ProjectCard key={p._id} project={p} onClick={() => router.push(`/${locale}/projects/${p._id}`)} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {showCreate && <CreateProjectDrawer onClose={() => setShowCreate(false)} onSaved={load} />}
+      {showCreate && <CreateProjectModal onClose={() => setShowCreate(false)} onSaved={load} />}
     </div>
   );
 }

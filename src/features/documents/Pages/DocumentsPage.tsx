@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import {
   Search, FileText, Upload, Download, X, FolderOpen, ExternalLink,
-  FileImage, FileSpreadsheet, File,
+  FileImage, FileSpreadsheet, File, Eye,
 } from 'lucide-react';
+import { DocViewerModal } from '@/components/custom-ui/DocViewerModal';
 import { cn } from '@/lib/utils';
 import { Wrapper } from '@/components/custom-ui/Wrapper';
 import { useDocuments } from '../Hooks/useDocuments';
@@ -221,6 +222,15 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [showUpload, setShowUpload] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState<{ url: string; fileName: string; downloadUrl: string } | null>(null);
+
+  function docViewUrl(employeeId: string, docId: string) {
+    const token = typeof window !== 'undefined' ? (sessionStorage.getItem('token') ?? '') : '';
+    return `${API_BASE_URL}/employees/${employeeId}/documents/${docId}/download?token=${token}`;
+  }
+  function docDownloadUrl(employeeId: string, docId: string) {
+    return `${API_BASE_URL}/employees/${employeeId}/documents/${docId}/download`;
+  }
 
   const { documents: rawDocuments, total, loading, error, refetch } = useDocuments(activeFolder, search);
 
@@ -364,7 +374,14 @@ export default function DocumentsPage() {
                       {/* Actions */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() => downloadFile(`${API_BASE_URL}/employees/${doc.employeeId}/documents/${doc._id}/download`, doc.fileName ?? 'document').catch(err => alert(err.message))}
+                          onClick={() => setViewingDoc({ url: docViewUrl(doc.employeeId, String(doc._id)), fileName: doc.fileName ?? 'document', downloadUrl: docDownloadUrl(doc.employeeId, String(doc._id)) })}
+                          className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors"
+                          title="View document"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => downloadFile(docDownloadUrl(doc.employeeId, String(doc._id)), doc.fileName ?? 'document').catch(err => alert(err.message))}
                           className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
                           title="Download"
                         >
@@ -391,6 +408,15 @@ export default function DocumentsPage() {
         <UploadDrawer
           onClose={() => setShowUpload(false)}
           onUploaded={refetch}
+        />
+      )}
+
+      {viewingDoc && (
+        <DocViewerModal
+          url={viewingDoc.url}
+          fileName={viewingDoc.fileName}
+          downloadUrl={viewingDoc.downloadUrl}
+          onClose={() => setViewingDoc(null)}
         />
       )}
     </div>

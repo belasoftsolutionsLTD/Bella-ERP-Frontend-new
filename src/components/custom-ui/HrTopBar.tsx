@@ -17,7 +17,7 @@ const PAGE_LABELS: Record<string, string> = {
   'org-chart':      'Org Chart',
   documents:        'Documents',
   leave:            'Leave Management',
-  attendance:       'Time & Attendance',
+  attendance:       'Shift & Time',
   payroll:          'Payroll',
   performance:      'Performance',
   expenses:         'Expenses',

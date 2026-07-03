@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Mail, Phone, Calendar, FileText, UserCheck, UserX, ExternalLink, CalendarClock, Send } from 'lucide-react';
+import { X, Mail, Phone, Calendar, UserCheck, UserX, ExternalLink, CalendarClock, Send, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencyInput } from '@/components/custom-ui/CurrencyInput';
 import { parseCurrencyInput } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import { DocViewerModal } from '@/components/custom-ui/DocViewerModal';
 
 const UPLOADS_URL = API_BASE_URL.replace(/\/api$/, '/uploads');
-import { STAGE_CONFIG, STAGES, SOURCE_CONFIG, stageCfg } from '../constants';
+import { STAGE_CONFIG, SOURCE_CONFIG, stageCfg, allowedNextStages } from '../constants';
 import type { Applicant } from '../Hooks/useRecruitment';
 
 type ProfileTab = 'overview' | 'notes' | 'interview' | 'stage';
@@ -26,6 +27,7 @@ interface Props {
 
 export function ApplicantDrawer({ applicant, onClose, onStageChange, onSendOfferLetter, onReject, onHire, onRefetch }: Props) {
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
+  const [viewingCv, setViewingCv] = useState(false);
   const [note, setNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [offeredSalary, setOfferedSalary] = useState(parseCurrencyInput(applicant.offeredSalary?.toString() ?? ''));
@@ -80,6 +82,7 @@ export function ApplicantDrawer({ applicant, onClose, onStageChange, onSendOffer
   ];
 
   return (
+    <>
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div className="relative z-10 w-full max-w-2xl max-h-[90vh] bg-white shadow-2xl rounded-2xl flex flex-col" onClick={e => e.stopPropagation()}>
 
@@ -137,16 +140,21 @@ export function ApplicantDrawer({ applicant, onClose, onStageChange, onSendOffer
             )}
 
             {(applicant.cvPath || applicant.cvFilename) && (
-              <div className="pt-3 border-t border-gray-100">
-                <a
-                  href={`${UPLOADS_URL}/${applicant.cvFilename ?? 'cv.pdf'}?token=${typeof window !== 'undefined' ? sessionStorage.getItem('token') ?? '' : ''}`}
-                  target="_blank"
-                  rel="noreferrer"
+              <div className="pt-3 border-t border-gray-100 flex items-center gap-3">
+                <button
+                  onClick={() => setViewingCv(true)}
                   className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:underline"
                 >
-                  <FileText className="h-3.5 w-3.5" />
-                  Download CV
+                  <Eye className="h-3.5 w-3.5" />
+                  View CV
+                </button>
+                <a
+                  href={`${UPLOADS_URL}/${applicant.cvFilename ?? 'cv.pdf'}?token=${typeof window !== 'undefined' ? sessionStorage.getItem('token') ?? '' : ''}`}
+                  download
+                  className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:underline"
+                >
                   <ExternalLink className="h-3 w-3" />
+                  Download
                 </a>
               </div>
             )}
@@ -300,16 +308,46 @@ export function ApplicantDrawer({ applicant, onClose, onStageChange, onSendOffer
               {activeTab === 'stage' && (
                 <div className="space-y-5">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Move to Stage</p>
-                    <div className="flex flex-wrap gap-2">
-                      {STAGES.filter(s => s !== applicant.stage && s !== 'hired').map(s => {
-                        const c = STAGE_CONFIG[s];
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-1">Move to Next Stage</p>
+                    <p className="text-[11px] text-slate-500 mb-3">Pipeline is sequential — each stage must be completed in order.</p>
+                    {applicant.stage === 'hired' || applicant.stage === 'rejected' ? (
+                      <p className="text-sm text-slate-400 italic">
+                        {applicant.stage === 'hired' ? 'This applicant has been hired.' : 'This applicant has been rejected.'}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {allowedNextStages(applicant.stage).map(s => {
+                          const c = STAGE_CONFIG[s];
+                          return (
+                            <button key={s} onClick={() => onStageChange(s)}
+                              className={cn('flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors hover:opacity-80', c.bgCls, c.textCls, c.borderCls)}>
+                              <span className={cn('h-1.5 w-1.5 rounded-full', c.dotCls)} />
+                              {c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {/* Visual pipeline progress */}
+                    <div className="mt-4 flex items-center gap-1 overflow-x-auto pb-1">
+                      {['applied','shortlisted','interview_scheduled','offer_sent','hired'].map((s, i, arr) => {
+                        const c = STAGE_CONFIG[s as keyof typeof STAGE_CONFIG];
+                        const stageOrder = ['applied','shortlisted','interview_scheduled','offer_sent','hired'];
+                        const currentIdx = stageOrder.indexOf(applicant.stage);
+                        const thisIdx = stageOrder.indexOf(s);
+                        const done = thisIdx < currentIdx || applicant.stage === 'hired';
+                        const active = s === applicant.stage;
                         return (
-                          <button key={s} onClick={() => onStageChange(s)}
-                            className={cn('flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors hover:opacity-80', c.bgCls, c.textCls, c.borderCls)}>
-                            <span className={cn('h-1.5 w-1.5 rounded-full', c.dotCls)} />
-                            {c.label}
-                          </button>
+                          <div key={s} className="flex items-center gap-1 shrink-0">
+                            <div className={cn(
+                              'flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold',
+                              active ? `${c.bgCls} ${c.textCls}` : done ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700/50 text-slate-500'
+                            )}>
+                              {done && !active && <span>✓</span>}
+                              {c.label}
+                            </div>
+                            {i < arr.length - 1 && <span className="text-slate-600 text-[10px]">›</span>}
+                          </div>
                         );
                       })}
                     </div>
@@ -356,5 +394,15 @@ export function ApplicantDrawer({ applicant, onClose, onStageChange, onSendOffer
         </div>
       </div>
     </div>
+
+    {viewingCv && (applicant.cvPath || applicant.cvFilename) && (
+      <DocViewerModal
+        url={`${UPLOADS_URL}/${applicant.cvFilename ?? 'cv.pdf'}?token=${typeof window !== 'undefined' ? sessionStorage.getItem('token') ?? '' : ''}`}
+        fileName={applicant.cvFilename ?? 'cv.pdf'}
+        downloadUrl={`${UPLOADS_URL}/${applicant.cvFilename ?? 'cv.pdf'}`}
+        onClose={() => setViewingCv(false)}
+      />
+    )}
+    </>
   );
 }

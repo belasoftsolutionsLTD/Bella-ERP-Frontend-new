@@ -8,8 +8,9 @@ import {
   CreditCard, Landmark, Smartphone, AlertTriangle, Bell,
   CheckCheck, FileText, BarChart3, FolderOpen, Shield,
   Upload, Trash2, Download, Printer, Star, TrendingUp, TrendingDown,
-  Trophy, BookOpen, Dumbbell, MapPin, BellOff, Menu,
+  Trophy, BookOpen, Dumbbell, MapPin, BellOff, Menu, Eye,
 } from 'lucide-react';
+import { DocViewerModal } from '@/components/custom-ui/DocViewerModal';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/configs/constants';
 import { downloadFile, openFile } from '@/functions/downloadFile';
@@ -27,7 +28,7 @@ import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
 import { LogLeaveModal } from '@/features/leave/Components/LogLeaveModal';
 import type { LeaveRequest } from '@/features/leave/Hooks/useLeave';
 
-type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'training' | 'jd' | 'terms' | 'expenses' | 'notifications' | 'projects';
+type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'training' | 'jd' | 'terms' | 'expenses' | 'projects';
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-600',
@@ -55,7 +56,6 @@ const NOTIF_COLORS: Record<string, string> = {
 const NAV: { key: Section; label: string; icon: typeof User; description: string }[] = [
   // ── Daily essentials ──
   { key: 'profile',      label: 'My Profile',          icon: User,          description: 'Personal & contact info' },
-  { key: 'notifications',label: 'Notifications',        icon: Bell,          description: 'Your alerts & updates' },
   { key: 'inbox',        label: 'Inbox',                icon: Bell,          description: 'Approvals & action items' },
   // ── Time & attendance ──
   { key: 'attendance',   label: 'Attendance',           icon: Clock,         description: 'Daily records & clock-in' },
@@ -84,6 +84,54 @@ const NAV: { key: Section; label: string; icon: typeof User; description: string
   // ── Policies ──
   { key: 'terms',        label: 'Terms & Conditions',   icon: Shield,        description: 'Policies & agreements' },
 ];
+
+function ProfilePhotoAvatar({ profile }: { profile: { fullName: string; photoPath?: string } }) {
+  const token = typeof window !== 'undefined' ? (sessionStorage.getItem('token') ?? '') : '';
+  const photoUrl = profile.photoPath
+    ? `${API_BASE_URL.replace(/\/api$/, '/uploads')}/${profile.photoPath}?token=${encodeURIComponent(token)}`
+    : null;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [src, setSrc] = useState<string | null>(photoUrl);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('photo', file);
+    setUploading(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/me/profile/photo`,
+      method: 'POST',
+      data: fd,
+      thenFn: (r: any) => {
+        const newPath = r?.data?.photoPath;
+        if (newPath) setSrc(`${API_BASE_URL.replace(/\/api$/, '/uploads')}/${newPath}?token=${encodeURIComponent(token)}&t=${Date.now()}`);
+      },
+      finallyFn: () => setUploading(false),
+    });
+  };
+
+  return (
+    <div
+      className="relative h-12 w-12 rounded-xl shrink-0 cursor-pointer group"
+      onClick={() => inputRef.current?.click()}
+      title="Click to change profile photo"
+    >
+      {src ? (
+        <img src={src} alt={profile.fullName} className="h-12 w-12 rounded-xl object-cover" />
+      ) : (
+        <div className={cn('h-12 w-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg font-bold text-white', avatarColor(profile.fullName))}>
+          {profile.fullName.charAt(0).toUpperCase()}
+        </div>
+      )}
+      <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+        {uploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Upload className="h-4 w-4 text-white" />}
+      </div>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
+    </div>
+  );
+}
 
 export function MyPortalView() {
   const {
@@ -150,7 +198,6 @@ export function MyPortalView() {
     if (key === 'offboarding')   return pendingOffboarding || null;
     if (key === 'messages')      return unreadAnnouncements || null;
     if (key === 'tasks')         return pendingTasks || null;
-    if (key === 'notifications') return unreadNotifs || null;
     return null;
   };
 
@@ -182,9 +229,8 @@ export function MyPortalView() {
         )}>
           <div className="bg-gradient-to-br from-primary to-[#1a3461] p-5 text-white">
             <div className="flex items-center gap-3 mb-3">
-              <div className={cn('h-12 w-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg font-bold text-white shrink-0', avatarColor(profile.fullName))}>
-                {profile.fullName.charAt(0).toUpperCase()}
-              </div>
+              <ProfilePhotoAvatar profile={profile} />
+
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-sm truncate">{profile.fullName}</p>
                 <p className="text-white/60 text-xs truncate">{profile.designation}</p>
@@ -292,21 +338,39 @@ export function MyPortalView() {
                           <div className="max-h-80 overflow-y-auto divide-y">
                             {notifications.length === 0 ? (
                               <div className="py-8 text-center text-foreground/30 text-sm">No new notifications</div>
-                            ) : notifications.map(n => (
-                              <div key={n._id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-                                <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0 mt-0.5 capitalize', NOTIF_COLORS[n.type] ?? NOTIF_COLORS.general)}>
-                                  {n.type}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground leading-tight">{n.title}</p>
-                                  <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body || (n as any).subtitle || ''}</p>
-                                  <p className="text-xs text-foreground/30 mt-1">{new Date(n.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
+                            ) : notifications.map(n => {
+                              const LINK_MAP: Record<string, Section> = {
+                                '/leave': 'leave', '/tasks': 'tasks', '/onboarding': 'onboarding',
+                                '/offboarding': 'offboarding', '/payslips': 'payslips',
+                                '/attendance': 'attendance', '/payroll': 'payslips',
+                                '/projects': 'projects', '/training': 'training',
+                                '/expenses': 'expenses', '/performance': 'performance',
+                              };
+                              const dest = n.link ? Object.entries(LINK_MAP).find(([k]) => n.link!.includes(k))?.[1] : undefined;
+                              return (
+                                <div key={n._id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                                  <button
+                                    className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                                    onClick={() => {
+                                      markNotifRead(n._id);
+                                      if (dest) { setActive(dest); setShowNotifPanel(false); }
+                                    }}
+                                  >
+                                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0 mt-0.5 capitalize', NOTIF_COLORS[n.type] ?? NOTIF_COLORS.general)}>
+                                      {n.type}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className={cn('text-sm font-semibold text-foreground leading-tight', dest && 'hover:text-primary')}>{n.title}</p>
+                                      <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body || (n as any).subtitle || ''}</p>
+                                      <p className="text-xs text-foreground/30 mt-1">{new Date(n.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
+                                    </div>
+                                  </button>
+                                  <button onClick={() => markNotifRead(n._id)} className="text-foreground/20 hover:text-foreground shrink-0" aria-label="Dismiss notification">
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
                                 </div>
-                                <button onClick={() => markNotifRead(n._id)} className="text-foreground/20 hover:text-foreground shrink-0" aria-label="Dismiss notification">
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                           <div className="flex items-center justify-between px-4 py-2.5 border-t bg-gray-50">
                             <span className="text-xs text-foreground/50">Notifications {notifsOn ? 'on' : 'off'}</span>
@@ -364,21 +428,6 @@ export function MyPortalView() {
             {active === 'terms'          && <TermsPanel />}
             {active === 'messages'       && <div className="-m-6"><CommunicationPage /></div>}
             {active === 'inbox'          && <div className="-m-6"><InboxPage /></div>}
-            {active === 'notifications'  && (
-              <NotificationsPanel
-                notifications={notifications}
-                onMarkRead={markNotifRead}
-                onMarkAllRead={markAllNotifsRead}
-                onNavigate={(link) => {
-                  const MAP: Record<string, Section> = {
-                    '/leave': 'leave', '/tasks': 'tasks', '/onboarding': 'onboarding',
-                    '/offboarding': 'offboarding', '/payslips': 'payslips', '/attendance': 'attendance',
-                  };
-                  const section = link ? MAP[link] ?? MAP[link.split('/').slice(0, 2).join('/')] : undefined;
-                  if (section) setActive(section);
-                }}
-              />
-            )}
           </div>
         </main>
       </div>
@@ -400,12 +449,19 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
   const [email, setEmail]         = useState(profile.email || '');
   const [phone, setPhone]         = useState(profile.phone || '');
   const [nextOfKin, setNextOfKin] = useState(profile.nextOfKin || '');
+  const [kraPin, setKraPin]       = useState(profile.kraPin || '');
   const [saving, setSaving]       = useState(false);
+
+  const gaps: { label: string; critical: boolean; action?: string }[] = [];
+  if (!profile.grossPay)                                    gaps.push({ label: 'Gross Pay',       critical: true  });
+  if (!profile.jobGroupId)                                  gaps.push({ label: 'Job Group',        critical: true  });
+  if (!profile.kraPin)                                      gaps.push({ label: 'Tax ID / PIN',          critical: false, action: 'edit' });
+  if (!profile.bankAccountNumber && !profile.mpesaNumber)   gaps.push({ label: 'Payment Details',  critical: false, action: 'payment' });
 
   const save = async () => {
     setSaving(true);
     try {
-      await onSave({ email, phone, nextOfKin });
+      await onSave({ email, phone, nextOfKin, kraPin });
       setEditing(false);
     } finally {
       setSaving(false);
@@ -426,6 +482,35 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
 
   return (
     <div className="space-y-5">
+      {/* Profile completeness banner */}
+      {gaps.length > 0 && (
+        <div className={cn(
+          'rounded-xl border px-4 py-3 text-sm',
+          gaps.some(g => g.critical) ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200',
+        )}>
+          <p className={cn('font-semibold text-xs mb-2', gaps.some(g => g.critical) ? 'text-red-700' : 'text-amber-700')}>
+            {gaps.some(g => g.critical) ? '⚠ Your profile has critical gaps that may block payroll' : 'Your profile is missing some details'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {gaps.map(g => (
+              <span key={g.label} className={cn(
+                'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full',
+                g.critical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700',
+              )}>
+                {g.label}
+                {g.action === 'payment' && onEditPayment && (
+                  <button onClick={onEditPayment} className="underline font-bold ml-0.5">Fix →</button>
+                )}
+                {g.action === 'edit' && (
+                  <button onClick={() => setEditing(true)} className="underline font-bold ml-0.5">Fix →</button>
+                )}
+                {!g.action && <span className="opacity-60 ml-0.5">— Contact HR</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Personal info */}
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Personal Information</p>
@@ -438,17 +523,19 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
         }
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {editing ? <EditField icon={Mail} label="Email" value={email} onChange={setEmail} color="text-blue-600" />
-                 : <InfoRow  icon={Mail}  label="Email" value={profile.email || '—'}      color="text-blue-600" />}
-        {editing ? <EditField icon={Phone} label="Phone" value={phone} onChange={setPhone} color="text-green-600" />
-                 : <InfoRow  icon={Phone}  label="Phone" value={profile.phone || '—'}      color="text-green-600" />}
-        <InfoRow icon={Building2}    label="Department"      value={profile.department || '—'}    color="text-violet-600" />
-        <InfoRow icon={Briefcase}    label="Designation"     value={profile.designation || '—'}   color="text-indigo-600" />
-        <InfoRow icon={CalendarDays} label="Date of Hire"    value={profile.dateOfHire ? new Date(profile.dateOfHire).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-rose-600" />
-        {editing ? <EditField icon={User} label="Next of Kin" value={nextOfKin} onChange={setNextOfKin} color="text-primary" />
-                 : <InfoRow  icon={User}  label="Next of Kin" value={profile.nextOfKin || '—'}              color="text-primary" />}
+        {editing ? <EditField icon={Mail}  label="Email"       value={email}      onChange={setEmail}      color="text-blue-600" />
+                 : <InfoRow  icon={Mail}   label="Email"       value={profile.email || '—'}                color="text-blue-600" />}
+        {editing ? <EditField icon={Phone} label="Phone"       value={phone}      onChange={setPhone}      color="text-green-600" />
+                 : <InfoRow  icon={Phone}  label="Phone"       value={profile.phone || '—'}                color="text-green-600" />}
+        <InfoRow icon={Building2}    label="Department"   value={profile.department || '—'}    color="text-violet-600" />
+        <InfoRow icon={Briefcase}    label="Designation"  value={profile.designation || '—'}   color="text-indigo-600" />
+        <InfoRow icon={CalendarDays} label="Date of Hire" value={profile.dateOfHire ? new Date(profile.dateOfHire).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-rose-600" />
+        {editing ? <EditField icon={User}      label="Next of Kin" value={nextOfKin} onChange={setNextOfKin} color="text-primary" />
+                 : <InfoRow  icon={User}       label="Next of Kin" value={profile.nextOfKin || '—'}           color="text-primary" />}
+        {editing ? <EditField icon={FileText}  label="Tax ID / PIN"     value={kraPin}    onChange={setKraPin}    color="text-orange-600" />
+                 : <InfoRow  icon={FileText}   label="Tax ID / PIN"     value={profile.kraPin || '—'}              color="text-orange-600" />}
       </div>
-      {editing && <p className="text-xs text-foreground/40 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">You can update your email, phone number and next of kin. For other changes, contact HR.</p>}
+      {editing && <p className="text-xs text-foreground/40 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">You can update your email, phone, Tax ID / PIN and next of kin. For salary or job group changes, contact HR.</p>}
 
       {/* Employment details */}
       <div className="border-t pt-5">
@@ -943,7 +1030,7 @@ function OffboardingPanel({ tasks, onComplete }: { tasks: OffboardingTask[]; onC
 }
 
 // ── Documents panel ────────────────────────────────────────────────────────────
-const DOC_TYPES = ['National ID', 'Passport', 'Driving License', 'Degree Certificate', 'Diploma Certificate', 'Professional Certificate', 'KRA PIN', 'NHIF Card', 'NSSF Card', 'Other'];
+const DOC_TYPES = ['National ID', 'Passport', 'Driving License', 'Degree Certificate', 'Diploma Certificate', 'Professional Certificate', 'Tax ID / PIN', 'NHIF Card', 'NSSF Card', 'Other'];
 
 function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }: {
   docs: MyDocument[]; onDeleted: (id: string) => void; onUploaded: () => void; employeeId: string;
@@ -952,6 +1039,7 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
   const [file, setFile]         = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ url: string; fileName: string } | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
@@ -1014,6 +1102,16 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
+                    onClick={() => {
+                      const token = typeof window !== 'undefined' ? (sessionStorage.getItem('token') ?? '') : '';
+                      setViewingDoc({ url: `${API_BASE_URL}/me/documents/${d.docId}/download?token=${token}`, fileName: d.fileName ?? 'document' });
+                    }}
+                    className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-emerald-50 flex items-center justify-center text-foreground/40 hover:text-emerald-600 transition-colors"
+                    aria-label={`View ${d.docType}`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
+                  <button
                     onClick={() => downloadFile(`${API_BASE_URL}/me/documents/${d.docId}/download`, d.fileName ?? 'document').catch(err => alert(err.message))}
                     className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-primary/10 flex items-center justify-center text-foreground/40 hover:text-primary transition-colors"
                     aria-label={`Download ${d.docType}`}
@@ -1040,6 +1138,14 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
             ))}
           </div>
       }
+
+      {viewingDoc && (
+        <DocViewerModal
+          url={viewingDoc.url}
+          fileName={viewingDoc.fileName}
+          onClose={() => setViewingDoc(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2432,68 +2538,3 @@ function ExpensesPanel() {
   );
 }
 
-// ── Notifications panel ────────────────────────────────────────────────────────
-function NotificationsPanel({ notifications, onMarkRead, onMarkAllRead, onNavigate }: {
-  notifications: { _id: string; title: string; body: string; type: string; link?: string; read: boolean; createdAt: string }[];
-  onMarkRead: (id: string) => void;
-  onMarkAllRead: () => void;
-  onNavigate: (link?: string) => void;
-}) {
-  const TYPE_COLORS: Record<string, string> = {
-    payroll: 'bg-emerald-100 text-emerald-700', leave: 'bg-blue-100 text-blue-700',
-    announcement: 'bg-violet-100 text-violet-700', onboarding: 'bg-amber-100 text-amber-700',
-    task: 'bg-indigo-100 text-indigo-700', general: 'bg-gray-100 text-gray-600',
-  };
-
-  function timeAgo(iso: string) {
-    const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return new Date(iso).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' });
-  }
-
-  if (notifications.length === 0) {
-    return <EmptyState icon={Bell} text="You're all caught up!" sub="New notifications will appear here." />;
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">{notifications.length} unread</p>
-        <button onClick={onMarkAllRead}
-          className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
-          <CheckCheck className="h-3.5 w-3.5" /> Mark all read
-        </button>
-      </div>
-      <div className="space-y-2">
-        {notifications.map(n => (
-          <div key={n._id} className="flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors hover:bg-gray-50">
-            <button
-              onClick={() => { onMarkRead(n._id); onNavigate(n.link); }}
-              className="flex items-start gap-3 flex-1 min-w-0 text-left"
-              aria-label={`View notification: ${n.title}`}
-            >
-              <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 mt-0.5 capitalize', TYPE_COLORS[n.type] ?? TYPE_COLORS.general)}>
-                {n.type}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground leading-tight">{n.title}</p>
-                {n.body && <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body}</p>}
-                <p className="text-xs text-foreground/30 mt-1">{timeAgo(n.createdAt)}</p>
-              </div>
-            </button>
-            <button
-              onClick={() => onMarkRead(n._id)}
-              className="text-foreground/20 hover:text-foreground/60 shrink-0 mt-0.5 transition-colors"
-              aria-label="Dismiss notification"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

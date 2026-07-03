@@ -543,6 +543,7 @@ function AssignDeviceModal({ device, onClose, onSaved }: {
 
   const save = async () => {
     if (!selected) return;
+    if (!confirm(`Assign "${device.name}" to ${selected.fullName}?\nThis will make them responsible for this device.`)) return;
     setSaving(true);
     await apiCallFunction({
       url: `${API_BASE_URL}/it/devices/${device._id}/assign`,
@@ -639,7 +640,8 @@ function DevicesTab({ isHR }: { isHR: boolean }) {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const unassign = (id: string) => {
+  const unassign = (id: string, deviceName: string) => {
+    if (!confirm(`Unassign "${deviceName}" from its current user?\nThis action cannot be undone without re-assigning.`)) return;
     apiCallFunction({
       url: `${API_BASE_URL}/it/devices/${id}/unassign`,
       method: 'POST',
@@ -752,7 +754,7 @@ function DevicesTab({ isHR }: { isHR: boolean }) {
                   {isHR && (
                     <td className="px-4 py-3">
                       {d.status === 'assigned' ? (
-                        <button onClick={() => unassign(d._id)}
+                        <button onClick={() => unassign(d._id, d.name)}
                           className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap">
                           <UserMinus className="h-3.5 w-3.5" /> Unassign
                         </button>

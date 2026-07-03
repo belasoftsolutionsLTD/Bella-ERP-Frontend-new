@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, LayoutList, LayoutGrid, Loader2, Target } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { useGoals } from '../Hooks/useGoals';
 import { GOAL_PERIODS, type Goal } from '../constants';
@@ -11,6 +12,8 @@ import { AddGoalDrawer } from './AddGoalDrawer';
 import { GoalDetailDrawer } from './GoalDetailDrawer';
 
 export function GoalsTab() {
+  const { userData } = useAuth();
+  const canManageGoals = userData?.role !== 'staff';
   const [view, setView]           = useState<'list' | 'board'>('list');
   const [period, setPeriod]       = useState('q2_2026');
   const [showAdd, setShowAdd]     = useState(false);
@@ -56,16 +59,20 @@ export function GoalsTab() {
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-slate-100">My Goals</h2>
-          <p className="text-xs text-slate-400 mt-0.5">{total} goal{total !== 1 ? 's' : ''} this period</p>
+          <h2 className="text-base font-bold text-slate-100">
+            {canManageGoals ? 'Goals & Objectives' : 'Department Goals'}
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {canManageGoals
+              ? `${total} goal${total !== 1 ? 's' : ''} this period`
+              : `${total} goal${total !== 1 ? 's' : ''} set for your department`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Period selector */}
           <select value={period} onChange={e => setPeriod(e.target.value)}
             className="h-9 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:border-indigo-500">
             {GOAL_PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
-          {/* View toggle */}
           <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5">
             <button onClick={() => setView('list')}
               className={cn('p-1.5 rounded-md transition-colors', view === 'list' ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300')}>
@@ -76,10 +83,12 @@ export function GoalsTab() {
               <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
-          <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
-            <Plus className="h-4 w-4" /> Add Goal
-          </button>
+          {canManageGoals && (
+            <button onClick={() => setShowAdd(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
+              <Plus className="h-4 w-4" /> Add Goal
+            </button>
+          )}
         </div>
       </div>
 

@@ -49,7 +49,7 @@ export default function AttendancePage() {
             <div>
               <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
                 <Clock className="h-6 w-6 text-emerald-400" />
-                Time & Attendance
+                Shift & Time
               </h1>
               <p className="text-sm text-slate-400 mt-1">Track time, manage schedules, and review attendance records.</p>
             </div>

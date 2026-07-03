@@ -16,6 +16,10 @@ export interface Employee {
   contractEndDate?: string;
   salaryGrade: string;
   grossPay?: number;
+  jobGroupId?: string;
+  kraPin?: string;
+  bankAccountNumber?: string;
+  mpesaNumber?: string;
   email: string;
   phone?: string;
   staffCategory: string;

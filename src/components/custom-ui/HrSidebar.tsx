@@ -54,7 +54,6 @@ export function HrSidebar() {
     { href: `/${locale}/tasks`,         label: 'Tasks',         icon: ListTodo,   roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/inbox`,         label: 'Inbox',         icon: Inbox,      roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/training`,      label: 'Training',      icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
-    { href: `/${locale}/notifications`, label: 'Notifications', icon: Bell,       roles: ['super_admin', 'hr_manager', 'department_head'] },
   ];
 
   const overviewItems: NavItem[] = [
@@ -73,7 +72,7 @@ export function HrSidebar() {
 
   const timeWorkItems: NavItem[] = [
     { href: `/${locale}/leave-management`, label: 'Leave',          icon: CalendarDays, roles: ['super_admin', 'hr_manager', 'department_head'] },
-    { href: `/${locale}/attendance`,       label: 'Time & Attendance', icon: Clock,     roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/attendance`,       label: 'Shift & Time', icon: Clock,     roles: ['super_admin', 'hr_manager'] },
     { href: `/${locale}/performance`,      label: 'Performance',    icon: TrendingUp,   roles: ['super_admin', 'hr_manager', 'department_head'] },
   ];
 
