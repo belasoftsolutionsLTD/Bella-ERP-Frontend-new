@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
-import { RecruitmentDashboardPage } from '@/features/recruitment/Pages/RecruitmentDashboardPage';
+import { AnalyticsPage } from '@/features/recruitment/Pages/AnalyticsPage';
 
 export default function Page({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
-  return <RecruitmentDashboardPage locale={locale} />;
+  return <AnalyticsPage />;
 }

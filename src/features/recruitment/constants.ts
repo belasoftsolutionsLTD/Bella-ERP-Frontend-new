@@ -1,57 +1,78 @@
-export const STAGE_CONFIG = {
-  applied:             { label: 'Applied',     bgCls: 'bg-blue-500/10',    textCls: 'text-blue-400',    borderCls: 'border-blue-500/30',    dotCls: 'bg-blue-400'    },
-  shortlisted:         { label: 'Shortlisted', bgCls: 'bg-amber-500/10',   textCls: 'text-amber-400',   borderCls: 'border-amber-500/30',   dotCls: 'bg-amber-400'   },
-  interview_scheduled: { label: 'Interview',   bgCls: 'bg-violet-500/10',  textCls: 'text-violet-400',  borderCls: 'border-violet-500/30',  dotCls: 'bg-violet-400'  },
-  offer_sent:          { label: 'Offer Sent',  bgCls: 'bg-emerald-500/10', textCls: 'text-emerald-400', borderCls: 'border-emerald-500/30', dotCls: 'bg-emerald-400' },
-  hired:               { label: 'Hired',       bgCls: 'bg-emerald-500/10', textCls: 'text-emerald-400', borderCls: 'border-emerald-500/30', dotCls: 'bg-emerald-500' },
-  rejected:            { label: 'Rejected',    bgCls: 'bg-red-500/10',     textCls: 'text-red-400',     borderCls: 'border-red-500/30',     dotCls: 'bg-red-400'     },
-} as const;
+import type { RequisitionStatus, StageType, ApplicationStatus, CandidateSource, PipelineStage } from './types';
 
-export type StageKey = keyof typeof STAGE_CONFIG;
-export const STAGES = Object.keys(STAGE_CONFIG) as StageKey[];
-
-/** The linear progression order — rejected can happen from any stage */
-export const STAGE_ORDER: StageKey[] = [
-  'applied',
-  'shortlisted',
-  'interview_scheduled',
-  'offer_sent',
-  'hired',
-];
-
-/**
- * Returns the one valid next stage from the current stage (forward-only).
- * rejected is always allowed as a parallel exit.
- */
-export function allowedNextStages(current: string): StageKey[] {
-  const idx = STAGE_ORDER.indexOf(current as StageKey);
-  if (idx === -1 || idx >= STAGE_ORDER.length - 1) return ['rejected'];
-  const next = STAGE_ORDER[idx + 1];
-  return [next, 'rejected'];
-}
-
-export function stageCfg(stage: string) {
-  return STAGE_CONFIG[stage as StageKey] ?? {
-    label: stage.replace(/_/g, ' '),
-    bgCls: 'bg-gray-100', textCls: 'text-gray-600', borderCls: 'border-gray-200', dotCls: 'bg-gray-400',
-  };
-}
-
-export const SOURCE_CONFIG: Record<string, { label: string; cls: string }> = {
-  internal:  { label: 'Internal', cls: 'bg-slate-500/15 text-slate-400'   },
-  linkedin:  { label: 'LinkedIn', cls: 'bg-blue-500/15 text-blue-400'     },
-  indeed:    { label: 'Indeed',   cls: 'bg-red-500/15 text-red-400'       },
-  referral:  { label: 'Referral', cls: 'bg-violet-500/15 text-violet-400' },
-  website:   { label: 'Website',  cls: 'bg-teal-500/15 text-teal-400'     },
-  hr_manual: { label: 'Manual',   cls: 'bg-orange-500/15 text-orange-400' },
-  other:     { label: 'Other',    cls: 'bg-gray-500/15 text-gray-400'     },
+export const REQUISITION_STATUS_STYLES: Record<RequisitionStatus, string> = {
+  draft: 'bg-slate-100 text-slate-600 border-slate-200',
+  pendingApproval: 'bg-amber-50 text-amber-700 border-amber-200',
+  open: 'bg-green-50 text-green-700 border-green-200',
+  onHold: 'bg-orange-50 text-orange-700 border-orange-200',
+  filled: 'bg-blue-50 text-blue-700 border-blue-200',
+  closed: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
-export const KANBAN_COLUMN_COLORS: Record<string, { topBorder: string; badgeCls: string }> = {
-  applied:             { topBorder: 'border-t-blue-500',    badgeCls: 'bg-blue-500/15 text-blue-400'    },
-  shortlisted:         { topBorder: 'border-t-amber-500',   badgeCls: 'bg-amber-500/15 text-amber-400'  },
-  interview_scheduled: { topBorder: 'border-t-violet-500',  badgeCls: 'bg-violet-500/15 text-violet-400'},
-  offer_sent:          { topBorder: 'border-t-emerald-500', badgeCls: 'bg-emerald-500/15 text-emerald-400'},
-  hired:               { topBorder: 'border-t-emerald-500', badgeCls: 'bg-emerald-500/15 text-emerald-400'},
-  rejected:            { topBorder: 'border-t-red-500',     badgeCls: 'bg-red-500/15 text-red-400'      },
+export const REQUISITION_STATUS_LABELS: Record<RequisitionStatus, string> = {
+  draft: 'Draft',
+  pendingApproval: 'Pending Approval',
+  open: 'Open',
+  onHold: 'On Hold',
+  filled: 'Filled',
+  closed: 'Closed',
+};
+
+export const STAGE_TYPE_STYLES: Record<StageType, string> = {
+  sourcing: 'bg-slate-50 text-slate-600 border-slate-200',
+  screening: 'bg-blue-50 text-blue-700 border-blue-200',
+  interview: 'bg-purple-50 text-purple-700 border-purple-200',
+  assessment: 'bg-pink-50 text-pink-700 border-pink-200',
+  offer: 'bg-amber-50 text-amber-700 border-amber-200',
+  hired: 'bg-green-50 text-green-700 border-green-200',
+};
+
+export const APPLICATION_STATUS_STYLES: Record<ApplicationStatus, string> = {
+  active: 'bg-blue-50 text-blue-700 border-blue-200',
+  rejected: 'bg-red-50 text-red-700 border-red-200',
+  withdrawn: 'bg-slate-100 text-slate-500 border-slate-200',
+  hired: 'bg-green-50 text-green-700 border-green-200',
+};
+
+export const SOURCE_LABELS: Record<CandidateSource, string> = {
+  careerSite: 'Career Site',
+  referral: 'Referral',
+  agency: 'Agency',
+  sourced: 'Sourced',
+  inbound: 'Inbound',
+};
+
+export const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  fullTime: 'Full-Time',
+  partTime: 'Part-Time',
+  contract: 'Contract',
+  internship: 'Internship',
+};
+
+export const STAGE_TYPE_OPTIONS: { value: StageType; label: string }[] = [
+  { value: 'sourcing', label: 'Sourcing' },
+  { value: 'screening', label: 'Screening' },
+  { value: 'interview', label: 'Interview' },
+  { value: 'assessment', label: 'Assessment' },
+  { value: 'offer', label: 'Offer' },
+  { value: 'hired', label: 'Hired' },
+];
+
+export const RECOMMENDATION_LABELS: Record<string, string> = {
+  strongYes: 'Strong Yes',
+  yes: 'Yes',
+  neutral: 'Neutral',
+  no: 'No',
+  strongNo: 'Strong No',
+};
+
+export const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+// Whether moving from one pipeline stage to another goes backward in the configured order —
+// used to prompt for confirmation before an accidental/careless backward drag.
+export const isBackwardMove = (stages: PipelineStage[], fromStageId: string, toStageId: string) => {
+  const fromIndex = stages.findIndex((s) => s.id === fromStageId);
+  const toIndex = stages.findIndex((s) => s.id === toStageId);
+  if (fromIndex === -1 || toIndex === -1) return false;
+  return toIndex < fromIndex;
 };

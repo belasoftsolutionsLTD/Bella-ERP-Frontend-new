@@ -28,7 +28,7 @@ import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
 import { LogLeaveModal } from '@/features/leave/Components/LogLeaveModal';
 import type { LeaveRequest } from '@/features/leave/Hooks/useLeave';
 
-type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'training' | 'jd' | 'terms' | 'expenses' | 'projects';
+type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'training' | 'jd' | 'terms' | 'expenses' | 'projects' | 'jobs';
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-600',
@@ -71,6 +71,7 @@ const NAV: { key: Section; label: string; icon: typeof User; description: string
   { key: 'expenses',     label: 'Expenses',             icon: DollarSign,    description: 'Submit & track claims' },
   { key: 'payment',      label: 'Payment Methods',      icon: CreditCard,    description: 'Bank & M-Pesa details' },
   // ── Growth ──
+  { key: 'jobs',         label: 'Internal Jobs',        icon: Briefcase,     description: 'Open vacancies & apply internally' },
   { key: 'training',     label: 'Training',             icon: BookOpen,      description: 'Enroll in published courses' },
   { key: 'performance',  label: 'My Performance',       icon: BarChart3,     description: 'Goals, reviews & appraisal history' },
   { key: 'awards',       label: 'Awards & Recognition', icon: Trophy,        description: 'Kudos, leaderboard & certifications' },
@@ -423,6 +424,7 @@ export function MyPortalView() {
             {active === 'awards'      && <div className="-m-6"><AwardsPage embedded /></div>}
             {active === 'events'      && <MyEventsPanel events={events} />}
             {active === 'training'    && <TrainingPanel />}
+            {active === 'jobs'        && <InternalJobsPanel />}
             {active === 'jd'          && <JobDescriptionPanel jd={(profile as any).jobDescription} />}
             {active === 'expenses'    && <ExpensesPanel />}
             {active === 'terms'          && <TermsPanel />}
@@ -440,6 +442,14 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   bank_transfer: 'Bank Transfer', mpesa: 'M-Pesa', cash: 'Cash', paypal: 'PayPal', crypto: 'Crypto',
 };
 
+const NOTE_COLORS: Record<string, string> = {
+  commendation:        'bg-emerald-100 text-emerald-700 border-emerald-200',
+  verbal_warning:      'bg-yellow-100 text-yellow-700 border-yellow-200',
+  written_warning:     'bg-orange-100 text-orange-700 border-orange-200',
+  disciplinary_action: 'bg-red-100 text-red-700 border-red-200',
+  general_note:        'bg-slate-100 text-slate-600 border-slate-200',
+};
+
 function ProfilePanel({ profile, onSave, onEditPayment }: {
   profile: any;
   onSave: (d: Record<string, string>) => void;
@@ -451,6 +461,15 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
   const [nextOfKin, setNextOfKin] = useState(profile.nextOfKin || '');
   const [kraPin, setKraPin]       = useState(profile.kraPin || '');
   const [saving, setSaving]       = useState(false);
+  const [myNotes, setMyNotes]     = useState<any[]>([]);
+
+  useEffect(() => {
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/me/notes`,
+      showToast: false,
+      thenFn: (r) => setMyNotes(r.data ?? []),
+    });
+  }, []);
 
   const gaps: { label: string; critical: boolean; action?: string }[] = [];
   if (!profile.grossPay)                                    gaps.push({ label: 'Gross Pay',       critical: true  });
@@ -562,6 +581,33 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
           <InfoRow icon={CreditCard} label="Payment Method" value={paymentLabel}     color="text-primary" />
           <InfoRow icon={Landmark}   label="Account Details" value={paymentDetail}   color="text-emerald-600" />
         </div>
+      </div>
+
+      {/* Notes from HR */}
+      <div className="border-t pt-5">
+        <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Notes from HR</p>
+        {myNotes.length === 0 ? (
+          <p className="text-sm text-foreground/30 italic">No notes on your record.</p>
+        ) : (
+          <div className="space-y-3">
+            {myNotes.map(n => (
+              <div key={n._id} className="flex gap-3 rounded-xl border bg-white/60 p-3">
+                <span className={cn(
+                  'shrink-0 self-start mt-0.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border capitalize whitespace-nowrap',
+                  NOTE_COLORS[n.category] ?? 'bg-slate-100 text-slate-600 border-slate-200',
+                )}>
+                  {n.category.replace(/_/g, ' ')}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground leading-snug">{n.note}</p>
+                  <p className="text-xs text-foreground/40 mt-1">
+                    {n.createdByName ?? 'HR'} · {n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2533,6 +2579,166 @@ function ExpensesPanel() {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Internal Jobs Panel ───────────────────────────────────────────────────────
+
+interface InternalPosition {
+  _id: string;
+  title: string;
+  department: string;
+  location: string;
+  employmentType: string;
+  headcount: number;
+  description?: string;
+  salaryRange?: { min: number; max: number; currency: string };
+}
+
+interface MyApplication {
+  _id: string;
+  positionId: string;
+  positionTitle: string;
+  status: string;
+  stageName: string | null;
+  createdAt: string;
+}
+
+const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
+  active:    { label: 'In Progress',    cls: 'bg-blue-50 text-blue-700'    },
+  hired:     { label: 'Hired',          cls: 'bg-emerald-50 text-emerald-700 font-semibold' },
+  rejected:  { label: 'Not Proceeding', cls: 'bg-red-50 text-red-600'      },
+  withdrawn: { label: 'Withdrawn',      cls: 'bg-gray-100 text-gray-600'   },
+};
+
+function InternalJobsPanel() {
+  const token = typeof window !== 'undefined' ? (sessionStorage.getItem('token') ?? '') : '';
+  const [positions, setPositions] = useState<InternalPosition[]>([]);
+  const [myApps, setMyApps] = useState<MyApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'open' | 'mine'>('open');
+
+  const load = async () => {
+    setLoading(true);
+    const [posRes, appRes] = await Promise.all([
+      apiCallFunction(`${API_BASE_URL}/me/jobs`, 'GET', null, token),
+      apiCallFunction(`${API_BASE_URL}/me/jobs/applications`, 'GET', null, token),
+    ]);
+    if (posRes.status) setPositions(posRes.data ?? []);
+    if (appRes.status) setMyApps(appRes.data ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const appliedPositionIds = new Set(myApps.map(a => a.positionId));
+
+  const handleApply = async (positionId: string) => {
+    setApplying(positionId);
+    const res = await apiCallFunction(`${API_BASE_URL}/me/jobs/${positionId}/apply`, 'POST', {}, token);
+    if (res.status) {
+      await load();
+      setTab('mine');
+    } else {
+      alert(res.message || 'Failed to submit application.');
+    }
+    setApplying(null);
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-40 text-foreground/40">
+      <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading positions…
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-foreground">Internal Job Board</h2>
+        <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+          {(['open', 'mine'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn('px-3 py-1.5 font-medium transition-colors',
+                tab === t ? 'bg-primary text-primary-foreground' : 'text-foreground/60 hover:bg-muted')}>
+              {t === 'open' ? 'Open Positions' : `My Applications (${myApps.length})`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === 'open' && (
+        positions.length === 0
+          ? <p className="text-sm text-foreground/40 text-center py-10">No open positions at this time.</p>
+          : <div className="space-y-3">
+              {positions.map(pos => {
+                const isExpanded = expandedId === pos._id;
+                const alreadyApplied = appliedPositionIds.has(pos._id);
+                return (
+                  <div key={pos._id} className="rounded-xl border border-border bg-card overflow-hidden">
+                    <button onClick={() => setExpandedId(isExpanded ? null : pos._id)}
+                      className="w-full flex items-start justify-between gap-3 p-4 text-left hover:bg-muted/30 transition-colors">
+                      <div className="space-y-1 min-w-0">
+                        <p className="font-semibold text-foreground text-sm truncate">{pos.title}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-[11px] px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full font-medium">{pos.department}</span>
+                          <span className="text-[11px] px-2 py-0.5 bg-muted text-foreground/60 rounded-full">{pos.location}</span>
+                          {pos.headcount > 0 && <span className="text-[11px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full">{pos.headcount} opening{pos.headcount > 1 ? 's' : ''}</span>}
+                        </div>
+                      </div>
+                      <ChevronRight className={cn('h-4 w-4 text-foreground/30 shrink-0 mt-0.5 transition-transform', isExpanded && 'rotate-90')} />
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-4 pb-4 border-t border-border pt-3 space-y-3">
+                        {pos.description && <p className="text-sm text-foreground/70 leading-relaxed">{pos.description}</p>}
+                        {pos.salaryRange?.min != null && (
+                          <p className="text-xs text-foreground/50">
+                            Salary: {pos.salaryRange.currency} {pos.salaryRange.min.toLocaleString()}{pos.salaryRange.max ? ` – ${pos.salaryRange.max.toLocaleString()}` : '+'}
+                          </p>
+                        )}
+                        <div className="pt-1">
+                          {alreadyApplied
+                            ? <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg">
+                                <CheckCircle className="h-3.5 w-3.5" /> Applied
+                              </span>
+                            : <button onClick={() => handleApply(pos._id)} disabled={applying === pos._id}
+                                className="inline-flex items-center gap-1.5 h-8 px-4 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-60 transition-opacity">
+                                {applying === pos._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                                Apply Now
+                              </button>
+                          }
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+      )}
+
+      {tab === 'mine' && (
+        myApps.length === 0
+          ? <p className="text-sm text-foreground/40 text-center py-10">You haven't applied to any positions yet.</p>
+          : <div className="space-y-2">
+              {myApps.map(app => {
+                const statusCfg = APP_STATUS_CFG[app.status] ?? { label: app.status, cls: 'bg-gray-100 text-gray-600' };
+                return (
+                  <div key={app._id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-card">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm text-foreground truncate">{app.positionTitle}</p>
+                      <p className="text-xs text-foreground/40 mt-0.5">
+                        {app.stageName ? `${app.stageName} · ` : ''}{new Date(app.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
+                      </p>
+                    </div>
+                    <span className={cn('text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0', statusCfg.cls)}>{statusCfg.label}</span>
+                  </div>
+                );
+              })}
+            </div>
       )}
     </div>
   );

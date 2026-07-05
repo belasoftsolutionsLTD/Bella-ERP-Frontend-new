@@ -1,38 +1,33 @@
 'use client';
 
-import { cn } from '@/lib/utils';
-import { ApplicantCard } from './ApplicantCard';
-import { KANBAN_COLUMN_COLORS, STAGE_CONFIG, stageCfg } from '../constants';
-import type { Applicant } from '../Hooks/useRecruitment';
+import { useDroppable } from '@dnd-kit/core';
+import type { Application, PipelineStage } from '../types';
+import { ApplicationCard } from './ApplicationCard';
+import { STAGE_TYPE_STYLES } from '../constants';
 
-interface Props {
-  stage: string;
-  label: string;
-  applicants: Applicant[];
-  onSelect: (a: Applicant) => void;
-}
-
-export function KanbanColumn({ stage, label, applicants, onSelect }: Props) {
-  const col = KANBAN_COLUMN_COLORS[stage] ?? { topBorder: 'border-t-gray-300', badgeCls: 'bg-gray-100 text-gray-600' };
+export function KanbanColumn({ stage, applications, onCardClick }: {
+  stage: PipelineStage;
+  applications: Application[];
+  onCardClick: (application: Application) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
   return (
-    <div className={cn('flex flex-col w-[260px] min-w-[260px] rounded-xl border border-slate-700 bg-[#1e293b] shadow-sm border-t-[3px]', col.topBorder)}>
-      {/* Column header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/60">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-300">{label}</h3>
-        <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full', col.badgeCls)}>
-          {applicants.length}
-        </span>
+    <div className="flex flex-col w-72 shrink-0">
+      <div className={`rounded-t-lg border px-3 py-2 ${STAGE_TYPE_STYLES[stage.type]}`}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold">{stage.name}</span>
+          <span className="text-xs font-medium">{applications.length}</span>
+        </div>
       </div>
-
-      {/* Cards */}
-      <div className="flex-1 p-2 space-y-2 min-h-[200px] overflow-y-auto max-h-[calc(100vh-280px)]">
-        {applicants.map(a => (
-          <ApplicantCard key={a._id} applicant={a} onClick={() => onSelect(a)} />
+      <div
+        ref={setNodeRef}
+        className={`flex-1 min-h-[200px] space-y-2 p-2 bg-slate-50 border border-t-0 border-slate-200 rounded-b-lg ${isOver ? 'bg-primary/5 ring-2 ring-inset ring-primary/30' : ''}`}
+      >
+        {applications.map((app) => (
+          <ApplicationCard key={app._id} application={app} requiresScorecard={stage.requiresScorecard} onClick={() => onCardClick(app)} />
         ))}
-        {applicants.length === 0 && (
-          <div className="flex items-center justify-center h-24 text-xs text-slate-400">No candidates</div>
-        )}
+        {applications.length === 0 && <p className="text-xs text-slate-400 text-center py-6">No candidates</p>}
       </div>
     </div>
   );

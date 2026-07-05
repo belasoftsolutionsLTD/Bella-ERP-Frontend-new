@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   BookOpen, Play, CheckCircle, Clock, Users, Star,
   Plus, Search, Award, Target, X, UserPlus, Check,
-  Film, FileText, Upload, RefreshCw,
+  Film, FileText, Upload, RefreshCw, Layers, AlertCircle,
+  Trash2, GripVertical, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
@@ -88,6 +89,8 @@ interface Enrollment {
   minutesPresent: number | null;
   certificateUrl: string | null;
   materialProgress?: MatProgress;
+  quizPassed?: boolean;
+  isMandatory?: boolean;
 }
 
 interface TrainingSummary {
@@ -107,6 +110,32 @@ interface CourseDetail {
   trainingMode?: string;
   link?: string | null;
   location?: { address: string; venue: string } | null;
+  isMandatory?: boolean;
+}
+
+interface Quiz {
+  _id: string;
+  courseId: string;
+  title: string;
+  questions: Array<{ text: string; options: string[]; correctIndex?: number; explanation?: string | null }>;
+  passingScore: number;
+}
+
+interface QuizResult {
+  score: number;
+  passed: boolean;
+  correct: number;
+  total: number;
+  passingScore: number;
+  results: Array<{ chosen: number; correct: boolean; correctIndex: number; explanation: string | null }>;
+}
+
+interface LearningPath {
+  _id: string;
+  name: string;
+  description: string;
+  courses: Array<{ courseId: string; order: number; _id?: string; title?: string; category?: string; duration?: number; isMandatory?: boolean }>;
+  myProgress: { enrolled: number; completed: number; total: number; pct: number } | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -322,6 +351,136 @@ function PDFMaterialViewer({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Quiz Section (inside CoursePlayerModal) ───────────────────────────────────
+
+function QuizSection({
+  courseId, initialPassed, onPass,
+}: {
+  courseId: string; initialPassed: boolean; onPass: () => void;
+}) {
+  const [quiz, setQuiz]         = useState<Quiz | null>(null);
+  const [loaded, setLoaded]     = useState(false);
+  const [answers, setAnswers]   = useState<number[]>([]);
+  const [result, setResult]     = useState<QuizResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [passed, setPassed]     = useState(initialPassed);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    apiCallFunction<{ data: Quiz }>({
+      url: `${API_BASE_URL}/training/courses/${courseId}/quiz`,
+      showToast: false,
+      returnResponse: true,
+      thenFn: r => {
+        if (r?.data) {
+          setQuiz(r.data);
+          setAnswers(new Array(r.data.questions.length).fill(-1));
+        }
+      },
+      finallyFn: () => setLoaded(true),
+    });
+  }, [courseId]);
+
+  if (!loaded || !quiz) return null;
+
+  const allAnswered = answers.every(a => a !== -1);
+
+  const submit = () => {
+    setSubmitting(true);
+    apiCallFunction<{ data: QuizResult }>({
+      url: `${API_BASE_URL}/training/courses/${courseId}/quiz/submit`,
+      method: 'POST',
+      data: { answers },
+      showToast: false,
+      returnResponse: true,
+      thenFn: r => {
+        if (r?.data) {
+          setResult(r.data);
+          if (r.data.passed) { setPassed(true); onPass(); }
+        }
+      },
+      finallyFn: () => setSubmitting(false),
+    });
+  };
+
+  if (passed) {
+    return (
+      <div className="px-6 py-3 border-b border-slate-800 flex items-center gap-2">
+        <Award className="h-4 w-4 text-amber-400" />
+        <span className="text-[13px] font-semibold text-emerald-400">Assessment passed</span>
+        <span className="text-[11px] text-slate-500 ml-1">· {quiz.title}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4 border-b border-slate-800">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between mb-1"
+      >
+        <div className="flex items-center gap-2">
+          <Award className="h-4 w-4 text-amber-400" />
+          <div className="text-left">
+            <p className="text-[11px] text-amber-400/70 uppercase tracking-wider font-semibold">Assessment Required</p>
+            <p className="text-[13px] font-semibold text-slate-200">{quiz.title}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] text-slate-500">{quiz.questions.length} q · {quiz.passingScore}% to pass</span>
+          {expanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
+        </div>
+      </button>
+
+      {result && !result.passed && (
+        <div className="mt-2 px-3 py-2 rounded-lg bg-red-900/20 border border-red-700/30 text-[12px] text-red-400 flex items-center gap-2">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          Score: {result.score}% — need {result.passingScore}% to pass. Try again.
+        </div>
+      )}
+
+      {expanded && (
+        <div className="mt-4 space-y-5">
+          {quiz.questions.map((q, qi) => (
+            <div key={qi}>
+              <p className="text-[13px] font-semibold text-slate-200 mb-2">{qi + 1}. {q.text}</p>
+              <div className="space-y-1.5">
+                {q.options.map((opt, oi) => (
+                  <button
+                    key={oi}
+                    onClick={() => setAnswers(prev => { const n = [...prev]; n[qi] = oi; return n; })}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-[13px] transition-colors border ${
+                      answers[qi] === oi
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
+                        : 'bg-slate-800/40 border-slate-700/50 text-slate-300 hover:border-indigo-500/30'
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${answers[qi] === oi ? 'border-indigo-500' : 'border-slate-600'}`}>
+                      {answers[qi] === oi && <div className="h-2 w-2 rounded-full bg-indigo-500" />}
+                    </div>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={submit}
+              disabled={submitting || !allAnswered}
+              className="flex items-center gap-1.5 h-9 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold disabled:opacity-40 transition-colors"
+            >
+              {submitting ? <Clock className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
+              {submitting ? 'Checking…' : 'Submit Quiz'}
+            </button>
+            {!allAnswered && <p className="text-[11px] text-slate-500">Answer all questions to submit.</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -747,6 +906,7 @@ function CoursePlayerModal({
   const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
+  const [localQuizPassed, setLocalQuizPassed] = useState(enrollment.quizPassed ?? false);
 
   useEffect(() => {
     apiCallFunction<{ data: CourseDetail }>({
@@ -927,7 +1087,7 @@ function CoursePlayerModal({
 
           {/* Objectives — self_paced */}
           {isSelfPaced && objectives.length > 0 && (
-            <div className="px-6 py-4">
+            <div className="px-6 py-4 border-b border-slate-800">
               <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold mb-3">
                 Objectives ({completedObjectives.length}/{totalObjectives} complete)
               </p>
@@ -960,6 +1120,15 @@ function CoursePlayerModal({
                 </p>
               )}
             </div>
+          )}
+
+          {/* Quiz gate — shown while course is in progress */}
+          {enrollment.status === 'in_progress' && (
+            <QuizSection
+              courseId={enrollment.courseId}
+              initialPassed={localQuizPassed}
+              onPass={() => setLocalQuizPassed(true)}
+            />
           )}
 
           {!isSelfPaced && !isRefresher && enrollment.status === 'in_progress' && (
@@ -1039,6 +1208,9 @@ function MyTrainingTab() {
   const statusColor = (s: string) =>
     (s === 'completed' || s === 'auto_completed') ? '#22c55e' : s === 'in_progress' ? '#6366f1' : '#94a3b8';
 
+  const isOverdue = (e: Enrollment) =>
+    !!e.dueDate && new Date(e.dueDate) < new Date() && e.status !== 'completed' && e.status !== 'auto_completed';
+
   const EnrollmentCard = ({ e }: { e: Enrollment }) => (
     <Card className="flex items-start gap-3">
       <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
@@ -1047,11 +1219,23 @@ function MyTrainingTab() {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <span className="font-semibold text-slate-200 text-[14px]">{e.courseTitle}</span>
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize shrink-0"
-            style={{ background: `${statusColor(e.status)}20`, color: statusColor(e.status) }}>
-            {e.status === 'auto_completed' ? 'auto completed' : e.status.replace(/_/g, ' ')}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-slate-200 text-[14px]">{e.courseTitle}</span>
+            {e.isMandatory && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600/20 text-red-400">Mandatory</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isOverdue(e) && (
+              <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-900/30 text-red-400">
+                <AlertCircle className="h-2.5 w-2.5" /> Overdue
+              </span>
+            )}
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize"
+              style={{ background: `${statusColor(e.status)}20`, color: statusColor(e.status) }}>
+              {e.status === 'auto_completed' ? 'auto completed' : e.status.replace(/_/g, ' ')}
+            </span>
+          </div>
         </div>
         {e.trainingType && (
           <p className="text-[11px] text-slate-500 mt-0.5">{TRAINING_TYPE_LABELS[e.trainingType] || e.trainingType}</p>
@@ -1065,7 +1249,11 @@ function MyTrainingTab() {
           </div>
         )}
         <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-500">
-          {e.dueDate && <span>Due: {formatDate(e.dueDate)}</span>}
+          {e.dueDate && (
+            <span className={isOverdue(e) ? 'text-red-400 font-semibold' : ''}>
+              Due: {formatDate(e.dueDate)}
+            </span>
+          )}
           {e.completedAt && <span className="flex items-center gap-1 text-green-400"><CheckCircle className="h-3 w-3" /> {formatDate(e.completedAt)}</span>}
           {e.minutesPresent ? <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {e.minutesPresent} min</span> : null}
           {e.certificateUrl && <span className="flex items-center gap-1 text-amber-400"><Award className="h-3 w-3" /> Certificate</span>}
@@ -1106,7 +1294,7 @@ function MyTrainingTab() {
             { label: 'Assigned',    value: summary.assigned,   color: '#6366f1', icon: Target },
             { label: 'In Progress', value: summary.inProgress, color: '#3b82f6', icon: Play },
             { label: 'Completed',   value: summary.completed,  color: '#22c55e', icon: CheckCircle },
-            { label: 'Overdue',     value: summary.overdue,    color: summary.overdue > 0 ? '#f87171' : '#64748b', icon: Clock },
+            { label: 'Overdue',     value: summary.overdue,    color: summary.overdue > 0 ? '#f87171' : '#64748b', icon: AlertCircle },
           ].map(s => (
             <Card key={s.label}>
               <div className="flex items-center gap-2 mb-1">
@@ -1264,6 +1452,285 @@ function AssignCourseModal({ course, onClose, onDone }: { course: Course; onClos
   );
 }
 
+// ── Create Learning Path Modal (HR) ───────────────────────────────────────────
+
+interface CoursePickItem { _id: string; title: string; category: string }
+
+function CreatePathModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [name, setName]         = useState('');
+  const [description, setDesc]  = useState('');
+  const [courses, setCourses]   = useState<CoursePickItem[]>([]);
+  const [selected, setSelected] = useState<CoursePickItem[]>([]);
+  const [search, setSearch]     = useState('');
+  const [saving, setSaving]     = useState(false);
+
+  useEffect(() => {
+    apiCallFunction<{ data: CoursePickItem[] }>({
+      url: `${API_BASE_URL}/training/courses?status=published`,
+      showToast: false,
+      returnResponse: true,
+      thenFn: r => setCourses(r?.data || []),
+    });
+  }, []);
+
+  const filtered = courses.filter(c =>
+    c.title.toLowerCase().includes(search.toLowerCase()) && !selected.find(s => s._id === c._id)
+  );
+
+  const addCourse    = (c: CoursePickItem) => setSelected(prev => [...prev, c]);
+  const removeCourse = (id: string) => setSelected(prev => prev.filter(c => c._id !== id));
+
+  const save = async () => {
+    if (!name || selected.length === 0) return;
+    setSaving(true);
+    await apiCallFunction({
+      url: `${API_BASE_URL}/training/paths`,
+      method: 'POST',
+      data: {
+        name, description,
+        courseIds: selected.map((c, i) => ({ courseId: c._id, order: i })),
+      },
+      thenFn: () => { onSaved(); onClose(); },
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
+      <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: '#1e293b', maxHeight: '90vh' }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="text-[15px] font-bold text-slate-100">Create Learning Path</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div>
+            <label className="text-[11px] text-slate-400 block mb-1">Path Name*</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. New Manager Essentials"
+              className="w-full h-9 px-3 rounded-lg bg-slate-700 text-slate-200 text-[13px] border border-slate-600 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label className="text-[11px] text-slate-400 block mb-1">Description</label>
+            <textarea value={description} onChange={e => setDesc(e.target.value)} rows={2}
+              className="w-full px-3 py-2 rounded-lg bg-slate-700 text-slate-200 text-[13px] border border-slate-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          </div>
+
+          {selected.length > 0 && (
+            <div>
+              <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">
+                Courses in this path (in order)
+              </p>
+              <div className="space-y-1.5">
+                {selected.map((c, i) => (
+                  <div key={c._id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-700/50">
+                    <GripVertical className="h-4 w-4 text-slate-600 shrink-0" />
+                    <span className="text-[11px] text-slate-500 font-mono w-4 shrink-0 text-right">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-slate-200 truncate">{c.title}</p>
+                      <p className="text-[10px] text-slate-500">{c.category}</p>
+                    </div>
+                    <button onClick={() => removeCourse(c._id)} className="text-slate-500 hover:text-red-400 shrink-0">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Add Courses</p>
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search courses…"
+                className="w-full h-8 pl-8 pr-3 rounded-lg bg-slate-800 text-slate-200 text-[12px] border border-slate-600 placeholder-slate-500 focus:outline-none" />
+            </div>
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {filtered.length === 0
+                ? <p className="text-[12px] text-slate-500 text-center py-4">No courses available</p>
+                : filtered.map(c => (
+                  <button key={c._id} onClick={() => addCourse(c)}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-indigo-500/40 hover:bg-slate-800/70 text-left transition-colors">
+                    <Plus className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-slate-200 truncate">{c.title}</p>
+                      <p className="text-[10px] text-slate-500">{c.category}</p>
+                    </div>
+                  </button>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-700 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-[13px] text-slate-400 hover:bg-slate-700">Cancel</button>
+          <button onClick={save} disabled={saving || !name || selected.length === 0}
+            className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold disabled:opacity-50">
+            {saving ? 'Saving…' : 'Create Path'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Learning Paths Tab ────────────────────────────────────────────────────────
+
+function LearningPathsTab({ isHR }: { isHR: boolean }) {
+  const [paths, setPaths]           = useState<LearningPath[]>([]);
+  const [loading, setLoading]       = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [enrollingId, setEnrollingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId]   = useState<string | null>(null);
+
+  const fetchPaths = useCallback(() => {
+    setLoading(true);
+    apiCallFunction<{ data: LearningPath[] }>({
+      url: `${API_BASE_URL}/training/paths`,
+      showToast: false,
+      returnResponse: true,
+      thenFn: r => setPaths(r?.data || []),
+    }).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { fetchPaths(); }, [fetchPaths]);
+
+  const enroll = (pathId: string) => {
+    setEnrollingId(pathId);
+    apiCallFunction({
+      url: `${API_BASE_URL}/training/paths/${pathId}/enroll`,
+      method: 'POST',
+      thenFn: fetchPaths,
+      finallyFn: () => setEnrollingId(null),
+    });
+  };
+
+  const doDelete = (pathId: string) => {
+    setDeletingId(pathId);
+    apiCallFunction({
+      url: `${API_BASE_URL}/training/paths/${pathId}`,
+      method: 'DELETE',
+      thenFn: fetchPaths,
+      finallyFn: () => setDeletingId(null),
+    });
+  };
+
+  return (
+    <div>
+      {showCreate && <CreatePathModal onClose={() => setShowCreate(false)} onSaved={fetchPaths} />}
+
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-[13px] text-slate-400">Structured course sequences that guide you through a topic step by step.</p>
+        {isHR && (
+          <button onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold transition-colors shrink-0 ml-4">
+            <Plus className="h-3.5 w-3.5" /> New Path
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-slate-500">Loading…</div>
+      ) : paths.length === 0 ? (
+        <div className="text-center py-16 text-slate-500">
+          <Layers className="h-10 w-10 mx-auto mb-3 opacity-25" />
+          <p className="text-[14px] font-semibold text-slate-400 mb-1">No learning paths yet</p>
+          {isHR && <p className="text-[12px]">Create a path to guide employees through an ordered series of courses.</p>}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {paths.map(p => {
+            const prog = p.myProgress;
+            const allEnrolled = prog ? prog.enrolled >= prog.total && prog.total > 0 : false;
+            const allDone     = prog ? prog.completed >= prog.total && prog.total > 0 : false;
+
+            return (
+              <Card key={p._id} className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-600/20 flex items-center justify-center shrink-0">
+                      <Layers className="h-5 w-5 text-indigo-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-bold text-slate-100">{p.name}</h3>
+                      {p.description && (
+                        <p className="text-[12px] text-slate-400 mt-0.5 line-clamp-2">{p.description}</p>
+                      )}
+                      <p className="text-[11px] text-slate-500 mt-1">{p.courses.length} course{p.courses.length !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isHR && (
+                      <button
+                        onClick={() => doDelete(p._id)}
+                        disabled={deletingId === p._id}
+                        className="h-8 w-8 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-400 flex items-center justify-center transition-colors disabled:opacity-40"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {!allEnrolled ? (
+                      <button
+                        onClick={() => enroll(p._id)}
+                        disabled={enrollingId === p._id}
+                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 text-[12px] font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <Play className="h-3 w-3 fill-current" />
+                        {enrollingId === p._id ? 'Enrolling…' : 'Enroll in Path'}
+                      </button>
+                    ) : allDone ? (
+                      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-400">
+                        <CheckCircle className="h-4 w-4" /> Path Complete
+                      </span>
+                    ) : (
+                      <span className="text-[12px] text-indigo-400 font-semibold">
+                        {prog!.completed}/{prog!.total} done
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {prog && prog.total > 0 && (
+                  <div>
+                    <div className="flex justify-between text-[11px] text-slate-400 mb-1.5">
+                      <span>Path progress</span>
+                      <span className="font-semibold" style={{ color: allDone ? '#22c55e' : '#6366f1' }}>{prog.pct}%</span>
+                    </div>
+                    <ProgressBar value={prog.pct} color={allDone ? '#22c55e' : '#6366f1'} />
+                  </div>
+                )}
+
+                {p.courses.length > 0 && (
+                  <div className="space-y-1.5 border-t border-slate-700/50 pt-3">
+                    {p.courses.map((c, i) => (
+                      <div key={c.courseId} className="flex items-center gap-3">
+                        <span className="text-[11px] text-slate-600 font-mono w-5 shrink-0 text-right">{i + 1}</span>
+                        <div className="h-6 w-6 rounded flex items-center justify-center shrink-0"
+                          style={{ background: `${CAT_COLORS[c.category || ''] || '#6366f1'}20` }}>
+                          <BookOpen className="h-3.5 w-3.5" style={{ color: CAT_COLORS[c.category || ''] || '#6366f1' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] text-slate-300 truncate">{c.title || c.courseId}</p>
+                          {c.duration ? <span className="text-[10px] text-slate-500">{formatMins(c.duration)}</span> : null}
+                        </div>
+                        {c.isMandatory && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-600/20 text-red-400 shrink-0">Mandatory</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Course Catalog Tab ────────────────────────────────────────────────────────
 
 function CatalogTab({ isHR }: { isHR: boolean }) {
@@ -1359,8 +1826,6 @@ function CatalogTab({ isHR }: { isHR: boolean }) {
           const startLabel = c.startTime && isStartLocked
             ? new Date(c.startTime).toLocaleString('en-KE', { dateStyle: 'short', timeStyle: 'short' })
             : null;
-
-          const isCompleted = enrollment?.status === 'completed' || enrollment?.status === 'auto_completed';
 
           return (
             <div key={c._id} className="rounded-2xl overflow-hidden border border-slate-700/60 bg-[#1e293b] flex flex-col">
@@ -1478,9 +1943,13 @@ function CatalogTab({ isHR }: { isHR: boolean }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const TABS = ['my_training', 'catalog'] as const;
+const TABS = ['my_training', 'catalog', 'paths'] as const;
 type TabType = typeof TABS[number];
-const TAB_LABELS: Record<TabType, string> = { my_training: 'My Training', catalog: 'Course Catalog' };
+const TAB_LABELS: Record<TabType, string> = {
+  my_training: 'My Training',
+  catalog:     'Course Catalog',
+  paths:       'Learning Paths',
+};
 
 export default function TrainingPage() {
   const { isHR } = useAuth();
@@ -1505,6 +1974,7 @@ export default function TrainingPage() {
 
       {tab === 'my_training' && <MyTrainingTab />}
       {tab === 'catalog'     && <CatalogTab isHR={isHR} />}
+      {tab === 'paths'       && <LearningPathsTab isHR={isHR} />}
     </div>
   );
 }
