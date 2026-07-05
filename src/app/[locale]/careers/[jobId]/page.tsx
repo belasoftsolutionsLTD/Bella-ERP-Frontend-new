@@ -15,6 +15,7 @@ interface Job {
   headcount: number;
   description?: string;
   salaryRange?: { min: number; max: number; currency: string };
+  screeningQuestions?: { id: string; question: string; required: boolean }[];
 }
 
 type View = 'detail' | 'form' | 'success';
@@ -27,6 +28,7 @@ export default function JobDetailPage() {
   const [view, setView] = useState<View>('detail');
 
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', location: '', linkedInUrl: '', coverLetter: '' });
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [resume, setResume] = useState<File | null>(null);
   const [consentGiven, setConsentGiven] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -47,6 +49,8 @@ export default function JobDetailPage() {
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consentGiven) { setError('You must consent to data processing to apply.'); return; }
+    const missingRequired = (job?.screeningQuestions || []).some((q) => q.required && !answers[q.id]?.trim());
+    if (missingRequired) { setError('Please answer all required questions.'); return; }
     setSubmitting(true);
     setError('');
 
@@ -59,6 +63,10 @@ export default function JobDetailPage() {
     if (form.linkedInUrl.trim()) body.append('linkedInUrl', form.linkedInUrl.trim());
     if (form.coverLetter.trim()) body.append('coverLetter', form.coverLetter.trim());
     if (resume) body.append('resume', resume);
+    const answerList = (job?.screeningQuestions || [])
+      .filter((q) => answers[q.id]?.trim())
+      .map((q) => ({ questionId: q.id, answer: answers[q.id].trim() }));
+    if (answerList.length) body.append('answers', JSON.stringify(answerList));
 
     try {
       const res = await fetch(`${API_BASE}/public/jobs/${jobId}/apply`, { method: 'POST', body });
@@ -198,6 +206,24 @@ export default function JobDetailPage() {
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cover Letter</label>
                 <textarea value={form.coverLetter} onChange={(e) => set('coverLetter', e.target.value)} rows={5} className="border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 leading-relaxed" />
               </div>
+
+              {(job.screeningQuestions || []).length > 0 && (
+                <div className="space-y-4 border-t border-gray-100 pt-5">
+                  {job.screeningQuestions!.map((q) => (
+                    <div key={q.id} className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        {q.question} {q.required && <span className="text-red-500">*</span>}
+                      </label>
+                      <input
+                        required={q.required}
+                        value={answers[q.id] ?? ''}
+                        onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+                        className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Resume</label>

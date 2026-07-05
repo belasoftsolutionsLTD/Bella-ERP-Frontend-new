@@ -149,10 +149,35 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
                 </div>
               )}
 
+              {(application.status === 'rejected' || application.status === 'withdrawn') && (
+                <div className="pt-2">
+                  <Button size="sm" variant="outline" onClick={() => onUpdateStatus('active')}>
+                    Reactivate
+                  </Button>
+                </div>
+              )}
+
               {application.coverLetter && (
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Cover Letter</p>
                   <p className="text-sm text-slate-700 whitespace-pre-wrap">{application.coverLetter}</p>
+                </div>
+              )}
+
+              {application.answers?.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Screening Questions</p>
+                  <div className="space-y-2">
+                    {application.answers.map((a, i) => {
+                      const question = requisition.screeningQuestions?.find((q) => q.id === a.questionId);
+                      return (
+                        <div key={i}>
+                          <p className="text-xs font-medium text-slate-600">{question?.question ?? a.questionId}</p>
+                          <p className="text-sm text-slate-700">{a.answer}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>

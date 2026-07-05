@@ -41,6 +41,7 @@ export function useRequisition(id?: string) {
     url: `${API_BASE_URL}/recruitment/requisitions/${id}`,
     method: 'PATCH',
     data: payload,
+    returnResponse: true,
     thenFn: () => mutate(),
   });
 

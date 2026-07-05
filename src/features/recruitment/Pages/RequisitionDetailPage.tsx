@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRequisition } from '../Hooks/useRequisitions';
 import { useApplications } from '../Hooks/useApplications';
 import { useRequisitionFunnel } from '../Hooks/useAnalytics';
@@ -62,12 +63,19 @@ function AnalyticsTab({ requisitionId }: { requisitionId: string }) {
   );
 }
 
-function SettingsTab({ requisitionId }: { requisitionId: string }) {
+function SettingsTab({ requisitionId, locale }: { requisitionId: string; locale: string }) {
   const { requisition, submitForApproval, approve, closeRequisition } = useRequisition(requisitionId);
   if (!requisition) return null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm font-medium text-slate-700">Requisition Details</p>
+        <Link href={`/${locale}/recruitment/requisitions/${requisitionId}/edit`} className="text-sm text-primary hover:underline">
+          Edit pipeline, competencies &amp; approvers →
+        </Link>
+      </div>
+
       <div>
         <p className="text-xs text-slate-500 mb-2">Approval Chain</p>
         <div className="space-y-2">
@@ -139,7 +147,7 @@ export function RequisitionDetailPage({ id, locale }: { id: string; locale: stri
       {tab === 'pipeline' && <PipelineKanban requisition={requisition} locale={locale} />}
       {tab === 'scorecards' && <ScorecardsTab requisition={requisition} />}
       {tab === 'analytics' && <AnalyticsTab requisitionId={requisition._id} />}
-      {tab === 'settings' && <SettingsTab requisitionId={requisition._id} />}
+      {tab === 'settings' && <SettingsTab requisitionId={requisition._id} locale={locale} />}
     </div>
   );
 }

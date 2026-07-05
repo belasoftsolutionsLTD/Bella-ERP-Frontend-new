@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -8,30 +8,56 @@ import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CustomInput } from '@/components/custom-ui/CustomInput';
 import { Button } from '@/components/ui/button';
 import { DEPARTMENTS } from '@/features/employees/Components/EmployeeSchema';
-import { useRequisitions } from '../Hooks/useRequisitions';
+import { useRequisitions, useRequisition } from '../Hooks/useRequisitions';
 import { useUserAccounts } from '../Hooks/useUserAccounts';
+import { useInterviewKits } from '../Hooks/useInterviewKits';
+import { useEmailTemplates } from '../Hooks/useEmailTemplates';
 import { CreateRequisitionSchema, type CreateRequisitionFormValues } from '../schemas';
 import { STAGE_TYPE_OPTIONS, uid } from '../constants';
 
 const STEPS = ['Basic Details', 'Competencies', 'Pipeline Stages', 'Approval Chain', 'Review'];
 
-export function RequisitionWizard({ locale }: { locale: string }) {
+export function RequisitionWizard({ locale, requisitionId }: { locale: string; requisitionId?: string }) {
   const router = useRouter();
+  const isEditMode = !!requisitionId;
   const { createRequisition } = useRequisitions();
+  const { requisition: existingRequisition, updateRequisition } = useRequisition(requisitionId);
   const { accounts } = useUserAccounts();
+  const { kits } = useInterviewKits();
+  const { templates } = useEmailTemplates();
   const [step, setStep] = useState(0);
 
-  const { control, register, handleSubmit, watch, trigger, setValue, formState: { errors, isSubmitting } } = useForm<CreateRequisitionFormValues>({
+  const { control, register, handleSubmit, watch, trigger, setValue, reset, formState: { errors, isSubmitting } } = useForm<CreateRequisitionFormValues>({
     resolver: zodResolver(CreateRequisitionSchema),
     defaultValues: {
       title: '', department: '', location: '', employmentType: 'fullTime', headcount: 1,
       salaryRange: { min: 0, max: 0, currency: 'KES' },
-      description: '', competencies: [], pipelineStages: [], approvalChain: [], hiringManagerId: '',
+      description: '', competencies: [], pipelineStages: [], screeningQuestions: [], approvalChain: [], hiringManagerId: '',
     },
   });
 
+  useEffect(() => {
+    if (existingRequisition) {
+      reset({
+        title: existingRequisition.title,
+        department: existingRequisition.department,
+        location: existingRequisition.location,
+        employmentType: existingRequisition.employmentType,
+        headcount: existingRequisition.headcount,
+        salaryRange: existingRequisition.salaryRange,
+        description: existingRequisition.description,
+        competencies: existingRequisition.competencies,
+        pipelineStages: existingRequisition.pipelineStages,
+        screeningQuestions: existingRequisition.screeningQuestions || [],
+        approvalChain: existingRequisition.approvalChain,
+        hiringManagerId: existingRequisition.hiringManagerId,
+      });
+    }
+  }, [existingRequisition?._id]);
+
   const competencies = useFieldArray({ control, name: 'competencies' });
   const pipelineStages = useFieldArray({ control, name: 'pipelineStages' });
+  const screeningQuestions = useFieldArray({ control, name: 'screeningQuestions' });
   const approvalChain = useFieldArray({ control, name: 'approvalChain' });
 
   const managerOptions = accounts
@@ -53,6 +79,11 @@ export function RequisitionWizard({ locale }: { locale: string }) {
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   const onSubmit = async (values: CreateRequisitionFormValues) => {
+    if (isEditMode) {
+      const result = await updateRequisition(values);
+      if (result !== undefined) router.push(`/${locale}/recruitment/requisitions/${requisitionId}`);
+      return;
+    }
     const result = await createRequisition(values) as any;
     if (result?.data?._id) router.push(`/${locale}/recruitment/requisitions/${result.data._id}`);
   };
@@ -64,9 +95,13 @@ export function RequisitionWizard({ locale }: { locale: string }) {
       <div className="flex items-center gap-2 mb-6">
         {STEPS.map((label, i) => (
           <div key={label} className="flex items-center gap-2 flex-1">
-            <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold ${i === step ? 'bg-primary text-white' : i < step ? 'bg-primary/20 text-primary' : 'bg-slate-100 text-slate-400'}`}>
+            <button
+              type="button"
+              onClick={() => setStep(i)}
+              className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold ${i === step ? 'bg-primary text-white' : i < step ? 'bg-primary/20 text-primary' : 'bg-slate-100 text-slate-400'}`}
+            >
               {i + 1}
-            </div>
+            </button>
             <span className={`text-xs font-medium ${i === step ? 'text-slate-100' : 'text-slate-500'} hidden sm:block`}>{label}</span>
             {i < STEPS.length - 1 && <div className="h-px flex-1 bg-slate-700" />}
           </div>
@@ -96,6 +131,27 @@ export function RequisitionWizard({ locale }: { locale: string }) {
             </div>
             <CustomInput component="textarea" name="description" control={control} label="Job Description" />
             <CustomInput component="select" name="hiringManagerId" control={control} label="Hiring Manager" options={managerOptions} />
+
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-700">Screening Questions (optional)</p>
+                <Button type="button" size="sm" variant="outline" onClick={() => screeningQuestions.append({ id: uid(), question: '', required: false })}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Question
+                </Button>
+              </div>
+              {screeningQuestions.fields.map((field, i) => (
+                <div key={field.id} className="flex items-center gap-2">
+                  <input {...register(`screeningQuestions.${i}.question`)} placeholder="e.g. Are you authorized to work in this location?" className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  <label className="flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
+                    <input type="checkbox" {...register(`screeningQuestions.${i}.required`)} /> Required
+                  </label>
+                  <button type="button" onClick={() => screeningQuestions.remove(i)} className="text-red-500 hover:text-red-700 p-1.5">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {screeningQuestions.fields.length === 0 && <p className="text-xs text-slate-400">Candidates applying on the careers site will answer these alongside the standard fields.</p>}
+            </div>
           </div>
         )}
 
@@ -137,7 +193,9 @@ export function RequisitionWizard({ locale }: { locale: string }) {
               </Button>
             </div>
             {errors.pipelineStages && <p className="text-xs text-danger">{errors.pipelineStages.message as string}</p>}
-            {pipelineStages.fields.map((field, i) => (
+            {pipelineStages.fields.map((field, i) => {
+              const requiresScorecard = watch(`pipelineStages.${i}.requiresScorecard`);
+              return (
               <div key={field.id} className="border border-slate-200 rounded-lg p-4 space-y-2">
                 <div className="flex items-start gap-2">
                   <div className="flex-1 grid grid-cols-2 gap-2">
@@ -160,11 +218,25 @@ export function RequisitionWizard({ locale }: { locale: string }) {
                   </button>
                 </div>
 
+                {requiresScorecard && (
+                  <Controller
+                    control={control}
+                    name={`pipelineStages.${i}.scorecardTemplateId`}
+                    render={({ field: f }) => (
+                      <select {...f} value={f.value ?? ''} className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs">
+                        <option value="">No interview kit (blank scorecard)</option>
+                        {kits.map((k) => <option key={k._id} value={k._id}>{k.name}</option>)}
+                      </select>
+                    )}
+                  />
+                )}
+
                 <Controller
                   control={control}
                   name={`pipelineStages.${i}.autoActions`}
                   render={({ field: f }) => {
                     const actions = f.value || [];
+                    const emailAction = actions.find((a) => a.trigger === 'onEnter' && a.action === 'emailCandidate');
                     const has = (action: 'emailCandidate' | 'notifyHiringManager') =>
                       actions.some((a) => a.trigger === 'onEnter' && a.action === action);
                     const toggle = (action: 'emailCandidate' | 'notifyHiringManager') => {
@@ -174,22 +246,38 @@ export function RequisitionWizard({ locale }: { locale: string }) {
                         f.onChange([...actions, { trigger: 'onEnter' as const, action }]);
                       }
                     };
+                    const setEmailTemplateId = (templateId: string) => {
+                      f.onChange(actions.map((a) => (a.trigger === 'onEnter' && a.action === 'emailCandidate' ? { ...a, templateId: templateId || undefined } : a)));
+                    };
                     return (
-                      <div className="flex flex-wrap gap-4 pt-1 border-t border-slate-100 mt-2">
-                        <label className="flex items-center gap-2 text-xs text-slate-600">
-                          <input type="checkbox" checked={has('emailCandidate')} onChange={() => toggle('emailCandidate')} />
-                          Email the candidate when they enter this stage
-                        </label>
-                        <label className="flex items-center gap-2 text-xs text-slate-600">
-                          <input type="checkbox" checked={has('notifyHiringManager')} onChange={() => toggle('notifyHiringManager')} />
-                          Notify hiring manager when they enter this stage
-                        </label>
+                      <div className="pt-1 border-t border-slate-100 mt-2 space-y-2">
+                        <div className="flex flex-wrap gap-4">
+                          <label className="flex items-center gap-2 text-xs text-slate-600">
+                            <input type="checkbox" checked={has('emailCandidate')} onChange={() => toggle('emailCandidate')} />
+                            Email the candidate when they enter this stage
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-slate-600">
+                            <input type="checkbox" checked={has('notifyHiringManager')} onChange={() => toggle('notifyHiringManager')} />
+                            Notify hiring manager when they enter this stage
+                          </label>
+                        </div>
+                        {emailAction && (
+                          <select
+                            value={emailAction.templateId ?? ''}
+                            onChange={(e) => setEmailTemplateId(e.target.value)}
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs"
+                          >
+                            <option value="">Use generic message (no template)</option>
+                            {templates.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+                          </select>
+                        )}
                       </div>
                     );
                   }}
                 />
               </div>
-            ))}
+              );
+            })}
             <p className="text-xs text-slate-500">Order matters — candidates move through these stages left to right. Include a final stage of type &quot;Hired&quot; to trigger onboarding automatically. Candidate emails use a standard &quot;your application has moved to X&quot; message.</p>
           </div>
         )}
@@ -243,7 +331,11 @@ export function RequisitionWizard({ locale }: { locale: string }) {
               <div className="flex justify-between"><dt className="text-slate-500">Pipeline Stages</dt><dd className="font-medium">{values.pipelineStages?.length || 0}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Approvers</dt><dd className="font-medium">{values.approvalChain?.length || 0}</dd></div>
             </dl>
-            <p className="text-xs text-slate-500">This requisition will be created as a Draft. You can submit it for approval from the requisition detail page once ready.</p>
+            <p className="text-xs text-slate-500">
+              {isEditMode
+                ? 'Changes are saved immediately and apply to the live requisition — including any candidates already in the pipeline.'
+                : 'This requisition will be created as a Draft. You can submit it for approval from the requisition detail page once ready.'}
+            </p>
           </div>
         )}
 
@@ -257,7 +349,7 @@ export function RequisitionWizard({ locale }: { locale: string }) {
             </Button>
           ) : (
             <Button type="submit" disabled={isSubmitting} className="bg-primary text-white">
-              {isSubmitting ? 'Creating...' : 'Create Requisition'}
+              {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Requisition'}
             </Button>
           )}
         </div>
