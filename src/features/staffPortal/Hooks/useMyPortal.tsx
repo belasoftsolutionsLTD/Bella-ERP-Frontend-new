@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import type { LeaveBalance, LeaveRequest } from '@/features/leave/Hooks/useLeave';
-import type { PayrollSummary } from '@/features/payroll/Hooks/usePayroll';
+import type { MyPayslip } from '@/features/payroll/Components/MyPayslipsPanel';
 import type { AttendanceGroup } from '@/features/attendance/Hooks/useAttendance';
 import type { StaffEmployee } from './useStaffPortal';
 
@@ -154,7 +154,7 @@ interface MyPortalState {
   profile: StaffEmployee | null;
   leaveBalance: LeaveBalance | null;
   leaveRequests: LeaveRequest[];
-  payslips: PayrollSummary[];
+  payslips: MyPayslip[];
   attendance: AttendanceGroup[];
   onboardingTasks: OnboardingTask[];
   offboardingTasks: OffboardingTask[];

@@ -21,7 +21,7 @@ import CommunicationPage from '@/features/communication/Pages/CommunicationPage'
 import InboxPage from '@/features/inbox/Pages/InboxPage';
 import AwardsPage from '@/features/awards/Pages/AwardsPage';
 import { LeaveBalanceCard } from '@/features/leave/Components/LeaveBalanceCard';
-import { PayrollTable } from '@/features/payroll/Components/PayrollTable';
+import { MyPayslipsPanel } from '@/features/payroll/Components/MyPayslipsPanel';
 import { AttendanceGrid } from '@/features/attendance/Components/AttendanceGrid';
 import { ClockInWidget } from '@/features/attendance/Components/ClockInWidget';
 import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
@@ -398,7 +398,7 @@ export function MyPortalView() {
             {active === 'leave'      && <LeavePanel leaveBalance={leaveBalance} leaveRequests={leaveRequests} onDispute={disputeLeave} />}
             {active === 'payslips'   && (
               payslips.length > 0
-                ? <PayrollTable records={payslips} employeeId={profile._id} />
+                ? <MyPayslipsPanel payslips={payslips} />
                 : <EmptyState icon={DollarSign} text="No payslips yet." sub="Your payslips will appear here once payroll is processed." />
             )}
             {active === 'attendance' && (

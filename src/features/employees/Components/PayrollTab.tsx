@@ -1,13 +1,17 @@
 'use client';
-import { usePayroll } from '../../payroll/Hooks/usePayroll';
-import { PayrollTable } from '../../payroll/Components/PayrollTable';
+import { useEmployeePayslips } from '../../payroll/Hooks/useEmployeePayslips';
+import { MyPayslipsPanel } from '../../payroll/Components/MyPayslipsPanel';
 import { Wrapper } from '@/components/custom-ui/Wrapper';
 
 export function PayrollTab({ employeeId }: { employeeId: string }) {
-  const { records, loading, error, refetch } = usePayroll(employeeId);
+  const { payslips, isLoading, error, mutate } = useEmployeePayslips(employeeId);
   return (
-    <Wrapper loading={loading} error={error} onRetry={refetch}>
-      <PayrollTable records={records} employeeId={employeeId} />
+    <Wrapper loading={isLoading} error={error ? 'Failed to load payslips.' : null} onRetry={() => mutate()}>
+      {payslips.length > 0 ? (
+        <MyPayslipsPanel payslips={payslips} />
+      ) : (
+        <p className="text-sm text-slate-400 text-center py-10">No payslips yet for this employee.</p>
+      )}
     </Wrapper>
   );
 }

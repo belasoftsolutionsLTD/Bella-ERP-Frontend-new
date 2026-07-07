@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, AlertTriangle, Download, Check, X, ChevronRight, Mail, FileText, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Plus, AlertTriangle, Download, Check, X, ChevronRight, Mail, FileText, ShieldCheck, AlertCircle, GitCompare } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { downloadFile } from '@/functions/downloadFile';
@@ -19,6 +19,7 @@ interface PayrollCycle {
   payDate: string | null; status: CycleStatus; currency: string;
   totalGross: number; totalDeductions: number; totalNet: number; totalEmployerCost: number;
   employeeCount: number; hasExceptions: boolean; exceptionCount: number;
+  payFrequency?: string; runType?: string;
 }
 
 interface PayrollResult {
@@ -29,6 +30,7 @@ interface PayrollResult {
   deductions: { conceptName: string; amount: number }[];
   employerContributions: { conceptName: string; amount: number }[];
   benefits: { conceptName: string; amount: number }[];
+  leave?: { leaveType: string; startDate: string; endDate: string; days: number; amount: number }[];
   hasException: boolean;
   exceptions: { type: string; message: string; severity: string }[];
   status: string; payslipUrl?: string;
@@ -82,21 +84,33 @@ function Pipeline({ status }: { status: CycleStatus }) {
 
 // ── New Cycle Modal ───────────────────────────────────────────────────────────
 
-function NewCycleModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function NewCycleModal({ onClose, onCreated, offCycle }: { onClose: () => void; onCreated: () => void; offCycle?: boolean }) {
   const now = new Date();
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year,  setYear]  = useState(String(now.getFullYear()));
+  const [payFrequency, setPayFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>(offCycle ? 'monthly' : 'monthly');
+  const [payGroup, setPayGroup] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [offCycleReason, setOffCycleReason] = useState('');
   const [payDate, setPayDate] = useState('');
   const [saving, setSaving]   = useState(false);
   const mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const name = `${mNames[parseInt(month)-1]} ${year} Payroll`;
+  const needsExplicitRange = offCycle || payFrequency !== 'monthly';
+  const name = offCycle
+    ? (offCycleReason ? `Off-Cycle: ${offCycleReason}` : 'Off-Cycle Payroll Run')
+    : needsExplicitRange
+      ? `${payFrequency === 'weekly' ? 'Weekly' : 'Biweekly'} Payroll (${startDate || '…'} – ${endDate || '…'})`
+      : `${mNames[parseInt(month)-1]} ${year} Payroll`;
+
+  const canSubmit = needsExplicitRange ? (startDate && endDate) : true;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-          <h2 className="text-base font-bold text-slate-100">New Payroll Cycle</h2>
+          <h2 className="text-base font-bold text-slate-100">{offCycle ? 'New Off-Cycle Run' : 'New Payroll Cycle'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"><X className="h-4 w-4" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
@@ -104,20 +118,61 @@ function NewCycleModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             <p className="text-xs text-slate-500 mb-1">Cycle name</p>
             <p className="text-sm font-bold text-indigo-300">{name}</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          {offCycle && (
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Month</label>
-              <select value={month} onChange={e => setMonth(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
-                {mNames.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Reason</label>
+              <input value={offCycleReason} onChange={e => setOffCycleReason(e.target.value)} placeholder="e.g. Year-end bonus, termination payout" className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+          )}
+
+          {!offCycle && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Pay Frequency</label>
+              <select value={payFrequency} onChange={e => setPayFrequency(e.target.value as any)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                <option value="monthly">Monthly</option>
+                <option value="biweekly">Biweekly</option>
+                <option value="weekly">Weekly</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Year</label>
-              <select value={year} onChange={e => setYear(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
-                {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
+          )}
+
+          {!needsExplicitRange ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Month</label>
+                <select value={month} onChange={e => setMonth(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                  {mNames.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Year</label>
+                <select value={year} onChange={e => setYear(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                  {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Period Start</label>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Period End</label>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+          )}
+
+          {!offCycle && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Pay Group</label>
+              <input value={payGroup} onChange={e => setPayGroup(e.target.value)} placeholder="all" className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              <p className="text-[11px] text-slate-500 mt-1">Leave as "all" to include every active employee on this pay frequency.</p>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Pay Date (optional)</label>
             <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
@@ -128,11 +183,18 @@ function NewCycleModal({ onClose, onCreated }: { onClose: () => void; onCreated:
           <button onClick={() => {
             setSaving(true);
             apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles`, method: 'POST',
-              data: { name, month, year, payDate: payDate || undefined, currency: 'KES' },
+              data: {
+                name, payDate: payDate || undefined, currency: 'KES',
+                payFrequency: offCycle ? 'monthly' : payFrequency,
+                payGroup: offCycle ? 'all' : payGroup,
+                runType: offCycle ? 'off_cycle' : 'regular',
+                offCycleReason: offCycle ? offCycleReason : undefined,
+                ...(needsExplicitRange ? { startDate, endDate } : { month, year }),
+              },
               thenFn: () => { onCreated(); onClose(); },
               finallyFn: () => setSaving(false),
             });
-          }} disabled={saving} className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
+          }} disabled={saving || !canSubmit} className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
             {saving ? 'Creating…' : 'Create Cycle'}
           </button>
         </div>
@@ -177,6 +239,18 @@ function ResultModal({ r, cur, cycleYear, onClose, onApprove, isHR }: {
               <span className="text-emerald-400">Gross Pay</span><span className="text-emerald-300">{fmt(r.grossPay, cur)}</span>
             </div>
           </div>
+          {/* Leave Taken */}
+          {(r.leave?.length ?? 0) > 0 && (
+            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+              <div className="px-4 py-2 border-b border-slate-700"><p className="text-xs font-bold text-sky-400 uppercase tracking-wide">Leave Taken</p></div>
+              {r.leave!.map((l, i) => (
+                <div key={i} className="flex justify-between px-4 py-2 border-b border-slate-700/50 last:border-0 text-sm">
+                  <span className="text-slate-300">{l.leaveType.charAt(0).toUpperCase()}{l.leaveType.slice(1)} Leave ({l.days} day{l.days === 1 ? '' : 's'})</span>
+                  <span className="font-semibold text-slate-100">{l.amount > 0 ? `-${fmt(l.amount, cur)}` : 'Paid'}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {/* Deductions */}
           <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
             <div className="px-4 py-2 border-b border-slate-700"><p className="text-xs font-bold text-red-400 uppercase tracking-wide">Deductions</p></div>
@@ -420,6 +494,128 @@ function ReadinessModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Compare Cycles Modal ──────────────────────────────────────────────────────
+
+interface EmployeeDiff {
+  employeeId: string;
+  employee: { fullName: string; staffNumber: string; department: string } | null;
+  inCycleA: boolean; inCycleB: boolean;
+  grossA: number; grossB: number; grossDiff: number;
+  deductionsA: number; deductionsB: number; deductionsDiff: number;
+  netA: number; netB: number; netDiff: number;
+}
+
+interface CompareData {
+  cycleA: { _id: string; name: string; totalGross: number; totalDeductions: number; totalNet: number; employeeCount: number; currency: string };
+  cycleB: { _id: string; name: string; totalGross: number; totalDeductions: number; totalNet: number; employeeCount: number; currency: string };
+  employeeDiffs: EmployeeDiff[];
+}
+
+function DiffCell({ value, cur }: { value: number; cur: string }) {
+  if (Math.abs(value) < 0.01) return <span className="text-slate-500">—</span>;
+  const positive = value > 0;
+  return <span className={cn('font-semibold', positive ? 'text-emerald-400' : 'text-red-400')}>{positive ? '+' : ''}{fmt(value, cur)}</span>;
+}
+
+function CompareCyclesModal({ cycles, onClose }: { cycles: PayrollCycle[]; onClose: () => void }) {
+  const [cycleAId, setCycleAId] = useState(cycles[1]?._id ?? '');
+  const [cycleBId, setCycleBId] = useState(cycles[0]?._id ?? '');
+  const [data, setData] = useState<CompareData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const runCompare = useCallback(() => {
+    if (!cycleAId || !cycleBId) return;
+    setLoading(true);
+    apiCallFunction<any>({ url: `${API_BASE_URL}/payroll/cycles/compare`, params: { cycleA: cycleAId, cycleB: cycleBId }, showToast: false,
+      thenFn: r => setData(r.data ?? null),
+      finallyFn: () => setLoading(false),
+    });
+  }, [cycleAId, cycleBId]);
+
+  useEffect(() => { runCompare(); }, [runCompare]);
+
+  const cur = data?.cycleB.currency ?? 'KES';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-4xl flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2"><GitCompare className="h-4 w-4" /> Compare Payroll Runs</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="px-6 py-4 border-b border-slate-700 shrink-0 grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Run A (baseline)</label>
+            <select value={cycleAId} onChange={e => setCycleAId(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+              {cycles.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Run B (compare to)</label>
+            <select value={cycleBId} onChange={e => setCycleBId(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+              {cycles.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="py-16 flex justify-center"><div className="h-6 w-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" /></div>
+          ) : !data ? (
+            <p className="text-center text-slate-500 py-16">Select two runs to compare.</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3 px-6 py-4">
+                {[
+                  { label: 'Total Gross', a: data.cycleA.totalGross, b: data.cycleB.totalGross },
+                  { label: 'Total Deductions', a: data.cycleA.totalDeductions, b: data.cycleB.totalDeductions },
+                  { label: 'Total Net', a: data.cycleA.totalNet, b: data.cycleB.totalNet },
+                ].map(({ label, a, b }) => (
+                  <div key={label} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
+                    <p className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-slate-400">{fmt(a, cur)} → {fmt(b, cur)}</span>
+                    </div>
+                    <DiffCell value={Math.round((b - a) * 100) / 100} cur={cur} />
+                  </div>
+                ))}
+              </div>
+
+              <div className="px-6 pb-6">
+                <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                  <div className="grid border-b border-slate-700 bg-slate-800/60" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }}>
+                    {['Employee', 'Gross Δ', 'Deductions Δ', 'Net Δ'].map(h => (
+                      <div key={h} className="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{h}</div>
+                    ))}
+                  </div>
+                  {data.employeeDiffs.map(d => (
+                    <div key={d.employeeId} style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr' }} className="grid border-b border-slate-700/50 last:border-0 items-center">
+                      <div className="px-4 py-2.5 text-sm">
+                        <p className="font-medium text-slate-200">{d.employee?.fullName ?? 'Unknown'}</p>
+                        <p className="text-[10px] text-slate-500">
+                          {d.employee?.department}
+                          {!d.inCycleA && <span className="ml-1.5 text-emerald-500">new in B</span>}
+                          {!d.inCycleB && <span className="ml-1.5 text-red-500">dropped in B</span>}
+                        </p>
+                      </div>
+                      <div className="px-4 py-2.5 text-sm"><DiffCell value={d.grossDiff} cur={cur} /></div>
+                      <div className="px-4 py-2.5 text-sm"><DiffCell value={d.deductionsDiff} cur={cur} /></div>
+                      <div className="px-4 py-2.5 text-sm"><DiffCell value={d.netDiff} cur={cur} /></div>
+                    </div>
+                  ))}
+                  {data.employeeDiffs.length === 0 && <div className="py-10 text-center text-slate-600 text-sm">No employees in either run.</div>}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function PayrollPage() {
@@ -429,6 +625,8 @@ export default function PayrollPage() {
   const [results,      setResults]      = useState<PayrollResult[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [newOpen,      setNewOpen]      = useState(false);
+  const [offCycleOpen, setOffCycleOpen] = useState(false);
+  const [compareOpen,  setCompareOpen]  = useState(false);
   const [excOpen,      setExcOpen]      = useState(false);
   const [detailR,      setDetailR]      = useState<PayrollResult | null>(null);
   const [advancing,    setAdvancing]    = useState(false);
@@ -505,9 +703,18 @@ export default function PayrollPage() {
             <div className="flex items-center gap-2">
               <a href="/en/payroll/employees" className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Compensations</a>
               <a href="/en/payroll/concepts"  className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Concepts</a>
+              <a href="/en/payroll/analytics" className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Analytics</a>
               <button onClick={() => setReadyOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">
                 <ShieldCheck className="h-4 w-4" /> Check Readiness
               </button>
+              <button onClick={() => setOffCycleOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">
+                <Plus className="h-4 w-4" /> Off-Cycle Run
+              </button>
+              {cycles.length >= 2 && (
+                <button onClick={() => setCompareOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">
+                  <GitCompare className="h-4 w-4" /> Compare Runs
+                </button>
+              )}
               <button onClick={() => setNewOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors">
                 <Plus className="h-4 w-4" /> New Cycle
               </button>
@@ -651,19 +858,19 @@ export default function PayrollPage() {
               </div>
             )}
 
-            {/* Past Cycles */}
+            {/* Other Cycles — including any off-cycle or other-frequency runs alongside the active one */}
             {past.length > 0 && (
               <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-700"><h3 className="text-sm font-bold text-slate-100">Past Cycles</h3></div>
+                <div className="px-5 py-3 border-b border-slate-700"><h3 className="text-sm font-bold text-slate-100">Other Cycles</h3></div>
                 <div className="grid border-b border-slate-700 bg-slate-800/60" style={{ gridTemplateColumns: '1fr 110px 80px 120px 120px 90px' }}>
                   {['Period','Pay Date','Employees','Gross','Net','Status'].map(h => (
                     <div key={h} className="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{h}</div>
                   ))}
                 </div>
                 {past.map(c => (
-                  <div key={c._id} style={{ gridTemplateColumns: '1fr 110px 80px 120px 120px 90px' }}
-                    className="grid border-b border-slate-700/60 last:border-0 hover:bg-slate-800/30 transition-colors items-center">
-                    <div className="px-4 py-3 text-sm font-medium text-slate-200">{c.name}</div>
+                  <div key={c._id} onClick={() => setActiveCycle(c)} style={{ gridTemplateColumns: '1fr 110px 80px 120px 120px 90px' }}
+                    className="grid border-b border-slate-700/60 last:border-0 hover:bg-slate-800/30 transition-colors items-center cursor-pointer">
+                    <div className="px-4 py-3 text-sm font-medium text-slate-200">{c.name}{c.runType === 'off_cycle' && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400 uppercase">Off-Cycle</span>}</div>
                     <div className="px-4 py-3 text-xs text-slate-400">{fmtDate(c.payDate)}</div>
                     <div className="px-4 py-3 text-sm text-slate-300">{c.employeeCount}</div>
                     <div className="px-4 py-3 text-sm text-slate-300">{fmt(c.totalGross, c.currency)}</div>
@@ -678,6 +885,8 @@ export default function PayrollPage() {
       </div>
 
       {newOpen   && <NewCycleModal onClose={() => setNewOpen(false)} onCreated={fetchCycles} />}
+      {offCycleOpen && <NewCycleModal offCycle onClose={() => setOffCycleOpen(false)} onCreated={fetchCycles} />}
+      {compareOpen && <CompareCyclesModal cycles={cycles} onClose={() => setCompareOpen(false)} />}
       {excOpen   && ac && <ExceptionsPanel cycleId={ac._id} onClose={() => setExcOpen(false)} />}
       {detailR   && ac && <ResultModal r={detailR} cur={cur} cycleYear={ac.period.year} onClose={() => setDetailR(null)} onApprove={() => approveEmployee(detailR._id)} isHR={isHR} />}
       {readyOpen && <ReadinessModal onClose={() => setReadyOpen(false)} />}
