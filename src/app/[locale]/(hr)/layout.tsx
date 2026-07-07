@@ -99,8 +99,8 @@ export default function HrLayout({ children }: { children: React.ReactNode }) {
     if (authLoading) return;
     if (!isLoggedIn) {
       router.replace(`/${locale}/login`);
-    } else if (isStaff && !pathname.endsWith('/staff-portal')) {
-      // Staff are only allowed on their own portal page
+    } else if (isStaff && !pathname.endsWith('/staff-portal') && !pathname.includes('/my/training')) {
+      // Staff are only allowed on their own portal page, plus their own training pages
       router.replace(`/${locale}/staff-portal`);
     }
   }, [isLoggedIn, isStaff, authLoading, router, locale, pathname]);

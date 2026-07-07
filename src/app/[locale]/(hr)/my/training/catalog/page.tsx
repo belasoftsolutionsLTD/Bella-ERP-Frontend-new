@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
-import { TrainingDashboardPage } from '@/features/training/Pages/TrainingDashboardPage';
+import { MyCatalogPage } from '@/features/training/Pages/MyCatalogPage';
 
 export default function Page({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
-  return <TrainingDashboardPage locale={locale} />;
+  return <MyCatalogPage locale={locale} />;
 }
