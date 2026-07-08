@@ -44,7 +44,7 @@ export function RecruitmentDashboardPage({ locale }: { locale: string }) {
           { href: 'candidates', label: 'Candidates', desc: 'Browse the candidate database' },
           { href: 'nurture', label: 'Nurture CRM', desc: 'Engage passive talent' },
           { href: 'analytics', label: 'Analytics', desc: 'Funnel, time-to-fill, and more' },
-          { href: 'settings', label: 'Settings', desc: 'Email templates and interview kits' },
+          { href: 'settings', label: 'Settings', desc: 'Email templates, interview kits, and JD templates' },
         ].map((item) => (
           <Link key={item.href} href={`/${locale}/recruitment/${item.href}`} className="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary/40 hover:shadow-sm transition flex items-center justify-between">
             <div>

@@ -4,7 +4,7 @@ import { Briefcase, DollarSign, CalendarDays, CreditCard, Pencil, X, Save, Loade
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
-import { useHrConfig } from '@/features/config/Hooks/useHrConfig';
+import { useConfigSection } from '@/hooks/useConfigSection';
 import type { Employee } from '../Hooks/useEmployees';
 
 const Field = ({ label, value }: { label: string; value?: string | number | null }) => (
@@ -50,7 +50,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
   const contractEnd = employee.contractEndDate ? new Date(employee.contractEndDate).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
 
   const emp = employee as any;
-  const { jobGroups } = useHrConfig();
+  const jobGroups = useConfigSection('job-groups');
 
   // ── Compensation edit state ──────────────────────────────────────────────────
   const [editComp, setEditComp] = useState(false);

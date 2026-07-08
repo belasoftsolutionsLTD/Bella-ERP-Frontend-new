@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Pencil, Trash2, Plus, Check, X, FileText, Upload, ExternalLink } from 'lucide-react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
-import type { ConfigItem } from '../Hooks/useHrConfig';
+import type { ConfigItem } from '@/hooks/useConfigSection';
 
 interface JdTemplate extends ConfigItem {
   description?: string;

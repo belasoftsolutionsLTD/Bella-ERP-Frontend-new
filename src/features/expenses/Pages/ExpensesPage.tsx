@@ -7,6 +7,7 @@ import { downloadFile, openFile } from '@/functions/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import { DEPARTMENTS } from '@/features/employees/Components/EmployeeSchema';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -14,8 +15,20 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ExpenseType   = 'regular' | 'per_diem' | 'mileage';
+type ExpenseType   = 'regular' | 'per_diem' | 'mileage' | 'itemized';
 type ExpenseStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'reimbursed' | 'disputed';
+
+interface ExpenseLineItem {
+  id: string; categoryId?: string; categoryName: string; description?: string;
+  amount: number; currency: string; expenseDate: string; receiptFile?: string | null;
+  merchantName?: string | null; notes?: string | null; policyViolation?: string | null;
+}
+
+interface ApprovalChainEntry {
+  level: number; approverId?: string; approverName?: string; approverRole?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'skipped';
+  actedAt?: string; comment?: string; thresholdAmount?: number;
+}
 
 interface ExpenseClaim {
   _id: string; type: ExpenseType; category?: string;
@@ -24,6 +37,8 @@ interface ExpenseClaim {
   destination?: string; startDate?: string; endDate?: string; perDiemDays?: number;
   fromLocation?: string; toLocation?: string; distanceKm?: number; isRoundTrip?: boolean;
   projectId?: string; isBillable?: boolean;
+  items?: ExpenseLineItem[]; policyId?: string; department?: string;
+  approvalChain?: ApprovalChainEntry[]; currentApprovalLevel?: number;
   isPolicyViolation: boolean; violationReason?: string;
   status: ExpenseStatus;
   employee?: { fullName: string; staffNumber: string; department: string };
@@ -50,6 +65,14 @@ const TYPE_CFG: Record<ExpenseType, { label: string; bg: string; text: string }>
   regular:  { label: 'Regular',  bg: 'bg-slate-700',    text: 'text-slate-300' },
   per_diem: { label: 'Per Diem', bg: 'bg-cyan-500/15',  text: 'text-cyan-400'  },
   mileage:  { label: 'Mileage',  bg: 'bg-orange-500/15',text: 'text-orange-400'},
+  itemized: { label: 'Itemized', bg: 'bg-emerald-500/15',text: 'text-emerald-400'},
+};
+
+const APPROVAL_STATUS_CFG: Record<ApprovalChainEntry['status'], { label: string; bg: string; text: string }> = {
+  pending:  { label: 'Pending',  bg: 'bg-amber-500/10',  text: 'text-amber-400'  },
+  approved: { label: 'Approved', bg: 'bg-emerald-500/10',text: 'text-emerald-400'},
+  rejected: { label: 'Rejected', bg: 'bg-red-500/10',    text: 'text-red-400'    },
+  skipped:  { label: 'Skipped',  bg: 'bg-slate-700',     text: 'text-slate-500'  },
 };
 
 const CATEGORIES = ['Travel','Meals','Accommodation','Office Supplies','Equipment','Entertainment','Other'];
@@ -79,6 +102,14 @@ function SubmitDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   const [receipt,      setReceipt]      = useState<File | null>(null);
   const [saving,       setSaving]       = useState(false);
   const [policyRates,  setPolicyRates]  = useState<{ mileageRate: number; perDiemRate: number }>({ mileageRate: 15, perDiemRate: 3000 });
+  const [items, setItems] = useState<{ category: string; description: string; amount: string; expenseDate: string }[]>([
+    { category: '', description: '', amount: '', expenseDate: new Date().toISOString().split('T')[0] },
+  ]);
+
+  const addItemRow    = () => setItems(prev => [...prev, { category: '', description: '', amount: '', expenseDate: new Date().toISOString().split('T')[0] }]);
+  const removeItemRow = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
+  const updateItemRow = (i: number, field: string, value: string) => setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: value } : it));
+  const itemsTotal    = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
 
   useEffect(() => {
     apiCallFunction<any>({ url: `${API_BASE_URL}/expense-claims/policy`, showToast: false,
@@ -100,6 +131,25 @@ function SubmitDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   const mileageTotal  = km * mileageRate;
 
   const handleSubmit = () => {
+    if (type === 'itemized') {
+      const validItems = items.filter(it => it.category && Number(it.amount) > 0);
+      if (!validItems.length) { alert('Add at least one line item with a category and amount.'); return; }
+      setSaving(true);
+      apiCallFunction({
+        url: `${API_BASE_URL}/expense-claims`, method: 'POST',
+        data: {
+          type: 'itemized', currency, notes, isBillable,
+          items: validItems.map(it => ({
+            categoryId: it.category,
+            categoryName: CATEGORIES.find(c => c.toLowerCase().replace(' ', '_') === it.category) ?? it.category,
+            description: it.description, amount: Number(it.amount), expenseDate: it.expenseDate,
+          })),
+        },
+        thenFn: () => { onSaved(); onClose(); },
+        finallyFn: () => setSaving(false),
+      });
+      return;
+    }
     if (!receipt) { alert('Please attach a receipt (PDF or image) before submitting.'); return; }
     setSaving(true);
     const fd = new FormData();
@@ -136,11 +186,11 @@ function SubmitDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: () =
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {/* Type selector */}
-          <div className="grid grid-cols-3 gap-2">
-            {(['regular','per_diem','mileage'] as ExpenseType[]).map(t => (
+          <div className="grid grid-cols-4 gap-2">
+            {(['regular','per_diem','mileage','itemized'] as ExpenseType[]).map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
                 className={cn('py-3 rounded-xl border text-center transition-all', type === t ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-700 bg-slate-800 hover:border-slate-600')}>
-                <p className="text-lg mb-0.5">{t === 'regular' ? '📄' : t === 'per_diem' ? '🗓️' : '🚗'}</p>
+                <p className="text-lg mb-0.5">{t === 'regular' ? '📄' : t === 'per_diem' ? '🗓️' : t === 'mileage' ? '🚗' : '🧾'}</p>
                 <p className={cn('text-xs font-bold', type === t ? 'text-indigo-300' : 'text-slate-400')}>{TYPE_CFG[t].label}</p>
               </button>
             ))}
@@ -248,13 +298,56 @@ function SubmitDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: () =
             </>
           )}
 
+          {type === 'itemized' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Line Items <span className="text-red-400">*</span></label>
+                <select value={currency} onChange={e => setCurrency(e.target.value)} className="h-7 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                  <option>KES</option><option>USD</option><option>EUR</option>
+                </select>
+              </div>
+              {items.map((it, i) => (
+                <div key={i} className="bg-slate-800/60 border border-slate-700 rounded-xl p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={it.category} onChange={e => updateItemRow(i, 'category', e.target.value)}
+                      className="h-9 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                      <option value="">Category…</option>
+                      {CATEGORIES.map(c => <option key={c} value={c.toLowerCase().replace(' ', '_')}>{c}</option>)}
+                    </select>
+                    <input type="number" value={it.amount} onChange={e => updateItemRow(i, 'amount', e.target.value)} placeholder="Amount"
+                      className="h-9 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                    <input value={it.description} onChange={e => updateItemRow(i, 'description', e.target.value)} placeholder="Description"
+                      className="h-9 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500" />
+                    <input type="date" value={it.expenseDate} onChange={e => updateItemRow(i, 'expenseDate', e.target.value)}
+                      className="h-9 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500" />
+                    <button type="button" onClick={() => removeItemRow(i)} disabled={items.length === 1}
+                      className="h-9 w-9 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-30 flex items-center justify-center transition-colors">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={addItemRow} className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+                <Plus className="h-3.5 w-3.5" /> Add Item
+              </button>
+              {itemsTotal > 0 && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm text-emerald-300 font-semibold">
+                  Total: <span className="text-lg font-black">{fmt(itemsTotal, currency)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Notes for approver (optional)</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Add context for your manager…" className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 resize-none" />
           </div>
           <Toggle val={isBillable} set={setIsBillable} label="Billable to client?" />
 
-          {/* Receipt upload – required */}
+          {/* Receipt upload – required (not for itemized, which itemizes spend line-by-line) */}
+          {type !== 'itemized' && (
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
               Receipt / Evidence <span className="text-red-400">*</span>
@@ -282,10 +375,11 @@ function SubmitDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: () =
                 onChange={e => setReceipt(e.target.files?.[0] ?? null)} />
             </label>
           </div>
+          )}
         </div>
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
           <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving || !receipt} className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
+          <button onClick={handleSubmit} disabled={saving || (type !== 'itemized' && !receipt)} className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
             {saving ? 'Submitting…' : 'Submit Claim'}
           </button>
         </div>
@@ -458,12 +552,110 @@ function AnalyticsTab() {
 
 // ── Policy Settings Tab ───────────────────────────────────────────────────────
 
+const POLICY_ROLE_OPTIONS = ['staff', 'department_head', 'hr_manager'];
+
+interface TargetedPolicy {
+  _id: string; name: string; description?: string; isDefault: boolean; isActive: boolean;
+  appliesTo?: { roles?: string[]; departments?: string[] };
+  mileageRate?: number; defaultPerDiemRate?: number; autoApproveUnder?: number;
+}
+
+function PolicyFormModal({ policy, onClose, onSaved }: { policy: TargetedPolicy | null; onClose: () => void; onSaved: () => void }) {
+  const [name, setName]                     = useState(policy?.name ?? '');
+  const [role, setRole]                     = useState(policy?.appliesTo?.roles?.[0] ?? '');
+  const [department, setDepartment]         = useState(policy?.appliesTo?.departments?.[0] ?? '');
+  const [mileageRate, setMileageRate]       = useState(String(policy?.mileageRate ?? 15));
+  const [defaultPerDiem, setDefaultPerDiem] = useState(String(policy?.defaultPerDiemRate ?? 3000));
+  const [autoApproveUnder, setAutoApprove]  = useState(String(policy?.autoApproveUnder ?? 0));
+  const [isDefault, setIsDefault]           = useState(policy?.isDefault ?? false);
+  const [saving, setSaving]                 = useState(false);
+
+  const save = () => {
+    if (!name.trim()) { alert('Policy name is required.'); return; }
+    setSaving(true);
+    const data = {
+      name: name.trim(),
+      appliesTo: { roles: role ? [role] : undefined, departments: department ? [department] : undefined },
+      mileageRate: Number(mileageRate), defaultPerDiemRate: Number(defaultPerDiem),
+      autoApproveUnder: Number(autoApproveUnder), isDefault,
+    };
+    const req = policy
+      ? apiCallFunction({ url: `${API_BASE_URL}/expense-claims/policies/${policy._id}`, method: 'PATCH', data, thenFn: () => { onSaved(); onClose(); }, finallyFn: () => setSaving(false) })
+      : apiCallFunction({ url: `${API_BASE_URL}/expense-claims/policies`, method: 'POST', data, thenFn: () => { onSaved(); onClose(); }, finallyFn: () => setSaving(false) });
+    void req;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="text-base font-bold text-slate-100">{policy ? 'Edit Policy' : 'New Targeted Policy'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Policy Name <span className="text-red-400">*</span></label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sales Team Travel Policy"
+              className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Applies to role</label>
+              <select value={role} onChange={e => setRole(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                <option value="">Any role</option>
+                {POLICY_ROLE_OPTIONS.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Applies to department</label>
+              <select value={department} onChange={e => setDepartment(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                <option value="">Any department</option>
+                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Mileage rate/km</label>
+              <input type="number" value={mileageRate} onChange={e => setMileageRate(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Per diem/day</label>
+              <input type="number" value={defaultPerDiem} onChange={e => setDefaultPerDiem(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Auto-approve under</label>
+              <input type="number" value={autoApproveUnder} onChange={e => setAutoApprove(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2.5">
+            <span className="text-sm text-slate-300">Make this the org default policy</span>
+            <button type="button" onClick={() => setIsDefault(v => !v)} className={cn('h-5 w-9 rounded-full relative transition-colors shrink-0', isDefault ? 'bg-indigo-500' : 'bg-slate-700')}>
+              <span className={cn('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', isDefault ? 'translate-x-4' : 'translate-x-0.5')} />
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+          <button onClick={save} disabled={saving} className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
+            {saving ? 'Saving…' : 'Save Policy'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PolicyTab() {
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   const [mileageRate, setMileageRate]         = useState('');
   const [defaultPerDiem, setDefaultPerDiem]   = useState('');
   const [autoApproveUnder, setAutoApprove]    = useState('');
+  const [policies, setPolicies]     = useState<TargetedPolicy[]>([]);
+  const [editingPolicy, setEditingPolicy] = useState<TargetedPolicy | null | undefined>(undefined);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadPolicy = useCallback(() => {
     apiCallFunction<any>({ url: `${API_BASE_URL}/expense-claims/policy`, showToast: false,
@@ -476,44 +668,102 @@ function PolicyTab() {
     });
   }, []);
 
-  useEffect(() => { loadPolicy(); }, [loadPolicy]);
+  const loadPolicies = useCallback(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/expense-claims/policies`, showToast: false,
+      thenFn: r => setPolicies(r.data ?? []) });
+  }, []);
+
+  useEffect(() => { loadPolicy(); loadPolicies(); }, [loadPolicy, loadPolicies]);
 
   const save = () => {
     setSaving(true);
     setSaved(false);
     apiCallFunction({ url: `${API_BASE_URL}/expense-claims/policy`, method: 'PUT',
       data: { mileageRate: Number(mileageRate), defaultPerDiemRate: Number(defaultPerDiem), autoApproveUnder: Number(autoApproveUnder) },
-      thenFn: () => { setSaved(true); loadPolicy(); },
+      thenFn: () => { setSaved(true); loadPolicy(); loadPolicies(); },
       finallyFn: () => setSaving(false),
     });
   };
 
+  const deletePolicy = (id: string) => {
+    if (!confirm('Deactivate this policy?')) return;
+    setDeletingId(id);
+    apiCallFunction({ url: `${API_BASE_URL}/expense-claims/policies/${id}`, method: 'DELETE',
+      thenFn: loadPolicies, finallyFn: () => setDeletingId(null) });
+  };
+
   return (
-    <div className="max-w-lg space-y-5">
-      <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl p-5 space-y-4">
-        <h3 className="text-sm font-bold text-slate-100">Mileage Policy</h3>
-        <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Rate per km (KES)</label>
-          <input type="number" value={mileageRate} onChange={e => setMileageRate(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+    <div className="max-w-2xl space-y-6">
+      <div className="space-y-5">
+        <h3 className="text-sm font-bold text-slate-100">Default Policy</h3>
+        <p className="text-xs text-slate-500 -mt-3">Applies org-wide unless a targeted policy below matches an employee's role or department.</p>
+        <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Mileage rate per km (KES)</label>
+            <input type="number" value={mileageRate} onChange={e => setMileageRate(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Default per diem daily rate (KES)</label>
+            <input type="number" value={defaultPerDiem} onChange={e => setDefaultPerDiem(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Auto-approve under (KES) — set 0 to disable</label>
+            <input type="number" value={autoApproveUnder} onChange={e => setAutoApprove(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
+            {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Default Policy'}
+          </button>
         </div>
       </div>
-      <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl p-5 space-y-4">
-        <h3 className="text-sm font-bold text-slate-100">Per Diem Policy</h3>
-        <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Default daily rate (KES)</label>
-          <input type="number" value={defaultPerDiem} onChange={e => setDefaultPerDiem(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-100">Targeted Policies</h3>
+            <p className="text-xs text-slate-500">Override the default for a specific role or department.</p>
+          </div>
+          <button onClick={() => setEditingPolicy(null)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors">
+            <Plus className="h-3.5 w-3.5" /> New Policy
+          </button>
         </div>
+        {policies.length === 0 ? (
+          <p className="text-xs text-slate-600 py-4 text-center">No targeted policies yet — the default policy applies to everyone.</p>
+        ) : (
+          <div className="space-y-2">
+            {policies.map(p => (
+              <div key={p._id} className="bg-[#1e293b] border border-slate-700/60 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                    {p.name}
+                    {p.isDefault && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400">DEFAULT</span>}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {p.appliesTo?.roles?.length ? `Role: ${p.appliesTo.roles.join(', ').replace(/_/g,' ')}` : ''}
+                    {p.appliesTo?.roles?.length && p.appliesTo?.departments?.length ? ' · ' : ''}
+                    {p.appliesTo?.departments?.length ? `Dept: ${p.appliesTo.departments.join(', ')}` : ''}
+                    {!p.appliesTo?.roles?.length && !p.appliesTo?.departments?.length ? 'Applies to everyone' : ''}
+                    {' · '}Km rate {p.mileageRate ?? '—'} · Per diem {p.defaultPerDiemRate ?? '—'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => setEditingPolicy(p)} className="h-7 w-7 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  {!p.isDefault && (
+                    <button onClick={() => deletePolicy(p._id)} disabled={deletingId === p._id} className="h-7 w-7 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors">
+                      {deletingId === p._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="bg-[#1e293b] border border-slate-700/60 rounded-2xl p-5 space-y-4">
-        <h3 className="text-sm font-bold text-slate-100">Approval Workflow</h3>
-        <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Auto-approve under (KES) — set 0 to disable</label>
-          <input type="number" value={autoApproveUnder} onChange={e => setAutoApprove(e.target.value)} className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
-        </div>
-      </div>
-      <button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-50 transition-colors">
-        {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Policy'}
-      </button>
+
+      {editingPolicy !== undefined && (
+        <PolicyFormModal policy={editingPolicy} onClose={() => setEditingPolicy(undefined)} onSaved={() => { loadPolicies(); loadPolicy(); }} />
+      )}
     </div>
   );
 }
@@ -589,8 +839,8 @@ function RejectClaimModal({ onClose, onConfirm }: { onClose: () => void; onConfi
 
 // ── Claim Detail Drawer ───────────────────────────────────────────────────────
 
-function ClaimDetailDrawer({ claim, isHR, onClose, onRefresh, onDisputeClick }: {
-  claim: ExpenseClaim; isHR: boolean; onClose: () => void; onRefresh: () => void; onDisputeClick: () => void;
+function ClaimDetailDrawer({ claim, isHR, canApprove, onClose, onRefresh, onDisputeClick }: {
+  claim: ExpenseClaim; isHR: boolean; canApprove: boolean; onClose: () => void; onRefresh: () => void; onDisputeClick: () => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [showReject, setShowReject] = useState(false);
@@ -687,6 +937,46 @@ function ClaimDetailDrawer({ claim, isHR, onClose, onRefresh, onDisputeClick }: 
             )}
           </div>
 
+          {/* Line items (itemized claims) */}
+          {claim.type === 'itemized' && claim.items && claim.items.length > 0 && (
+            <div className="bg-slate-800/50 rounded-xl px-4 py-3 space-y-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Line Items</p>
+              {claim.items.map(it => (
+                <div key={it.id} className="flex items-center justify-between gap-3 py-1.5 border-b border-slate-800 last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-200 capitalize truncate">{it.categoryName || it.categoryId}</p>
+                    {it.description && <p className="text-[11px] text-slate-500 truncate">{it.description}</p>}
+                    {it.policyViolation && <p className="text-[11px] text-amber-400">{it.policyViolation}</p>}
+                  </div>
+                  <span className="text-xs font-bold text-slate-100 shrink-0">{fmt(it.amount, it.currency)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Approval chain progress */}
+          {claim.approvalChain && claim.approvalChain.length > 0 && (
+            <div className="bg-slate-800/50 rounded-xl px-4 py-3 space-y-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Approval Progress</p>
+              {claim.approvalChain.map(a => {
+                const aCfg = APPROVAL_STATUS_CFG[a.status] ?? APPROVAL_STATUS_CFG.pending;
+                const isCurrent = a.level === claim.currentApprovalLevel && a.status === 'pending';
+                return (
+                  <div key={a.level} className={cn('flex items-center justify-between gap-3 py-1.5 border-b border-slate-800 last:border-0', isCurrent && 'opacity-100')}>
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-200 truncate">
+                        Level {a.level} — {a.approverName || a.approverRole || 'Unassigned'}
+                        {isCurrent && <span className="ml-1.5 text-[10px] text-indigo-400 font-bold">CURRENT</span>}
+                      </p>
+                      {a.comment && <p className="text-[11px] text-slate-500 truncate">{a.comment}</p>}
+                    </div>
+                    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0', aCfg.bg, aCfg.text)}>{aCfg.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Receipt */}
           {claim.receiptFile && (
             <div className="bg-slate-800/50 rounded-xl px-4 py-3 space-y-3">
@@ -726,7 +1016,7 @@ function ClaimDetailDrawer({ claim, isHR, onClose, onRefresh, onDisputeClick }: 
 
         {/* Actions footer */}
         <div className="px-6 py-4 border-t border-slate-700 shrink-0 space-y-2">
-          {isHR && (claim.status === 'submitted' || claim.status === 'disputed') && (
+          {canApprove && (claim.status === 'submitted' || claim.status === 'disputed') && (
             <>
               {claim.status === 'disputed' && (
                 <div className="flex items-start gap-2 bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2 text-xs text-orange-400 mb-1">
@@ -863,8 +1153,12 @@ function EditClaimDrawer({ claim, onClose, onSaved }: { claim: ExpenseClaim; onC
 type TabKey = 'my' | 'team' | 'all' | 'analytics' | 'policy';
 
 export default function ExpensesPage() {
-  const { isHR, isDeptHead } = useAuth();
+  const { isHR, isDeptHead, userData } = useAuth();
   const isManager = isHR || isDeptHead;
+  const myEmployeeId = userData?.employeeId ?? null;
+  const canApprove = (c: ExpenseClaim) =>
+    isManager || (c.approvalChain ?? []).some(a =>
+      a.level === c.currentApprovalLevel && a.status === 'pending' && myEmployeeId && String(a.approverId) === String(myEmployeeId));
   const [tab,        setTab]        = useState<TabKey>('my');
   const [claims,     setClaims]     = useState<ExpenseClaim[]>([]);
   const [stats,      setStats]      = useState<Stats | null>(null);
@@ -1001,7 +1295,7 @@ export default function ExpensesPage() {
                     <div className="px-3 py-3">
                       <p className="text-sm font-medium text-slate-200 truncate flex items-center gap-1">
                         {c.isPolicyViolation && <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
-                        {c.description ?? c.destination ?? `${c.distanceKm}km trip`}
+                        {c.description ?? c.destination ?? (c.type === 'itemized' ? `${c.items?.length ?? 0} line items` : c.distanceKm != null ? `${c.distanceKm}km trip` : '—')}
                       </p>
                       {c.notes && <p className="text-[10px] text-slate-500 truncate">{c.notes}</p>}
                     </div>
@@ -1017,7 +1311,7 @@ export default function ExpensesPage() {
                         <Eye className="h-3.5 w-3.5" />
                       </button>
                       {/* Approve / Reject */}
-                      {isManager && c.status === 'submitted' && (
+                      {canApprove(c) && (c.status === 'submitted' || c.status === 'disputed') && (
                         <>
                           <button title="Approve" onClick={() => approve(c._id)}
                             className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-colors">
@@ -1069,6 +1363,7 @@ export default function ExpensesPage() {
         <ClaimDetailDrawer
           claim={detailClaim}
           isHR={isHR}
+          canApprove={canApprove(detailClaim)}
           onClose={() => setDetailClaim(null)}
           onRefresh={fetchClaims}
           onDisputeClick={() => { setDisputingClaim(detailClaim); setDetailClaim(null); }}

@@ -13,7 +13,7 @@ import { CustomInput } from '@/components/custom-ui/CustomInput';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { employeeSchema, DEPARTMENTS, DESIGNATIONS } from '../Components/EmployeeSchema';
-import { useHrConfig } from '@/features/config/Hooks/useHrConfig';
+import { useConfigSection } from '@/hooks/useConfigSection';
 
 const schema = employeeSchema.pick({
   fullName: true,
@@ -73,7 +73,8 @@ const PAYMENT_METHOD_OPTS = [
 export default function EmployeeCreatePage() {
   const router = useRouter();
   const locale = useLocale();
-  const { departments, designations } = useHrConfig();
+  const departments = useConfigSection('departments');
+  const designations = useConfigSection('designations');
   const { control, handleSubmit, watch, formState: { isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { paymentMethod: 'bank_transfer' },

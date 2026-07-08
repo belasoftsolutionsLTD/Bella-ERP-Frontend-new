@@ -1,28 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import {
-  Building2, Shield, Mail, Lock, Puzzle, Bell,
-  Save, Upload, Check, X, Eye, EyeOff,
-  ChevronRight, Globe, Smartphone, AlertTriangle,
+  Building2, Shield, Mail, Lock, Puzzle, Bell, Landmark, MessageSquare,
+  Save, Check, X, Eye, EyeOff,
+  ChevronRight, AlertTriangle,
 } from 'lucide-react';
-import { apiCallFunction } from '@/functions/apiCallFunction';
-import { API_BASE_URL } from '@/configs/constants';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface CompanySettings {
-  companyName: string;
-  tagline: string;
-  website: string;
-  email: string;
-  phone: string;
-  address: string;
-  country: string;
-  currency: string;
-  timezone: string;
-  fiscalYearStart: string;
-}
+import { useConfigSection } from '@/hooks/useConfigSection';
+import { CompanySettingsPanel } from '../Components/CompanySettingsPanel';
+import { CompanyAccountsPanel } from '../Components/CompanyAccountsPanel';
+import { CommunicationSettingsPanel } from '../Components/CommunicationSettingsPanel';
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 
@@ -73,115 +60,11 @@ function SectionHeader({ title, desc }: { title: string; desc: string }) {
   );
 }
 
-// ── Company Profile ───────────────────────────────────────────────────────────
+// ── Company Accounts (wrapper to fetch data for the no-props section slot) ────
 
-function CompanyProfile() {
-  const [form, setForm] = useState<CompanySettings>({
-    companyName: '', tagline: '', website: '', email: '', phone: '',
-    address: '', country: 'KE', currency: 'KES', timezone: 'Africa/Nairobi', fiscalYearStart: '01',
-  });
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    apiCallFunction<{ data: CompanySettings }>({
-      url: `${API_BASE_URL}/config/company-settings`,
-      showToast: false,
-      thenFn: r => { if (r?.data) setForm(f => ({ ...f, ...r.data })); },
-    });
-  }, []);
-
-  const set = (k: keyof CompanySettings, v: string) => setForm(f => ({ ...f, [k]: v }));
-
-  const save = async () => {
-    setSaving(true);
-    await apiCallFunction({
-      url: `${API_BASE_URL}/config/company-settings`,
-      method: 'PUT',
-      data: form,
-      thenFn: () => { setSaved(true); setTimeout(() => setSaved(false), 2500); },
-    });
-    setSaving(false);
-  };
-
-  return (
-    <div>
-      <SectionHeader title="Company Profile" desc="Basic information about your organisation" />
-
-      {/* Logo upload area */}
-      <div className="flex items-center gap-4 mb-6 p-4 rounded-xl border border-dashed border-slate-600 bg-[#1e293b]">
-        <div className="h-16 w-16 rounded-xl bg-indigo-600/20 flex items-center justify-center text-2xl font-black text-indigo-400">
-          {form.companyName ? form.companyName[0].toUpperCase() : 'C'}
-        </div>
-        <div>
-          <p className="text-[13px] font-semibold text-slate-200">Company Logo</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">PNG or SVG, max 1MB</p>
-          <button className="mt-2 flex items-center gap-1.5 text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">
-            <Upload className="h-3.5 w-3.5" /> Upload Logo
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Company Name">
-          <Input value={form.companyName} onChange={v => set('companyName', v)} placeholder="Acme Corp" />
-        </Field>
-        <Field label="Tagline">
-          <Input value={form.tagline} onChange={v => set('tagline', v)} placeholder="Building great things" />
-        </Field>
-        <Field label="Website">
-          <Input value={form.website} onChange={v => set('website', v)} placeholder="https://example.com" />
-        </Field>
-        <Field label="Contact Email">
-          <Input value={form.email} onChange={v => set('email', v)} placeholder="hr@example.com" type="email" />
-        </Field>
-        <Field label="Phone">
-          <Input value={form.phone} onChange={v => set('phone', v)} placeholder="+254 700 000000" />
-        </Field>
-        <Field label="Country">
-          <Select value={form.country} onChange={v => set('country', v)}>
-            <option value="KE">Kenya</option>
-            <option value="UG">Uganda</option>
-            <option value="TZ">Tanzania</option>
-            <option value="NG">Nigeria</option>
-            <option value="ZA">South Africa</option>
-            <option value="GH">Ghana</option>
-          </Select>
-        </Field>
-        <Field label="Currency">
-          <Select value={form.currency} onChange={v => set('currency', v)}>
-            {['KES', 'UGX', 'TZS', 'NGN', 'ZAR', 'GHS', 'USD', 'EUR', 'GBP'].map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Timezone">
-          <Select value={form.timezone} onChange={v => set('timezone', v)}>
-            <option value="Africa/Nairobi">Africa/Nairobi (EAT)</option>
-            <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
-            <option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option>
-            <option value="Africa/Accra">Africa/Accra (GMT)</option>
-            <option value="UTC">UTC</option>
-          </Select>
-        </Field>
-        <div className="col-span-2">
-          <Field label="Address">
-            <Input value={form.address} onChange={v => set('address', v)} placeholder="123 Main St, Nairobi" />
-          </Field>
-        </div>
-      </div>
-
-      <div className="flex justify-end mt-5">
-        {saved ? (
-          <div className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-green-600/20 text-green-400 text-[13px] font-semibold">
-            <Check className="h-4 w-4" /> Saved
-          </div>
-        ) : (
-          <SaveButton onClick={save} saving={saving} />
-        )}
-      </div>
-    </div>
-  );
+function CompanyAccountsSection() {
+  const companyAccounts = useConfigSection('company-accounts');
+  return <CompanyAccountsPanel items={companyAccounts.items as any} refetch={companyAccounts.refetch} />;
 }
 
 // ── Permissions & Roles ───────────────────────────────────────────────────────
@@ -510,23 +393,27 @@ function NotificationPreferencesSection() {
 // ── Sidebar nav ───────────────────────────────────────────────────────────────
 
 const SECTIONS = [
-  { id: 'company',       label: 'Company Profile',          icon: Building2 },
-  { id: 'permissions',   label: 'Permissions & Roles',      icon: Shield },
-  { id: 'email',         label: 'Email Templates',          icon: Mail },
-  { id: 'security',      label: 'Security',                 icon: Lock },
-  { id: 'integrations',  label: 'Integrations',             icon: Puzzle },
-  { id: 'notifications', label: 'Notification Preferences', icon: Bell },
+  { id: 'company',         label: 'Company Settings',         icon: Building2 },
+  { id: 'companyAccounts', label: 'Company Accounts',         icon: Landmark },
+  { id: 'communication',   label: 'Communication',            icon: MessageSquare },
+  { id: 'permissions',     label: 'Permissions & Roles',      icon: Shield },
+  { id: 'email',           label: 'Email Templates',          icon: Mail },
+  { id: 'security',        label: 'Security',                 icon: Lock },
+  { id: 'integrations',    label: 'Integrations',             icon: Puzzle },
+  { id: 'notifications',   label: 'Notification Preferences', icon: Bell },
 ] as const;
 
 type SectionId = typeof SECTIONS[number]['id'];
 
 const SECTION_COMPONENTS: Record<SectionId, React.ComponentType> = {
-  company:       CompanyProfile,
-  permissions:   PermissionsSection,
-  email:         EmailTemplatesSection,
-  security:      SecuritySection,
-  integrations:  IntegrationsSection,
-  notifications: NotificationPreferencesSection,
+  company:         CompanySettingsPanel,
+  companyAccounts: CompanyAccountsSection,
+  communication:   CommunicationSettingsPanel,
+  permissions:     PermissionsSection,
+  email:           EmailTemplatesSection,
+  security:        SecuritySection,
+  integrations:    IntegrationsSection,
+  notifications:   NotificationPreferencesSection,
 };
 
 // ── Main Page ─────────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import { useLocale } from 'next-intl';
 import {
   LayoutDashboard, Users, UserPlus, ClipboardList,
   DollarSign, TrendingUp, Menu, X, UserCircle,
-  Settings, ShieldCheck, Megaphone, BarChart2, Award, ListTodo,
+  Settings, Megaphone, BarChart2, Award, ListTodo,
   Receipt, Search, LogOut, Clock, ChevronLeft, ChevronRight,
   GitBranch, FolderOpen, UserMinus, Building2, ShoppingCart,
   Briefcase, CalendarDays, Monitor, BookOpen, Bell, Inbox,
@@ -54,7 +54,7 @@ export function HrSidebar() {
     { href: `/${locale}/tasks`,         label: 'Tasks',         icon: ListTodo,   roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/inbox`,         label: 'Inbox',         icon: Inbox,      roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/training`,      label: 'Training',      icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
-    { href: `/${locale}/my/training`,   label: 'My Training',   icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] },
+    { href: `/${locale}/my/training`,   label: 'My Training',   icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
   ];
 
   const overviewItems: NavItem[] = [
@@ -82,7 +82,7 @@ export function HrSidebar() {
     { href: `/${locale}/expenses`,         label: 'Expenses',           icon: Receipt,    roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/finance/workspace`,label: 'Financial Workspace',icon: Building2,  roles: ['super_admin', 'hr_manager'] },
     { href: `/${locale}/projects`,         label: 'Projects',           icon: Briefcase,  roles: ['super_admin', 'hr_manager', 'department_head'] },
-    { href: `/${locale}/spending`,         label: 'Spending',           icon: ShoppingCart, roles: ['super_admin', 'hr_manager'] },
+    { href: `/${locale}/spending`,         label: 'Procurement',        icon: ShoppingCart, roles: ['super_admin', 'hr_manager', 'department_head'] },
   ];
 
   const companyItems: NavItem[] = [
@@ -90,7 +90,6 @@ export function HrSidebar() {
     { href: `/${locale}/certifications`, label: 'Awards & Recognition', icon: Award, roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/assets-management`,  label: 'Asset Management',  icon: Monitor,    roles: ['super_admin', 'hr_manager'] },
     { href: `/${locale}/settings`,       label: 'Settings',       icon: Settings,   roles: ['super_admin', 'hr_manager'] },
-    { href: `/${locale}/config`,         label: 'Configuration',  icon: ShieldCheck,roles: ['super_admin', 'hr_manager'] },
     { href: `/${locale}/accounts`,       label: 'User Accounts',  icon: UserCircle, roles: ['super_admin', 'hr_manager'] },
   ];
 

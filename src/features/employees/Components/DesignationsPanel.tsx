@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Pencil, Trash2, Plus, Check, X, Building2 } from 'lucide-react';
-import type { ConfigItem } from '../Hooks/useHrConfig';
+import type { ConfigItem } from '@/hooks/useConfigSection';
 
 interface Props {
   items: ConfigItem[];

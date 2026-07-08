@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pencil, Trash2, Plus, Check, X, Users, Percent } from 'lucide-react';
 import { CurrencyInput } from '@/components/custom-ui/CurrencyInput';
 import { fmtNumber } from '@/lib/utils';
-import type { ConfigItem } from '../Hooks/useHrConfig';
+import type { ConfigItem } from '@/hooks/useConfigSection';
 
 interface Props {
   items: ConfigItem[];

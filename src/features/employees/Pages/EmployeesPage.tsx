@@ -1,7 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { Plus, LayoutGrid, List } from 'lucide-react';
+import Link from 'next/link';
+import { useLocale } from 'next-intl';
+import { Plus, LayoutGrid, List, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import { Wrapper } from '@/components/custom-ui/Wrapper';
 import { EmployeeTable } from '../Components/EmployeeTable';
 import { EmployeeCard } from '../Components/EmployeeCard';
@@ -14,6 +17,8 @@ import { API_BASE_URL } from '@/configs/constants';
 type ViewMode = 'list' | 'grid';
 
 export default function EmployeesPage() {
+  const { isHR } = useAuth();
+  const locale = useLocale();
   const [view, setView] = useState<ViewMode>('list');
   const [showDrawer, setShowDrawer] = useState(false);
   const { employees, total, loading, error, filters, setFilters, refetch } = useEmployees();
@@ -38,13 +43,24 @@ export default function EmployeesPage() {
           <h1 className="text-xl font-bold text-slate-100">People</h1>
           <p className="text-sm text-slate-400 mt-0.5">{total} employee{total !== 1 ? 's' : ''}</p>
         </div>
-        <button
-          onClick={() => setShowDrawer(true)}
-          className="flex items-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          Add employee
-        </button>
+        <div className="flex items-center gap-2">
+          {isHR && (
+            <Link
+              href={`/${locale}/employees/settings`}
+              className="flex items-center gap-2 h-9 px-4 border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 text-sm font-semibold rounded-lg transition-colors"
+            >
+              <Settings className="h-4 w-4" />
+              People Settings
+            </Link>
+          )}
+          <button
+            onClick={() => setShowDrawer(true)}
+            className="flex items-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Add employee
+          </button>
+        </div>
       </div>
 
       {/* ── Filters + view toggle ─────────────────────────────────────────── */}

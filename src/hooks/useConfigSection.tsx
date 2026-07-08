@@ -23,7 +23,12 @@ export interface ConfigItem {
   createdAt: string;
 }
 
-function useConfigSection(path: string) {
+// Generic CRUD hook for the simple /api/config/{path} sections (departments,
+// job-groups, allowances, fixed-allowances, deductions, leave-types, designations).
+// Shared across Payroll, Leave, and Employees settings pages since they all
+// consume slices of the same /api/config backend — moving the UI tabs to their
+// respective modules doesn't change the underlying endpoints.
+export function useConfigSection(path: string) {
   const [items, setItems] = useState<ConfigItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,17 +70,4 @@ function useConfigSection(path: string) {
     });
 
   return { items, loading, error, refetch: fetch, create, update, remove };
-}
-
-export function useHrConfig() {
-  const departments      = useConfigSection('departments');
-  const jobGroups        = useConfigSection('job-groups');
-  const allowances       = useConfigSection('allowances');
-  const fixedAllowances  = useConfigSection('fixed-allowances');
-  const deductions       = useConfigSection('deductions');
-  const leaveTypes       = useConfigSection('leave-types');
-  const designations      = useConfigSection('designations');
-  const jdTemplates       = useConfigSection('jd-templates');
-  const companyAccounts   = useConfigSection('company-accounts');
-  return { departments, jobGroups, allowances, fixedAllowances, deductions, leaveTypes, designations, jdTemplates, companyAccounts };
 }

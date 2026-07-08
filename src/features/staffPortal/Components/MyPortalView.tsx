@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, Fragment } from 'react';
+import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import {
   User, CalendarDays, DollarSign, Clock, ClipboardList, Loader2,
   Mail, Phone, Briefcase, Building2, MessageSquare, Plus,
@@ -8,7 +10,7 @@ import {
   CreditCard, Landmark, Smartphone, AlertTriangle, Bell,
   CheckCheck, FileText, BarChart3, FolderOpen, Shield,
   Upload, Trash2, Download, Printer, Star, TrendingUp, TrendingDown,
-  Trophy, BookOpen, Dumbbell, MapPin, BellOff, Menu, Eye,
+  Trophy, BookOpen, Dumbbell, MapPin, BellOff, Menu, Eye, ShoppingCart,
 } from 'lucide-react';
 import { DocViewerModal } from '@/components/custom-ui/DocViewerModal';
 import { cn } from '@/lib/utils';
@@ -28,7 +30,7 @@ import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
 import { LogLeaveModal } from '@/features/leave/Components/LogLeaveModal';
 import type { LeaveRequest } from '@/features/leave/Hooks/useLeave';
 
-type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'training' | 'jd' | 'terms' | 'expenses' | 'projects' | 'jobs';
+type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'jd' | 'terms' | 'expenses' | 'requests' | 'projects' | 'jobs';
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-600',
@@ -53,7 +55,7 @@ const NOTIF_COLORS: Record<string, string> = {
   general:      'bg-gray-100 text-gray-600',
 };
 
-const NAV: { key: Section; label: string; icon: typeof User; description: string }[] = [
+const NAV: { key: Section | 'my-training'; label: string; icon: typeof User; description: string; href?: string }[] = [
   // ── Daily essentials ──
   { key: 'profile',      label: 'My Profile',          icon: User,          description: 'Personal & contact info' },
   { key: 'inbox',        label: 'Inbox',                icon: Bell,          description: 'Approvals & action items' },
@@ -68,11 +70,12 @@ const NAV: { key: Section; label: string; icon: typeof User; description: string
   { key: 'jd',           label: 'Job Description',      icon: FileText,      description: 'Your role & responsibilities' },
   // ── Finance ──
   { key: 'payslips',     label: 'Payslips',             icon: DollarSign,    description: 'Monthly payroll history' },
-  { key: 'expenses',     label: 'Expenses',             icon: DollarSign,    description: 'Submit & track claims' },
+  { key: 'expenses',     label: 'My Expenses',          icon: DollarSign,    description: 'Submit & track claims' },
+  { key: 'requests',     label: 'My Requests',          icon: ShoppingCart,  description: 'Purchase requests & approvals' },
   { key: 'payment',      label: 'Payment Methods',      icon: CreditCard,    description: 'Bank & M-Pesa details' },
   // ── Growth ──
   { key: 'jobs',         label: 'Internal Jobs',        icon: Briefcase,     description: 'Open vacancies & apply internally' },
-  { key: 'training',     label: 'Training',             icon: BookOpen,      description: 'Enroll in published courses' },
+  { key: 'my-training',  label: 'My Training',          icon: BookOpen,      description: 'Courses, certificates & learning paths', href: '/my/training' },
   { key: 'performance',  label: 'My Performance',       icon: BarChart3,     description: 'Goals, reviews & appraisal history' },
   { key: 'awards',       label: 'Awards & Recognition', icon: Trophy,        description: 'Kudos, leaderboard & certifications' },
   // ── Communication ──
@@ -135,6 +138,8 @@ function ProfilePhotoAvatar({ profile }: { profile: { fullName: string; photoPat
 }
 
 export function MyPortalView() {
+  const router = useRouter();
+  const locale = useLocale();
   const {
     profile, leaveBalance, leaveRequests, payslips, attendance, onboardingTasks, offboardingTasks,
     notifications, announcements, documents, appraisals, goals, reviewResults, events, myTasks, myProjects, loading,
@@ -194,7 +199,7 @@ export function MyPortalView() {
   const pendingTasks        = myTasks.filter(t => t.status !== 'completed').length;
   const pendingOffboarding  = offboardingTasks.filter(t => t.status !== 'completed').length;
 
-  const navBadge = (key: Section) => {
+  const navBadge = (key: Section | 'my-training') => {
     if (key === 'onboarding')    return pendingOnboarding || null;
     if (key === 'offboarding')   return pendingOffboarding || null;
     if (key === 'messages')      return unreadAnnouncements || null;
@@ -254,11 +259,11 @@ export function MyPortalView() {
           </div>
 
           <nav className="flex-1 overflow-y-auto py-2 px-2">
-            {NAV.map(({ key, label, icon: Icon, description }) => {
+            {NAV.map(({ key, label, icon: Icon, description, href }) => {
               const isActive = active === key;
               const badge = navBadge(key);
               return (
-                <button key={key} onClick={() => { setActive(key); setShowSidebar(false); }}
+                <button key={key} onClick={() => { href ? router.push(`/${locale}${href}`) : setActive(key as Section); setShowSidebar(false); }}
                   className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all mb-0.5',
                     isActive ? 'bg-primary text-white shadow-sm' : 'text-foreground/70 hover:bg-gray-50 hover:text-foreground')}>
                   <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0', isActive ? 'bg-white/20' : 'bg-gray-100')}>
@@ -344,24 +349,27 @@ export function MyPortalView() {
                                 '/leave': 'leave', '/tasks': 'tasks', '/onboarding': 'onboarding',
                                 '/offboarding': 'offboarding', '/payslips': 'payslips',
                                 '/attendance': 'attendance', '/payroll': 'payslips',
-                                '/projects': 'projects', '/training': 'training',
+                                '/projects': 'projects',
                                 '/expenses': 'expenses', '/performance': 'performance',
                               };
-                              const dest = n.link ? Object.entries(LINK_MAP).find(([k]) => n.link!.includes(k))?.[1] : undefined;
+                              const isTrainingLink = n.link?.includes('/training') ?? false;
+                              const dest = !isTrainingLink && n.link ? Object.entries(LINK_MAP).find(([k]) => n.link!.includes(k))?.[1] : undefined;
+                              const clickable = isTrainingLink || !!dest;
                               return (
                                 <div key={n._id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
                                   <button
                                     className="flex items-start gap-3 flex-1 min-w-0 text-left"
                                     onClick={() => {
                                       markNotifRead(n._id);
-                                      if (dest) { setActive(dest); setShowNotifPanel(false); }
+                                      if (isTrainingLink) { router.push(`/${locale}/my/training`); setShowNotifPanel(false); }
+                                      else if (dest) { setActive(dest); setShowNotifPanel(false); }
                                     }}
                                   >
                                     <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0 mt-0.5 capitalize', NOTIF_COLORS[n.type] ?? NOTIF_COLORS.general)}>
                                       {n.type}
                                     </span>
                                     <div className="flex-1 min-w-0">
-                                      <p className={cn('text-sm font-semibold text-foreground leading-tight', dest && 'hover:text-primary')}>{n.title}</p>
+                                      <p className={cn('text-sm font-semibold text-foreground leading-tight', clickable && 'hover:text-primary')}>{n.title}</p>
                                       <p className="text-xs text-foreground/50 mt-0.5 leading-snug">{n.body || (n as any).subtitle || ''}</p>
                                       <p className="text-xs text-foreground/30 mt-1">{new Date(n.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
                                     </div>
@@ -423,10 +431,10 @@ export function MyPortalView() {
             {active === 'performance' && <PerformancePanel appraisals={appraisals} goals={goals} reviewResults={reviewResults} />}
             {active === 'awards'      && <div className="-m-6"><AwardsPage embedded /></div>}
             {active === 'events'      && <MyEventsPanel events={events} />}
-            {active === 'training'    && <TrainingPanel />}
             {active === 'jobs'        && <InternalJobsPanel />}
             {active === 'jd'          && <JobDescriptionPanel jd={(profile as any).jobDescription} />}
             {active === 'expenses'    && <ExpensesPanel />}
+            {active === 'requests'    && <RequestsPanel />}
             {active === 'terms'          && <TermsPanel />}
             {active === 'messages'       && <div className="-m-6"><CommunicationPage /></div>}
             {active === 'inbox'          && <div className="-m-6"><InboxPage /></div>}
@@ -1959,275 +1967,6 @@ function MyEventsPanel({ events }: { events: ScheduledEvent[] }) {
   );
 }
 
-const PORTAL_TRAINING_TYPE_LABELS: Record<string, string> = {
-  one_on_one: '1-on-1',
-  time_based: 'Time-Based',
-  one_time:   'One-Time',
-  refresher:  'Refresher',
-  self_paced: 'Self-Paced',
-};
-
-interface TrainingCourse {
-  _id: string;
-  title: string;
-  description: string;
-  category: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  trainingType: string;
-  objectives: string[];
-  duration: number;
-  enrolledCount: number;
-  isMandatory: boolean;
-  myEnrollment?: {
-    _id: string;
-    status: 'not_started' | 'in_progress' | 'completed';
-    progress: number;
-    completedObjectives: number[];
-    objectives: string[];
-    trainingType: string;
-  } | null;
-}
-
-function TrainingPanel() {
-  const [courses, setCourses] = useState<TrainingCourse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [startingId, setStartingId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [savingObjective, setSavingObjective] = useState(false);
-  const [localObjectives, setLocalObjectives] = useState<Record<string, { completed: number[]; progress: number }>>({});
-
-  const fetchCourses = () => {
-    setLoading(true);
-    apiCallFunction<{ data: TrainingCourse[] }>({
-      url: `${API_BASE_URL}/training/courses?status=published`,
-      showToast: false,
-      returnResponse: true,
-      thenFn: r => {
-        const list = r?.data ?? [];
-        setCourses(list);
-        const seed: Record<string, { completed: number[]; progress: number }> = {};
-        for (const c of list) {
-          if (c.myEnrollment?._id) {
-            seed[c.myEnrollment._id] = {
-              completed: c.myEnrollment.completedObjectives ?? [],
-              progress: c.myEnrollment.progress ?? 0,
-            };
-          }
-        }
-        setLocalObjectives(seed);
-      },
-      finallyFn: () => setLoading(false),
-    });
-  };
-
-  useEffect(() => { fetchCourses(); }, []);
-
-  const enroll = (courseId: string) => {
-    apiCallFunction({
-      url: `${API_BASE_URL}/training/courses/${courseId}/enroll`,
-      method: 'POST',
-      thenFn: fetchCourses,
-    });
-  };
-
-  const startCourse = (courseId: string) => {
-    setStartingId(courseId);
-    apiCallFunction({
-      url: `${API_BASE_URL}/training/courses/${courseId}/start`,
-      method: 'POST',
-      thenFn: fetchCourses,
-      finallyFn: () => setStartingId(null),
-    });
-  };
-
-  const toggleObjective = (enrollmentId: string, idx: number) => {
-    setSavingObjective(true);
-    apiCallFunction<{ data: { completedObjectives: number[]; progress: number } }>({
-      url: `${API_BASE_URL}/training/enrollments/${enrollmentId}/objective`,
-      method: 'PATCH',
-      data: { index: idx },
-      showToast: false,
-      returnResponse: true,
-      thenFn: r => {
-        if (r?.data) {
-          setLocalObjectives(prev => ({
-            ...prev,
-            [enrollmentId]: { completed: r.data.completedObjectives, progress: r.data.progress },
-          }));
-        }
-      },
-      finallyFn: () => setSavingObjective(false),
-    });
-  };
-
-  const markComplete = (enrollmentId: string) => {
-    apiCallFunction({
-      url: `${API_BASE_URL}/training/enrollments/${enrollmentId}/progress`,
-      method: 'PUT',
-      data: { progress: 100 },
-      thenFn: fetchCourses,
-    });
-  };
-
-  const levelStyle = (level: TrainingCourse['level']) =>
-    level === 'advanced'
-      ? 'bg-rose-100 text-rose-700'
-      : level === 'intermediate'
-        ? 'bg-amber-100 text-amber-700'
-        : 'bg-emerald-100 text-emerald-700';
-
-  if (loading) {
-    return <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary/40" /></div>;
-  }
-
-  if (courses.length === 0) {
-    return <EmptyState icon={BookOpen} text="No training courses available." sub="Published courses created by HR will appear here." />;
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {courses.map(course => {
-        const enrollment = course.myEnrollment;
-        const enrollmentId = enrollment?._id;
-        const localState = enrollmentId ? localObjectives[enrollmentId] : null;
-        const completedObjs = localState?.completed ?? enrollment?.completedObjectives ?? [];
-        const progress = localState?.progress ?? enrollment?.progress ?? 0;
-        const objectives = enrollment?.objectives?.length ? enrollment.objectives : (course.objectives ?? []);
-        const isSelfPaced = (enrollment?.trainingType ?? course.trainingType) === 'self_paced';
-        const isExpanded = expandedId === course._id;
-        const canComplete = isSelfPaced
-          ? (objectives.length === 0 || progress >= 100)
-          : true;
-
-        return (
-          <div key={course._id} className="rounded-xl border bg-white overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-            <div className="h-1.5 bg-gradient-to-r from-blue-400 to-indigo-500" />
-            <div className="p-4 space-y-3 flex flex-col flex-1">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <BookOpen className="h-5 w-5 text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground leading-tight">{course.title}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize">
-                      {course.category}
-                    </span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${levelStyle(course.level)}`}>
-                      {course.level}
-                    </span>
-                    {course.trainingType && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                        {PORTAL_TRAINING_TYPE_LABELS[course.trainingType] ?? course.trainingType}
-                      </span>
-                    )}
-                    {course.isMandatory && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                        Mandatory
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-xs text-foreground/60 leading-relaxed line-clamp-3">{course.description}</p>
-
-              <div className="flex items-center justify-between text-[11px] text-foreground/50">
-                <span>{course.duration ? `${course.duration} min` : 'Duration not set'}</span>
-                <span>{course.enrolledCount ?? 0} enrolled</span>
-              </div>
-
-              {enrollment?.status === 'in_progress' && (
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] text-foreground/60">
-                    <span>Progress</span>
-                    <span className="font-semibold text-indigo-600">{progress}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                    <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
-              )}
-
-              {isSelfPaced && enrollment?.status === 'in_progress' && objectives.length > 0 && (
-                <div>
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : course._id)}
-                    className="flex items-center gap-1 text-[11px] text-indigo-600 font-semibold hover:text-indigo-800 transition-colors"
-                  >
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    Objectives ({completedObjs.length}/{objectives.length})
-                    <span className="ml-1 text-foreground/30">{isExpanded ? '▲' : '▼'}</span>
-                  </button>
-                  {isExpanded && (
-                    <div className="mt-2 space-y-1.5 border rounded-lg p-2 bg-gray-50">
-                      {objectives.map((obj, i) => {
-                        const isDone = completedObjs.includes(i);
-                        return (
-                          <button
-                            key={i}
-                            onClick={() => enrollmentId && !savingObjective && toggleObjective(enrollmentId, i)}
-                            disabled={savingObjective}
-                            className="w-full flex items-center gap-2 text-left px-2 py-1.5 rounded-lg hover:bg-white transition-colors disabled:opacity-60"
-                          >
-                            <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              isDone ? 'bg-emerald-500 border-emerald-500' : 'border-gray-400'
-                            }`}>
-                              {isDone && <CheckCircle className="h-2.5 w-2.5 text-white" />}
-                            </div>
-                            <span className={`text-xs ${isDone ? 'text-emerald-600 line-through' : 'text-foreground/80'}`}>{obj}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-auto pt-1">
-                {!enrollment ? (
-                  <button
-                    onClick={() => enroll(course._id)}
-                    className="w-full h-9 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
-                  >
-                    Enroll
-                  </button>
-                ) : enrollment.status === 'not_started' ? (
-                  <button
-                    onClick={() => startCourse(course._id)}
-                    disabled={startingId === course._id}
-                    className="w-full h-9 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {startingId === course._id ? 'Starting…' : 'Start Course'}
-                  </button>
-                ) : enrollment.status === 'in_progress' ? (
-                  canComplete ? (
-                    <button
-                      onClick={() => enrollmentId && markComplete(enrollmentId)}
-                      className="w-full h-9 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
-                    >
-                      Mark as Complete
-                    </button>
-                  ) : (
-                    <div className="w-full h-9 rounded-xl bg-gray-100 text-gray-400 text-sm font-semibold flex items-center justify-center cursor-not-allowed">
-                      Complete all objectives first
-                    </div>
-                  )
-                ) : (
-                  <div className="w-full h-9 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-semibold flex items-center justify-center gap-1.5">
-                    <CheckCircle className="h-4 w-4" /> Completed
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-
 // ── Terms & Conditions panel ───────────────────────────────────────────────────
 function TermsPanel() {
   const [blobUrl, setBlobUrl]     = useState<string | null>(null);
@@ -2368,7 +2107,7 @@ function ExpensesPanel() {
   const [loading, setLoading]     = useState(true);
   const [showForm, setShowForm]   = useState(false);
   const [saving, setSaving]       = useState(false);
-  const [type, setType]           = useState<'regular' | 'per_diem' | 'mileage'>('regular');
+  const [type, setType]           = useState<'regular' | 'per_diem' | 'mileage' | 'itemized'>('regular');
   const [category, setCategory]   = useState('');
   const [amount, setAmount]       = useState('');
   const [date, setDate]           = useState(new Date().toISOString().slice(0, 10));
@@ -2379,6 +2118,9 @@ function ExpensesPanel() {
   const [distanceKm, setDist]     = useState('');
   const [isRoundTrip, setRound]   = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [items, setItems] = useState<{ category: string; description: string; amount: string; expenseDate: string }[]>([
+    { category: '', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10) },
+  ]);
 
   const fetchClaims = () => {
     setLoading(true);
@@ -2392,15 +2134,41 @@ function ExpensesPanel() {
 
   useEffect(() => { fetchClaims(); }, []);
 
+  const addItem    = () => setItems(prev => [...prev, { category: '', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10) }]);
+  const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
+  const updateItem = (i: number, field: string, value: string) => setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: value } : it));
+  const itemsTotal = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+
   const resetForm = () => {
     setType('regular'); setCategory(''); setAmount(''); setDate(new Date().toISOString().slice(0, 10));
     setDesc(''); setDest(''); setStartDate(''); setEndDate(''); setDist(''); setRound(false);
     setReceiptFile(null);
+    setItems([{ category: '', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10) }]);
     setShowForm(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (type === 'itemized') {
+      const validItems = items.filter(it => it.category && Number(it.amount) > 0);
+      if (!validItems.length) return;
+      setSaving(true);
+      apiCallFunction({
+        url: `${API_BASE_URL}/expense-claims`,
+        method: 'POST',
+        data: {
+          type: 'itemized', currency: 'KES', notes: description || undefined,
+          items: validItems.map(it => ({
+            categoryId: it.category,
+            categoryName: EXPENSE_CATEGORIES.find(c => c.toLowerCase() === it.category) ?? it.category,
+            description: it.description, amount: Number(it.amount), expenseDate: it.expenseDate,
+          })),
+        },
+        thenFn: () => { resetForm(); fetchClaims(); },
+        finallyFn: () => setSaving(false),
+      });
+      return;
+    }
     setSaving(true);
     const fd = new FormData();
     fd.append('type', type);
@@ -2443,15 +2211,46 @@ function ExpensesPanel() {
           <div>
             <label className="block text-xs font-semibold text-foreground/50 uppercase tracking-wide mb-1.5">Expense Type</label>
             <div className="flex gap-2">
-              {(['regular', 'per_diem', 'mileage'] as const).map(t => (
+              {(['regular', 'per_diem', 'mileage', 'itemized'] as const).map(t => (
                 <button key={t} type="button" onClick={() => setType(t)}
                   className={cn('flex-1 py-2 rounded-lg border text-xs font-semibold capitalize transition-all',
                     type === t ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground/40 hover:border-foreground/20')}>
-                  {t === 'per_diem' ? 'Per Diem' : t === 'mileage' ? 'Mileage' : 'Regular'}
+                  {t === 'per_diem' ? 'Per Diem' : t === 'mileage' ? 'Mileage' : t === 'itemized' ? 'Itemized' : 'Regular'}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Itemized fields */}
+          {type === 'itemized' && (
+            <div className="space-y-2">
+              {items.map((it, i) => (
+                <div key={i} className="bg-background border border-border rounded-lg p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={it.category} onChange={e => updateItem(i, 'category', e.target.value)}
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                      <option value="">Category…</option>
+                      {EXPENSE_CATEGORIES.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
+                    </select>
+                    <input type="number" value={it.amount} onChange={e => updateItem(i, 'amount', e.target.value)} placeholder="Amount (KES)"
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                    <input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Description"
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                    <input type="date" value={it.expenseDate} onChange={e => updateItem(i, 'expenseDate', e.target.value)}
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                    <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
+                      className="h-9 w-9 rounded-lg bg-red-500/10 text-red-500 disabled:opacity-30 flex items-center justify-center">×</button>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={addItem} className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                <Plus className="h-3.5 w-3.5" /> Add Item
+              </button>
+              {itemsTotal > 0 && <p className="text-sm font-bold text-foreground">Total: KES {itemsTotal.toLocaleString()}</p>}
+            </div>
+          )}
 
           {/* Regular fields */}
           {type === 'regular' && (
@@ -2513,6 +2312,7 @@ function ExpensesPanel() {
           )}
 
           {/* Date + description */}
+          {type !== 'itemized' && (
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Date</label>
@@ -2525,8 +2325,17 @@ function ExpensesPanel() {
                 className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
             </div>
           </div>
+          )}
+          {type === 'itemized' && (
+            <div>
+              <label className="block text-xs text-foreground/50 mb-1">Notes for approver (optional)</label>
+              <input value={description} onChange={e => setDesc(e.target.value)} placeholder="Add context…"
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+            </div>
+          )}
 
           {/* Receipt */}
+          {type !== 'itemized' && (
           <div>
             <label className="block text-xs text-foreground/50 mb-1">
               Receipt <span className="text-red-500">*</span>
@@ -2544,10 +2353,11 @@ function ExpensesPanel() {
               : <p className="text-xs text-foreground/30 mt-1">A receipt is required for all expense claims.</p>
             }
           </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={resetForm} className="px-4 py-2 text-sm text-foreground/50 border border-border rounded-lg hover:bg-muted transition-colors">Cancel</button>
-            <button type="submit" disabled={saving || !receiptFile}
+            <button type="submit" disabled={saving || (type !== 'itemized' && !receiptFile)}
               className="px-5 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
               {saving ? 'Submitting…' : 'Submit Claim'}
             </button>
@@ -2562,20 +2372,203 @@ function ExpensesPanel() {
       ) : (
         <div className="space-y-2">
           {claims.map(c => (
-            <div key={c._id} className="flex items-center justify-between bg-muted/30 border rounded-xl px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{c.description || `${c.type} expense`}</p>
-                <p className="text-xs text-foreground/40 mt-0.5">
-                  {c.category && <span className="capitalize mr-2">{c.category}</span>}
-                  {new Date(c.date).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
-                </p>
+            <div key={c._id} className="bg-muted/30 border rounded-xl px-4 py-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {c.description || (c.type === 'itemized' ? `${c.items?.length ?? 0} line items` : `${c.type} expense`)}
+                  </p>
+                  <p className="text-xs text-foreground/40 mt-0.5">
+                    {c.category && <span className="capitalize mr-2">{c.category}</span>}
+                    {new Date(c.date).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-bold text-foreground">KES {(c.amount || 0).toLocaleString()}</span>
+                  <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', CLAIM_STATUS_STYLE[c.status] ?? CLAIM_STATUS_STYLE.draft)}>
+                    {c.status}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-sm font-bold text-foreground">KES {(c.amount || 0).toLocaleString()}</span>
-                <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', CLAIM_STATUS_STYLE[c.status] ?? CLAIM_STATUS_STYLE.draft)}>
-                  {c.status}
-                </span>
+              {c.approvalChain?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {c.approvalChain.map((a: any) => (
+                    <span key={a.level} className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                      a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : a.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700')}>
+                      L{a.level} {a.approverName || a.approverRole || '—'} · {a.status}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── My Requests Panel (procurement self-service) ───────────────────────────────
+const REQUEST_STATUS_STYLE: Record<string, string> = {
+  pending:   'bg-amber-100 text-amber-700',
+  approved:  'bg-emerald-100 text-emerald-700',
+  rejected:  'bg-red-100 text-red-700',
+  converted: 'bg-violet-100 text-violet-700',
+};
+
+function RequestsPanel() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [vendors, setVendors]   = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [title, setTitle]       = useState('');
+  const [description, setDesc]  = useState('');
+  const [justification, setJustification] = useState('');
+  const [estimatedCost, setEstimatedCost]  = useState('');
+  const [priority, setPriority] = useState('normal');
+  const [vendorId, setVendorId] = useState('');
+  const [neededBy, setNeededBy] = useState('');
+
+  const fetchRequests = () => {
+    setLoading(true);
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/spending/procurement`,
+      showToast: false,
+      thenFn: r => setRequests(r.data?.data ?? []),
+      finallyFn: () => setLoading(false),
+    });
+  };
+
+  useEffect(() => {
+    fetchRequests();
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement/vendors?status=active`, showToast: false,
+      thenFn: r => setVendors(r?.data ?? []) });
+  }, []);
+
+  const resetForm = () => {
+    setTitle(''); setDesc(''); setJustification(''); setEstimatedCost(''); setPriority('normal'); setVendorId(''); setNeededBy('');
+    setShowForm(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !estimatedCost) return;
+    setSaving(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/spending/procurement`,
+      method: 'POST',
+      data: { title, description, justification, estimatedCost: Number(estimatedCost), priority, vendorId: vendorId || undefined, neededBy: neededBy || undefined },
+      thenFn: () => { resetForm(); fetchRequests(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-foreground">My Purchase Requests</h2>
+          <p className="text-xs text-foreground/50 mt-0.5">Request approval to purchase goods or services</p>
+        </div>
+        {!showForm && (
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
+            <Plus className="h-4 w-4" /> New Request
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-muted/40 border rounded-xl p-5 space-y-4">
+          <p className="text-sm font-bold text-foreground">New Purchase Request</p>
+          <div>
+            <label className="block text-xs text-foreground/50 mb-1">Title <span className="text-red-500">*</span></label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="What do you need?" required
+              className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="block text-xs text-foreground/50 mb-1">Description</label>
+            <textarea value={description} onChange={e => setDesc(e.target.value)} rows={2}
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary resize-none" />
+          </div>
+          <div>
+            <label className="block text-xs text-foreground/50 mb-1">Justification</label>
+            <textarea value={justification} onChange={e => setJustification(e.target.value)} rows={2} placeholder="Why is this needed?"
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-foreground/50 mb-1">Estimated Cost (KES) <span className="text-red-500">*</span></label>
+              <input type="number" value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)} placeholder="0.00" required
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+            </div>
+            <div>
+              <label className="block text-xs text-foreground/50 mb-1">Priority</label>
+              <select value={priority} onChange={e => setPriority(e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                {['urgent', 'high', 'normal', 'low'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-foreground/50 mb-1">Vendor</label>
+              <select value={vendorId} onChange={e => setVendorId(e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                <option value="">No preferred vendor</option>
+                {vendors.map((v: any) => <option key={v._id} value={v._id}>{v.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-foreground/50 mb-1">Needed By</label>
+              <input type="date" value={neededBy} onChange={e => setNeededBy(e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" onClick={resetForm} className="px-4 py-2 text-sm text-foreground/50 border border-border rounded-lg hover:bg-muted transition-colors">Cancel</button>
+            <button type="submit" disabled={saving || !title || !estimatedCost}
+              className="px-5 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+              {saving ? 'Submitting…' : 'Submit Request'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary/40" /></div>
+      ) : requests.length === 0 ? (
+        <EmptyState icon={ShoppingCart} text="No purchase requests yet." sub="Submit a request to purchase goods or services." />
+      ) : (
+        <div className="space-y-2">
+          {requests.map((r: any) => (
+            <div key={r._id} className="bg-muted/30 border rounded-xl px-4 py-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
+                  <p className="text-xs text-foreground/40 mt-0.5">
+                    {r.priority && <span className="capitalize mr-2">{r.priority} priority</span>}
+                    {r.neededBy && `Needed by ${new Date(r.neededBy).toLocaleDateString('en-KE', { dateStyle: 'medium' })}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-bold text-foreground">KES {(r.estimatedCost || 0).toLocaleString()}</span>
+                  <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', REQUEST_STATUS_STYLE[r.status] ?? REQUEST_STATUS_STYLE.pending)}>
+                    {r.status}
+                  </span>
+                </div>
               </div>
+              {r.approvalChain?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {r.approvalChain.map((a: any) => (
+                    <span key={a.level} className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                      a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : a.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700')}>
+                      L{a.level} {a.approverName || a.approverRole || '—'} · {a.status}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

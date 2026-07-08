@@ -15,9 +15,10 @@ import { LeaveMonthCalendar } from '../Components/LeaveMonthCalendar';
 import { LeaveRequestsTab }   from '../Components/LeaveRequestsTab';
 import { PoliciesTab }        from '../Components/PoliciesTab';
 import { LeaveAnalyticsTab }  from '../Components/LeaveAnalyticsTab';
+import { LeaveSettingsTab }   from '../Components/LeaveSettingsTab';
 import { RequestTimeOffDrawer } from '../Components/RequestTimeOffDrawer';
 
-type TabKey = 'overview' | 'calendar' | 'requests' | 'policies' | 'analytics';
+type TabKey = 'overview' | 'calendar' | 'requests' | 'policies' | 'settings' | 'analytics';
 
 interface TabDef {
   key:          TabKey;
@@ -32,6 +33,7 @@ const TABS: TabDef[] = [
   { key: 'calendar',   label: 'Calendar',   icon: List         },
   { key: 'requests',   label: 'Requests',   icon: ClipboardList, managerOnly: true },
   { key: 'policies',   label: 'Policies',   icon: Settings2,     hrOnly:      true },
+  { key: 'settings',   label: 'Leave Settings', icon: Settings2, hrOnly:      true },
   { key: 'analytics',  label: 'Analytics',  icon: BarChart2,     managerOnly: true },
 ];
 
@@ -138,6 +140,10 @@ export function LeaveManagementPage() {
 
         {activeTab === 'policies' && isHR && (
           <PoliciesTab />
+        )}
+
+        {activeTab === 'settings' && isHR && (
+          <LeaveSettingsTab />
         )}
 
         {activeTab === 'analytics' && isManager && (

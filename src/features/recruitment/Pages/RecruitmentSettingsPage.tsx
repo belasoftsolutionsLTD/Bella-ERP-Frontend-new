@@ -7,6 +7,8 @@ import { useEmailTemplates } from '../Hooks/useEmailTemplates';
 import { useInterviewKits } from '../Hooks/useInterviewKits';
 import type { EmailTemplate, EmailTrigger, InterviewKit } from '../types';
 import { uid } from '../constants';
+import { useConfigSection } from '@/hooks/useConfigSection';
+import { JdTemplatesPanel } from '../Components/JdTemplatesPanel';
 
 const TRIGGER_OPTIONS: { value: EmailTrigger; label: string }[] = [
   { value: 'applicationReceived', label: 'Application Received' },
@@ -150,24 +152,33 @@ function InterviewKitsTab() {
 }
 
 export function RecruitmentSettingsPage() {
-  const [tab, setTab] = useState<'templates' | 'kits'>('templates');
+  const [tab, setTab] = useState<'templates' | 'kits' | 'jdTemplates'>('templates');
+  const jdTemplates = useConfigSection('jd-templates');
 
   return (
     <div className="p-6 space-y-4">
       <div>
         <h1 className="text-xl font-semibold text-slate-100">Recruitment Settings</h1>
-        <p className="text-sm text-slate-400">Email templates and interview kits</p>
+        <p className="text-sm text-slate-400">Email templates, interview kits, and JD templates</p>
       </div>
 
       <div className="flex gap-1 border-b border-slate-800">
-        {(['templates', 'kits'] as const).map((t) => (
+        {(['templates', 'kits', 'jdTemplates'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-slate-400'}`}>
-            {t === 'templates' ? 'Email Templates' : 'Interview Kits'}
+            {t === 'templates' ? 'Email Templates' : t === 'kits' ? 'Interview Kits' : 'JD Templates'}
           </button>
         ))}
       </div>
 
-      {tab === 'templates' ? <EmailTemplatesTab /> : <InterviewKitsTab />}
+      {tab === 'templates' && <EmailTemplatesTab />}
+      {tab === 'kits' && <InterviewKitsTab />}
+      {tab === 'jdTemplates' && (
+        <JdTemplatesPanel
+          items={jdTemplates.items as any}
+          loading={jdTemplates.loading}
+          refetch={jdTemplates.refetch}
+        />
+      )}
     </div>
   );
 }

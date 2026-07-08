@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import { useAuth } from '@/contexts/AuthContext';
 import {
-  CreditCard, FileText, ShoppingCart, Landmark,
-  Plus, X, CheckCircle2, AlertCircle, Search,
+  CreditCard, FileText, ShoppingCart, Landmark, Building2, PackageCheck, ReceiptText,
+  Plus, X, CheckCircle2, AlertCircle, Search, Send, Truck, Ban, ArrowRightLeft, Pencil, Trash2,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -35,9 +36,21 @@ interface Invoice {
   createdAt: string;
 }
 
+interface ApprovalChainEntry {
+  level: number; approverId?: string; approverName?: string; approverRole?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'skipped';
+  actedAt?: string; comment?: string; thresholdAmount?: number;
+}
+
+interface RequisitionItem {
+  id?: string; description: string; quantity: number; estimatedUnitPrice: number; specifications?: string;
+}
+
 interface PurchaseRequest {
   _id: string;
   title: string;
+  description?: string;
+  justification?: string;
   estimatedCost: number;
   currency: string;
   priority: string;
@@ -45,7 +58,41 @@ interface PurchaseRequest {
   department?: string;
   neededBy?: string;
   createdAt: string;
+  vendor?: string;
+  vendorId?: string;
+  items?: RequisitionItem[];
+  approvalChain?: ApprovalChainEntry[];
+  currentApprovalLevel?: number;
+  convertedToPOId?: string;
   requester?: { fullName: string; department: string } | null;
+}
+
+interface Vendor {
+  _id: string; name: string; contactName?: string; email?: string; phone?: string;
+  address?: string; category: string; taxId?: string; paymentTerms?: string;
+  status: string; notes?: string;
+}
+
+interface POItem {
+  id: string; description: string; quantity: number; unitPrice: number; currency: string; receivedQuantity: number; specifications?: string;
+}
+
+interface PurchaseOrder {
+  _id: string; poNumber: string; requisitionId?: string; vendorId: string; departmentId?: string;
+  status: string; items: POItem[]; totalAmount: number; currency: string;
+  deliveryAddress?: string; expectedDeliveryDate?: string; actualDeliveryDate?: string;
+  paymentTerms?: string; notes?: string; invoiceId?: string; createdAt: string;
+  vendor?: { name: string; category: string } | null;
+}
+
+interface VendorInvoiceItem { description: string; quantity: number; unitPrice: number; totalPrice: number; }
+
+interface VendorInvoice {
+  _id: string; purchaseOrderId: string; vendorId: string; invoiceNumber: string;
+  invoiceDate: string; dueDate: string; items: VendorInvoiceItem[]; totalAmount: number; currency: string;
+  status: string; threeWayMatchStatus: string; discrepancyNotes?: string;
+  approvedAt?: string; paidAt?: string; createdAt: string;
+  vendor?: { name: string } | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -60,6 +107,21 @@ const STATUS_BADGE: Record<string, string> = {
   approved:  'bg-emerald-500/20 text-emerald-400',
   rejected:  'bg-red-500/20 text-red-400',
   paid:      'bg-blue-500/20 text-blue-400',
+  draft:     'bg-slate-600/40 text-slate-300',
+  sent:      'bg-cyan-500/20 text-cyan-400',
+  acknowledged: 'bg-indigo-500/20 text-indigo-400',
+  partiallyReceived: 'bg-amber-500/20 text-amber-400',
+  fullyReceived: 'bg-emerald-500/20 text-emerald-400',
+  invoiced:  'bg-violet-500/20 text-violet-400',
+  cancelled: 'bg-red-500/20 text-red-400',
+  converted: 'bg-violet-500/20 text-violet-400',
+  received:  'bg-slate-600/40 text-slate-300',
+  underReview: 'bg-amber-500/20 text-amber-400',
+  matched:   'bg-emerald-500/20 text-emerald-400',
+  mismatched: 'bg-red-500/20 text-red-400',
+  disputed:  'bg-orange-500/20 text-orange-400',
+  complete:  'bg-emerald-500/20 text-emerald-400',
+  partial:   'bg-amber-500/20 text-amber-400',
 };
 
 const PRIORITY_BADGE: Record<string, string> = {
@@ -69,11 +131,21 @@ const PRIORITY_BADGE: Record<string, string> = {
   low:    'bg-slate-700/40 text-slate-500',
 };
 
+const APPROVAL_STATUS_CFG: Record<ApprovalChainEntry['status'], { label: string; bg: string; text: string }> = {
+  pending:  { label: 'Pending',  bg: 'bg-amber-500/10',  text: 'text-amber-400'  },
+  approved: { label: 'Approved', bg: 'bg-emerald-500/10',text: 'text-emerald-400'},
+  rejected: { label: 'Rejected', bg: 'bg-red-500/10',    text: 'text-red-400'    },
+  skipped:  { label: 'Skipped',  bg: 'bg-slate-700',     text: 'text-slate-500'  },
+};
+
 const TABS = [
-  { key: 'cards',        label: 'Corporate Cards', icon: CreditCard },
-  { key: 'invoices',     label: 'Invoices',        icon: FileText },
-  { key: 'procurement',  label: 'Procurement',     icon: ShoppingCart },
-  { key: 'payable',      label: 'Accounts Payable', icon: Landmark },
+  { key: 'cards',            label: 'Corporate Cards', icon: CreditCard,  hrOnly: true  },
+  { key: 'invoices',         label: 'AP/AR Invoices',  icon: FileText,    hrOnly: true  },
+  { key: 'procurement',      label: 'Procurement',     icon: ShoppingCart, hrOnly: false },
+  { key: 'vendors',          label: 'Vendors',         icon: Building2,   hrOnly: true  },
+  { key: 'purchase-orders',  label: 'Purchase Orders', icon: PackageCheck, hrOnly: false, deptHeadUp: true },
+  { key: 'vendor-invoices',  label: 'Vendor Invoices', icon: ReceiptText, hrOnly: true  },
+  { key: 'payable',          label: 'Accounts Payable', icon: Landmark,   hrOnly: true  },
 ];
 
 // ── Card Chip ─────────────────────────────────────────────────────────────────
@@ -261,17 +333,34 @@ function CreateInvoiceModal({ onClose, onSaved }: { onClose: () => void; onSaved
 
 // ── Create Purchase Request Modal ─────────────────────────────────────────────
 function CreatePRModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ title: '', description: '', estimatedCost: '', currency: 'KES', priority: 'normal', vendor: '', department: '', neededBy: '' });
+  const [form, setForm] = useState({ title: '', description: '', justification: '', currency: 'KES', priority: 'normal', vendorId: '', neededBy: '' });
+  const [items, setItems] = useState<RequisitionItem[]>([{ description: '', quantity: 1, estimatedUnitPrice: 0 }]);
+  const [manualCost, setManualCost] = useState('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
+  useEffect(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement/vendors?status=active`, showToast: false,
+      thenFn: r => setVendors(r?.data ?? []) });
+  }, []);
+
+  const addItem    = () => setItems(prev => [...prev, { description: '', quantity: 1, estimatedUnitPrice: 0 }]);
+  const removeItem  = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
+  const updateItem  = (i: number, field: keyof RequisitionItem, value: string) =>
+    setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: field === 'description' || field === 'specifications' ? value : Number(value) } : it));
+
+  const validItems  = items.filter(it => it.description.trim() && it.quantity > 0);
+  const itemsTotal  = validItems.reduce((s, it) => s + it.quantity * it.estimatedUnitPrice, 0);
+  const estimatedCost = validItems.length ? itemsTotal : Number(manualCost) || 0;
+
   const save = () => {
-    if (!form.title || !form.estimatedCost) return;
+    if (!form.title || !estimatedCost) return;
     setSaving(true);
     apiCallFunction({
       url: `${API_BASE_URL}/spending/procurement`,
       method: 'POST',
-      data: { ...form, estimatedCost: Number(form.estimatedCost) },
+      data: { ...form, estimatedCost, items: validItems, vendorId: form.vendorId || undefined },
       thenFn: () => { onSaved(); onClose(); },
       finallyFn: () => setSaving(false),
     });
@@ -280,12 +369,12 @@ function CreatePRModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
           <h2 className="font-bold text-white">New Purchase Request</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
-        <div className="px-6 py-5 space-y-3">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
           <div>
             <label className="block text-xs text-slate-400 mb-1">Title <span className="text-red-400">*</span></label>
             <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="What do you need?"
@@ -294,14 +383,23 @@ function CreatePRModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
           <div>
             <label className="block text-xs text-slate-400 mb-1">Description</label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-              placeholder="Justification / details"
+              placeholder="What this is for"
+              className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none" />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Justification</label>
+            <textarea value={form.justification} onChange={e => set('justification', e.target.value)} rows={2}
+              placeholder="Why is this needed / business case"
               className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Estimated Cost <span className="text-red-400">*</span></label>
-              <input type="number" min="0" value={form.estimatedCost} onChange={e => set('estimatedCost', e.target.value)} placeholder="0.00"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+              <label className="block text-xs text-slate-400 mb-1">Vendor</label>
+              <select value={form.vendorId} onChange={e => set('vendorId', e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+                <option value="">No preferred vendor</option>
+                {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1">Priority</label>
@@ -311,22 +409,51 @@ function CreatePRModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Needed By</label>
+            <input type="date" value={form.neededBy} onChange={e => set('neededBy', e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-slate-400">Line Items (optional — leave blank to enter a lump sum)</label>
+            </div>
+            {items.map((it, i) => (
+              <div key={i} className="grid grid-cols-[1fr_60px_90px_auto] gap-2 items-center">
+                <input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Item description"
+                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                <input type="number" min="1" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} placeholder="Qty"
+                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                <input type="number" min="0" value={it.estimatedUnitPrice || ''} onChange={e => updateItem(i, 'estimatedUnitPrice', e.target.value)} placeholder="Unit price"
+                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
+                  className="h-9 w-9 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-30 flex items-center justify-center transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addItem} className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+              <Plus className="h-3.5 w-3.5" /> Add Item
+            </button>
+          </div>
+
+          {validItems.length === 0 && (
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Vendor</label>
-              <input value={form.vendor} onChange={e => set('vendor', e.target.value)} placeholder="Preferred vendor"
+              <label className="block text-xs text-slate-400 mb-1">Estimated Cost <span className="text-red-400">*</span></label>
+              <input type="number" min="0" value={manualCost} onChange={e => setManualCost(e.target.value)} placeholder="0.00"
                 className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
             </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Needed By</label>
-              <input type="date" value={form.neededBy} onChange={e => set('neededBy', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+          )}
+          {estimatedCost > 0 && (
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-4 py-3 text-sm text-indigo-300 font-semibold">
+              Total: <span className="text-lg font-black">{fmt(estimatedCost, form.currency)}</span>
             </div>
-          </div>
+          )}
         </div>
-        <div className="flex gap-3 px-6 pb-5">
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
           <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
-          <button onClick={save} disabled={saving || !form.title || !form.estimatedCost}
+          <button onClick={save} disabled={saving || !form.title || !estimatedCost}
             className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
             {saving ? 'Submitting…' : 'Submit Request'}
           </button>
@@ -605,12 +732,97 @@ function InvoicesTab() {
 }
 
 // ── Procurement Tab ───────────────────────────────────────────────────────────
+// ── Convert Requisition to PO Modal ───────────────────────────────────────────
+function ConvertToPOModal({ pr, onClose, onSaved }: { pr: PurchaseRequest; onClose: () => void; onSaved: () => void }) {
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendorId, setVendorId] = useState(pr.vendorId ?? '');
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement/vendors?status=active`, showToast: false,
+      thenFn: r => setVendors(r?.data ?? []) });
+  }, []);
+
+  const convert = () => {
+    if (!vendorId) return;
+    setSaving(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/spending/procurement/${pr._id}/convert`, method: 'POST',
+      data: { vendorId, expectedDeliveryDate: expectedDeliveryDate || undefined, deliveryAddress: deliveryAddress || undefined },
+      thenFn: () => { onSaved(); onClose(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <h2 className="font-bold text-white">Convert to Purchase Order</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="px-6 py-5 space-y-3">
+          <p className="text-sm text-slate-300">{pr.title} — <span className="font-semibold">{fmt(pr.estimatedCost, pr.currency)}</span></p>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Vendor <span className="text-red-400">*</span></label>
+            <select value={vendorId} onChange={e => setVendorId(e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+              <option value="">Select vendor…</option>
+              {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Expected Delivery Date</label>
+            <input type="date" value={expectedDeliveryDate} onChange={e => setExpectedDeliveryDate(e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Delivery Address</label>
+            <input value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Optional"
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+        <div className="flex gap-3 px-6 pb-5">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={convert} disabled={saving || !vendorId}
+            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            {saving ? 'Converting…' : 'Convert to PO'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ApprovalChainStrip({ chain, currentLevel }: { chain: ApprovalChainEntry[]; currentLevel?: number }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+      {chain.map(a => {
+        const cfg = APPROVAL_STATUS_CFG[a.status] ?? APPROVAL_STATUS_CFG.pending;
+        const isCurrent = a.level === currentLevel && a.status === 'pending';
+        return (
+          <span key={a.level} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text} ${isCurrent ? 'ring-1 ring-indigo-400' : ''}`}>
+            L{a.level} {a.approverName || a.approverRole || '—'} · {cfg.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function ProcurementTab() {
+  const { isHR, isDeptHead, userData } = useAuth();
+  const isManager = isHR || isDeptHead;
+  const myEmployeeId = userData?.employeeId ?? null;
   const [requests, setRequests]   = useState<PurchaseRequest[]>([]);
   const [loading, setLoading]     = useState(true);
   const [statusFilter, setStatus] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [rejectingPR, setRejectingPR] = useState<PurchaseRequest | null>(null);
+  const [convertingPR, setConvertingPR] = useState<PurchaseRequest | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -634,13 +846,17 @@ function ProcurementTab() {
     apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/${rejectingPR._id}/reject`, method: 'PUT', data: { reason }, thenFn: () => { load(); setRejectingPR(null); } });
   };
 
+  const canApprove = (pr: PurchaseRequest) =>
+    isManager || (pr.approvalChain ?? []).some(a =>
+      a.level === pr.currentApprovalLevel && a.status === 'pending' && myEmployeeId && String(a.approverId) === String(myEmployeeId));
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <select value={statusFilter} onChange={e => setStatus(e.target.value)}
           className="h-9 px-3 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
           <option value="">All Statuses</option>
-          {['pending', 'approved', 'rejected'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+          {['pending', 'approved', 'rejected', 'converted'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
         <div className="flex-1" />
         <button onClick={() => setShowCreate(true)}
@@ -672,10 +888,14 @@ function ProcurementTab() {
                     {pr.requester?.fullName ?? 'Unknown'} · {pr.requester?.department ?? pr.department ?? '—'}
                     {pr.neededBy && ` · Needed by ${fmtDate(pr.neededBy)}`}
                   </p>
+                  {pr.justification && <p className="text-xs text-slate-500 mt-1 italic">"{pr.justification}"</p>}
+                  {pr.approvalChain && pr.approvalChain.length > 0 && (
+                    <ApprovalChainStrip chain={pr.approvalChain} currentLevel={pr.currentApprovalLevel} />
+                  )}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="font-bold text-white">{fmt(pr.estimatedCost, pr.currency)}</p>
-                  {pr.status === 'pending' && (
+                  {pr.status === 'pending' && canApprove(pr) && (
                     <div className="flex gap-1 mt-2">
                       <button onClick={() => approve(pr._id)}
                         className="h-7 px-2.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors">
@@ -686,6 +906,15 @@ function ProcurementTab() {
                         Reject
                       </button>
                     </div>
+                  )}
+                  {isHR && pr.status === 'approved' && !pr.convertedToPOId && (
+                    <button onClick={() => setConvertingPR(pr)}
+                      className="flex items-center gap-1 h-7 px-2.5 text-xs bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors mt-2">
+                      <ArrowRightLeft className="h-3 w-3" /> Convert to PO
+                    </button>
+                  )}
+                  {pr.convertedToPOId && (
+                    <p className="text-[10px] text-violet-400 font-semibold mt-2">Converted to PO</p>
                   )}
                 </div>
               </div>
@@ -701,6 +930,549 @@ function ProcurementTab() {
       )}
       {showCreate && <CreatePRModal onClose={() => setShowCreate(false)} onSaved={load} />}
       {rejectingPR && <RejectModal title={rejectingPR.title} onClose={() => setRejectingPR(null)} onConfirm={reject} />}
+      {convertingPR && <ConvertToPOModal pr={convertingPR} onClose={() => setConvertingPR(null)} onSaved={load} />}
+    </div>
+  );
+}
+
+// ── Vendor Form Modal ─────────────────────────────────────────────────────────
+const VENDOR_CATEGORIES = ['Office Supplies', 'IT & Equipment', 'Professional Services', 'Facilities', 'Travel', 'Logistics', 'Marketing', 'Other'];
+
+function VendorFormModal({ vendor, onClose, onSaved }: { vendor: Vendor | null; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    name: vendor?.name ?? '', contactName: vendor?.contactName ?? '', email: vendor?.email ?? '',
+    phone: vendor?.phone ?? '', address: vendor?.address ?? '', category: vendor?.category ?? VENDOR_CATEGORIES[0],
+    taxId: vendor?.taxId ?? '', paymentTerms: vendor?.paymentTerms ?? '', status: vendor?.status ?? 'active', notes: vendor?.notes ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const save = () => {
+    if (!form.name || !form.category) return;
+    setSaving(true);
+    const req = vendor
+      ? apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors/${vendor._id}`, method: 'PATCH', data: form, thenFn: () => { onSaved(); onClose(); }, finallyFn: () => setSaving(false) })
+      : apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors`, method: 'POST', data: form, thenFn: () => { onSaved(); onClose(); }, finallyFn: () => setSaving(false) });
+    void req;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="font-bold text-white">{vendor ? 'Edit Vendor' : 'New Vendor'}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Vendor Name <span className="text-red-400">*</span></label>
+              <input value={form.name} onChange={e => set('name', e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Category <span className="text-red-400">*</span></label>
+              <select value={form.category} onChange={e => set('category', e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+                {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Contact Name</label>
+              <input value={form.contactName} onChange={e => set('contactName', e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Phone</label>
+              <input value={form.phone} onChange={e => set('phone', e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Email</label>
+            <input value={form.email} onChange={e => set('email', e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Address</label>
+            <input value={form.address} onChange={e => set('address', e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Tax ID</label>
+              <input value={form.taxId} onChange={e => set('taxId', e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Payment Terms</label>
+              <input value={form.paymentTerms} onChange={e => set('paymentTerms', e.target.value)} placeholder="e.g. Net 30"
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+          {vendor && (
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Status</label>
+              <select value={form.status} onChange={e => set('status', e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+                {['active', 'inactive', 'blocked'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={save} disabled={saving || !form.name}
+            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            {saving ? 'Saving…' : 'Save Vendor'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Vendors Tab ───────────────────────────────────────────────────────────────
+function VendorsTab() {
+  const { userData } = useAuth();
+  const isSuperAdmin = userData?.role === 'super_admin';
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingVendor, setEditingVendor] = useState<Vendor | null | undefined>(undefined);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement/vendors`, showToast: false,
+      thenFn: r => setVendors(r?.data ?? []), finallyFn: () => setLoading(false) });
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const remove = (id: string) => {
+    if (!confirm('Remove this vendor from the directory?')) return;
+    setDeletingId(id);
+    apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors/${id}`, method: 'DELETE', thenFn: load, finallyFn: () => setDeletingId(null) });
+  };
+
+  const filtered = vendors.filter(v => !search || v.name.toLowerCase().includes(search.toLowerCase()) || v.category.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search vendors…"
+            className="w-full pl-9 pr-3 h-9 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+        </div>
+        <button onClick={() => setEditingVendor(null)}
+          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors">
+          <Plus className="h-4 w-4" /> New Vendor
+        </button>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map(v => (
+            <div key={v._id} className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-white truncate">{v.name}</p>
+                  <p className="text-xs text-slate-400">{v.category}</p>
+                </div>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[v.status]}`}>{v.status}</span>
+              </div>
+              {v.contactName && <p className="text-xs text-slate-500">{v.contactName}{v.phone ? ` · ${v.phone}` : ''}</p>}
+              {v.email && <p className="text-xs text-slate-500 truncate">{v.email}</p>}
+              {v.paymentTerms && <p className="text-xs text-slate-600">Terms: {v.paymentTerms}</p>}
+              <div className="flex items-center gap-1.5 pt-1">
+                <button onClick={() => setEditingVendor(v)} className="flex items-center gap-1 h-7 px-2 text-xs bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors">
+                  <Pencil className="h-3 w-3" /> Edit
+                </button>
+                {isSuperAdmin && (
+                  <button onClick={() => remove(v._id)} disabled={deletingId === v._id} className="flex items-center gap-1 h-7 px-2 text-xs bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 disabled:opacity-50 transition-colors">
+                    <Trash2 className="h-3 w-3" /> Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="col-span-3 text-center py-12 text-slate-500">
+              <Building2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No vendors yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+      {editingVendor !== undefined && <VendorFormModal vendor={editingVendor} onClose={() => setEditingVendor(undefined)} onSaved={load} />}
+    </div>
+  );
+}
+
+// ── Log Goods Receipt Modal ────────────────────────────────────────────────────
+function GoodsReceiptModal({ po, onClose, onSaved }: { po: PurchaseOrder; onClose: () => void; onSaved: () => void }) {
+  const [rows, setRows] = useState(po.items.map(it => ({ poItemId: it.id, receivedQuantity: String(it.quantity - it.receivedQuantity), condition: 'good', notes: '' })));
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const updateRow = (i: number, field: string, value: string) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+
+  const save = () => {
+    setSaving(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/spending/procurement-receipts`, method: 'POST',
+      data: { purchaseOrderId: po._id, notes: notes || undefined, items: rows.filter(r => Number(r.receivedQuantity) > 0).map(r => ({ ...r, receivedQuantity: Number(r.receivedQuantity) })) },
+      thenFn: () => { onSaved(); onClose(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="font-bold text-white">Log Goods Receipt — {po.poNumber}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+          {po.items.map((it, i) => (
+            <div key={it.id} className="bg-slate-800/60 border border-slate-700 rounded-xl p-3 space-y-2">
+              <p className="text-sm text-white">{it.description}</p>
+              <p className="text-xs text-slate-500">Ordered {it.quantity} · Already received {it.receivedQuantity}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Received Qty</label>
+                  <input type="number" min="0" value={rows[i].receivedQuantity} onChange={e => updateRow(i, 'receivedQuantity', e.target.value)}
+                    className="w-full h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Condition</label>
+                  <select value={rows[i].condition} onChange={e => updateRow(i, 'condition', e.target.value)}
+                    className="w-full h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500">
+                    <option value="good">Good</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="short">Short-shipped</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+              className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500 resize-none" />
+          </div>
+        </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={save} disabled={saving}
+            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            {saving ? 'Saving…' : 'Log Receipt'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Purchase Orders Tab ────────────────────────────────────────────────────────
+function PurchaseOrdersTab() {
+  const { isHR } = useAuth();
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatus] = useState('');
+  const [receivingPO, setReceivingPO] = useState<PurchaseOrder | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (statusFilter) params.set('status', statusFilter);
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement-orders?${params}`, showToast: false,
+      thenFn: r => setOrders(r?.data?.data ?? []), finallyFn: () => setLoading(false) });
+  }, [statusFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const send = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-orders/${id}/send`, method: 'PUT', thenFn: load });
+  const acknowledge = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-orders/${id}/acknowledge`, method: 'PUT', thenFn: load });
+  const cancel = (id: string) => { if (confirm('Cancel this purchase order?')) apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-orders/${id}`, method: 'DELETE', thenFn: load }); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <select value={statusFilter} onChange={e => setStatus(e.target.value)}
+          className="h-9 px-3 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+          <option value="">All Statuses</option>
+          {['draft', 'sent', 'acknowledged', 'partiallyReceived', 'fullyReceived', 'invoiced', 'paid', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {orders.map(po => (
+            <div key={po._id} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-xs text-slate-400">{po.poNumber}</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[po.status]}`}>{po.status}</span>
+                  </div>
+                  <p className="font-semibold text-white">{po.vendor?.name ?? 'Unknown vendor'}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{po.items.length} line item{po.items.length !== 1 ? 's' : ''}
+                    {po.expectedDeliveryDate && ` · Expected ${fmtDate(po.expectedDeliveryDate)}`}</p>
+                </div>
+                <div className="text-right shrink-0 space-y-2">
+                  <p className="font-bold text-white">{fmt(po.totalAmount, po.currency)}</p>
+                  {isHR && (
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      {po.status === 'draft' && (
+                        <button onClick={() => send(po._id)} className="flex items-center gap-1 h-7 px-2 text-xs bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors">
+                          <Send className="h-3 w-3" /> Send
+                        </button>
+                      )}
+                      {po.status === 'sent' && (
+                        <button onClick={() => acknowledge(po._id)} className="flex items-center gap-1 h-7 px-2 text-xs bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors">
+                          <CheckCircle2 className="h-3 w-3" /> Acknowledge
+                        </button>
+                      )}
+                      {['sent', 'acknowledged', 'partiallyReceived'].includes(po.status) && (
+                        <button onClick={() => setReceivingPO(po)} className="flex items-center gap-1 h-7 px-2 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors">
+                          <Truck className="h-3 w-3" /> Log Receipt
+                        </button>
+                      )}
+                      {!['fullyReceived', 'paid', 'cancelled'].includes(po.status) && (
+                        <button onClick={() => cancel(po._id)} className="flex items-center gap-1 h-7 px-2 text-xs bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors">
+                          <Ban className="h-3 w-3" /> Cancel
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          {orders.length === 0 && (
+            <div className="text-center py-12 text-slate-500">
+              <PackageCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No purchase orders yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+      {receivingPO && <GoodsReceiptModal po={receivingPO} onClose={() => setReceivingPO(null)} onSaved={load} />}
+    </div>
+  );
+}
+
+// ── Create Vendor Invoice Modal ────────────────────────────────────────────────
+function CreateVendorInvoiceModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [purchaseOrderId, setPurchaseOrderId] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dueDate, setDueDate] = useState('');
+  const [items, setItems] = useState<VendorInvoiceItem[]>([{ description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement-orders?status=acknowledged`, showToast: false,
+      thenFn: r => setOrders(r?.data?.data ?? []) });
+  }, []);
+
+  const selectedPO = orders.find(o => o._id === purchaseOrderId);
+  const updateItem = (i: number, field: keyof VendorInvoiceItem, value: string) =>
+    setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: field === 'description' ? value : Number(value) } : it));
+  const addItem = () => setItems(prev => [...prev, { description: '', quantity: 1, unitPrice: 0, totalPrice: 0 }]);
+  const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
+  const total = items.reduce((s, it) => s + it.quantity * it.unitPrice, 0);
+
+  const save = () => {
+    if (!purchaseOrderId || !invoiceNumber || !dueDate || !selectedPO) return;
+    setSaving(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/spending/procurement-invoices`, method: 'POST',
+      data: { purchaseOrderId, vendorId: selectedPO.vendorId, invoiceNumber, invoiceDate, dueDate, items },
+      thenFn: () => { onSaved(); onClose(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+          <h2 className="font-bold text-white">Record Vendor Invoice</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Purchase Order <span className="text-red-400">*</span></label>
+            <select value={purchaseOrderId} onChange={e => setPurchaseOrderId(e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+              <option value="">Select PO (acknowledged)…</option>
+              {orders.map(o => <option key={o._id} value={o._id}>{o.poNumber} — {o.vendor?.name}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Invoice Number <span className="text-red-400">*</span></label>
+              <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Due Date <span className="text-red-400">*</span></label>
+              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Invoice Date</label>
+            <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400">Line Items</label>
+            {items.map((it, i) => (
+              <div key={i} className="grid grid-cols-[1fr_50px_80px_auto] gap-2 items-center">
+                <input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Description"
+                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                <input type="number" min="1" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)}
+                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                <input type="number" min="0" value={it.unitPrice || ''} onChange={e => updateItem(i, 'unitPrice', e.target.value)} placeholder="Price"
+                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
+                  className="h-9 w-9 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-30 flex items-center justify-center transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addItem} className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+              <Plus className="h-3.5 w-3.5" /> Add Item
+            </button>
+          </div>
+          {total > 0 && (
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-4 py-3 text-sm text-indigo-300 font-semibold">
+              Total: <span className="text-lg font-black">{fmt(total)}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={save} disabled={saving || !purchaseOrderId || !invoiceNumber || !dueDate}
+            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            {saving ? 'Saving…' : 'Record Invoice'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Vendor Invoices Tab (3-way match) ─────────────────────────────────────────
+function VendorInvoicesTab() {
+  const [invoices, setInvoices] = useState<VendorInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [disputingInvoice, setDisputingInvoice] = useState<VendorInvoice | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement-invoices`, showToast: false,
+      thenFn: r => setInvoices(r?.data?.data ?? []), finallyFn: () => setLoading(false) });
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const match   = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${id}/match`, method: 'PATCH', thenFn: load });
+  const approve = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${id}/approve`, method: 'PATCH', thenFn: load });
+  const pay     = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${id}/pay`, method: 'PATCH', thenFn: load });
+  const dispute = (reason: string) => {
+    if (!disputingInvoice) return;
+    apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${disputingInvoice._id}/dispute`, method: 'PATCH', data: { reason }, thenFn: () => { load(); setDisputingInvoice(null); } });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <button onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors">
+          <Plus className="h-4 w-4" /> Record Invoice
+        </button>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        </div>
+      ) : (
+        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700 text-xs text-slate-500 uppercase">
+                <th className="text-left px-4 py-3">Invoice</th>
+                <th className="text-left px-4 py-3">Vendor</th>
+                <th className="text-right px-4 py-3">Amount</th>
+                <th className="text-left px-4 py-3">3-Way Match</th>
+                <th className="text-left px-4 py-3">Status</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700">
+              {invoices.map(inv => (
+                <tr key={inv._id} className="hover:bg-slate-750 transition-colors">
+                  <td className="px-4 py-3">
+                    <p className="text-slate-300 font-mono text-xs">{inv.invoiceNumber}</p>
+                    <p className="text-xs text-slate-500">Due {fmtDate(inv.dueDate)}</p>
+                  </td>
+                  <td className="px-4 py-3 text-white">{inv.vendor?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-white">{fmt(inv.totalAmount, inv.currency)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[inv.threeWayMatchStatus] ?? 'bg-slate-600/40 text-slate-400'}`}>{inv.threeWayMatchStatus}</span>
+                    {inv.discrepancyNotes && <p className="text-[10px] text-amber-400 mt-1 max-w-xs truncate">{inv.discrepancyNotes}</p>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[inv.status]}`}>{inv.status}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {inv.threeWayMatchStatus === 'pending' && (
+                        <button onClick={() => match(inv._id)} className="flex items-center gap-1 h-7 px-2 text-xs bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors">
+                          <ArrowRightLeft className="h-3 w-3" /> Match
+                        </button>
+                      )}
+                      {['received', 'underReview', 'matched'].includes(inv.status) && (
+                        <>
+                          <button onClick={() => approve(inv._id)} className="h-7 px-2 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors">Approve</button>
+                          <button onClick={() => setDisputingInvoice(inv)} className="h-7 px-2 text-xs bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors">Dispute</button>
+                        </>
+                      )}
+                      {inv.status === 'approved' && (
+                        <button onClick={() => pay(inv._id)} className="h-7 px-2 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors">Pay</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {invoices.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500">No vendor invoices recorded.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {showCreate && <CreateVendorInvoiceModal onClose={() => setShowCreate(false)} onSaved={load} />}
+      {disputingInvoice && <RejectModal title={disputingInvoice.invoiceNumber} onClose={() => setDisputingInvoice(null)} onConfirm={dispute} />}
     </div>
   );
 }
@@ -772,17 +1544,24 @@ function AccountsPayableTab() {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SpendingPage() {
-  const [tab, setTab] = useState('cards');
+  const { isHR, isDeptHead } = useAuth();
+  const isManager = isHR || isDeptHead;
+  const visibleTabs = TABS.filter(t => (t.hrOnly ? isHR : true) || (t.deptHeadUp && isManager));
+  const [tab, setTab] = useState(visibleTabs[0]?.key ?? 'procurement');
+
+  useEffect(() => {
+    if (!visibleTabs.some(t => t.key === tab)) setTab(visibleTabs[0]?.key ?? 'procurement');
+  }, [visibleTabs, tab]);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Spending</h1>
+        <h1 className="text-2xl font-bold text-white">Procurement</h1>
         <p className="text-sm text-slate-400 mt-0.5">Corporate cards, invoices, procurement, and accounts payable</p>
       </div>
 
-      <div className="flex gap-1 bg-slate-800/50 p-1 rounded-xl w-fit border border-slate-700">
-        {TABS.map(t => {
+      <div className="flex gap-1 bg-slate-800/50 p-1 rounded-xl w-fit border border-slate-700 flex-wrap">
+        {visibleTabs.map(t => {
           const Icon = t.icon;
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -796,10 +1575,13 @@ export default function SpendingPage() {
         })}
       </div>
 
-      {tab === 'cards'       && <CardsTab />}
-      {tab === 'invoices'    && <InvoicesTab />}
-      {tab === 'procurement' && <ProcurementTab />}
-      {tab === 'payable'     && <AccountsPayableTab />}
+      {tab === 'cards'           && <CardsTab />}
+      {tab === 'invoices'        && <InvoicesTab />}
+      {tab === 'procurement'     && <ProcurementTab />}
+      {tab === 'vendors'         && <VendorsTab />}
+      {tab === 'purchase-orders' && <PurchaseOrdersTab />}
+      {tab === 'vendor-invoices' && <VendorInvoicesTab />}
+      {tab === 'payable'         && <AccountsPayableTab />}
     </div>
   );
 }

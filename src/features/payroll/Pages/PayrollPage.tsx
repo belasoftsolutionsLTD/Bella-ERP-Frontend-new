@@ -704,6 +704,7 @@ export default function PayrollPage() {
               <a href="/en/payroll/employees" className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Compensations</a>
               <a href="/en/payroll/concepts"  className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Concepts</a>
               <a href="/en/payroll/analytics" className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Analytics</a>
+              <a href="/en/payroll/settings"  className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Settings</a>
               <button onClick={() => setReadyOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">
                 <ShieldCheck className="h-4 w-4" /> Check Readiness
               </button>

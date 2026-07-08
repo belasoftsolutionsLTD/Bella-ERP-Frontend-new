@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { employeeSchema, DEPARTMENTS, DESIGNATIONS } from './EmployeeSchema';
-import { useHrConfig } from '@/features/config/Hooks/useHrConfig';
+import { useConfigSection } from '@/hooks/useConfigSection';
 
 const schema = employeeSchema.pick({
   fullName: true, nationalId: true, designation: true, employmentType: true,
@@ -71,7 +71,9 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
   const router = useRouter();
   const locale = useLocale();
   const backdropRef = useRef<HTMLDivElement>(null);
-  const { departments, designations, jobGroups } = useHrConfig();
+  const departments = useConfigSection('departments');
+  const designations = useConfigSection('designations');
+  const jobGroups = useConfigSection('job-groups');
 
   const { register, handleSubmit, watch, formState: { isSubmitting, errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
