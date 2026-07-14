@@ -60,15 +60,15 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-[520px] flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[90vh]">
+      <div className="relative z-10 w-full max-w-[520px] flex flex-col bg-white border border-brand-border rounded-2xl shadow-2xl max-h-[90vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border shrink-0">
           <div>
-            <h2 className="text-base font-bold text-slate-100">Add New Goal</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Define what you want to achieve</p>
+            <h2 className="text-base font-bold text-brand-text">Add New Goal</h2>
+            <p className="text-xs text-brand-text-secondary mt-0.5">Define what you want to achieve</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-soft transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -78,7 +78,7 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
 
           {/* Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">
               Goal Title <span className="text-red-400">*</span>
             </label>
             <input
@@ -86,13 +86,13 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="What do you want to achieve?"
-              className="w-full h-10 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full h-10 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-2">
               Category <span className="text-red-400">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -104,8 +104,8 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
                   className={cn(
                     'flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium text-left transition-all',
                     category === key
-                      ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
-                      : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600',
+                      ? 'border-brand-primary bg-brand-primary/10 text-indigo-300'
+                      : 'border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:border-brand-border-strong',
                   )}
                 >
                   <span className="text-base">{cat.icon}</span>
@@ -117,36 +117,36 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Description</label>
+            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Description</label>
             <textarea
               rows={3}
               value={description}
               onChange={e => setDesc(e.target.value)}
               placeholder="Provide more context…"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
+              className="w-full bg-brand-bg-soft border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary resize-none"
             />
           </div>
 
           {/* Period + Visibility */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">
                 Period <span className="text-red-400">*</span>
               </label>
               <select
                 value={period}
                 onChange={e => setPeriod(e.target.value)}
-                className="w-full h-10 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                className="w-full h-10 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-sm text-brand-text focus:outline-none focus:border-brand-primary"
               >
                 {GOAL_PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Visibility</label>
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Visibility</label>
               <select
                 value={visibility}
                 onChange={e => setVisibility(e.target.value as 'private' | 'public')}
-                className="w-full h-10 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                className="w-full h-10 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-sm text-brand-text focus:outline-none focus:border-brand-primary"
               >
                 <option value="private">Private</option>
                 <option value="public">Public</option>
@@ -157,46 +157,46 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
           {/* Start / Due dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Start Date</label>
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Start Date</label>
               <input type="date" value={startDate} onChange={e => setStart(e.target.value)}
-                className="w-full h-10 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-10 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Due Date</label>
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Due Date</label>
               <input type="date" value={endDate} onChange={e => setEnd(e.target.value)}
-                className="w-full h-10 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-10 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
 
           {/* Key Results */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Key Results</label>
+              <label className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide">Key Results</label>
               <button type="button" onClick={addKR}
                 className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
                 <Plus className="h-3.5 w-3.5" /> Add Key Result
               </button>
             </div>
             {krs.length === 0 && (
-              <p className="text-xs text-slate-600 italic">Optional — add measurable targets for this goal.</p>
+              <p className="text-xs text-brand-text-muted italic">Optional — add measurable targets for this goal.</p>
             )}
             <div className="space-y-3">
               {krs.map((kr, i) => (
-                <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2">
+                <div key={i} className="bg-brand-bg-soft border border-brand-border rounded-lg p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <input
                       value={kr.description}
                       onChange={e => setKR(i, 'description', e.target.value)}
                       placeholder="Key result description…"
-                      className="flex-1 h-8 bg-slate-900 border border-slate-700 rounded px-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="flex-1 h-8 bg-white border border-brand-border rounded px-2 text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary"
                     />
-                    <button type="button" onClick={() => removeKR(i)} className="p-1 text-slate-600 hover:text-red-400 transition-colors">
+                    <button type="button" onClick={() => removeKR(i)} className="p-1 text-brand-text-muted hover:text-red-400 transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <select value={kr.type} onChange={e => setKR(i, 'type', e.target.value)}
-                      className="h-7 bg-slate-900 border border-slate-700 rounded px-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+                      className="h-7 bg-white border border-brand-border rounded px-2 text-xs text-brand-text-secondary focus:outline-none focus:border-brand-primary">
                       <option value="number">Number</option>
                       <option value="percentage">Percentage</option>
                       <option value="currency">Currency</option>
@@ -204,10 +204,10 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
                     </select>
                     <input value={kr.targetValue} onChange={e => setKR(i, 'targetValue', e.target.value)}
                       placeholder="Target" type="number"
-                      className="h-7 bg-slate-900 border border-slate-700 rounded px-2 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500" />
+                      className="h-7 bg-white border border-brand-border rounded px-2 text-xs text-brand-text-secondary placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
                     <input value={kr.unit} onChange={e => setKR(i, 'unit', e.target.value)}
                       placeholder="Unit (e.g. %)"
-                      className="h-7 bg-slate-900 border border-slate-700 rounded px-2 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500" />
+                      className="h-7 bg-white border border-brand-border rounded px-2 text-xs text-brand-text-secondary placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
                   </div>
                 </div>
               ))}
@@ -216,13 +216,13 @@ export function AddGoalDrawer({ onClose, onSave, saving }: Props) {
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700 shrink-0 rounded-b-2xl">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-brand-border shrink-0 rounded-b-2xl">
           <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">
+            className="px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-text transition-colors">
             Cancel
           </button>
           <button type="submit" form="add-goal-form" disabled={saving || !title.trim() || !category}
-            className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            className="px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             {saving ? 'Creating…' : 'Create Goal'}
           </button>
         </div>

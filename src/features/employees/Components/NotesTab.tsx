@@ -64,7 +64,7 @@ export function NotesTab({ employeeId }: { employeeId: string }) {
         <h3 className="font-semibold text-slate-800">Staff Notes ({notes.length})</h3>
         <button
           onClick={() => setShowForm(v => !v)}
-          className="flex items-center gap-1.5 h-8 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors"
+          className="flex items-center gap-1.5 h-8 px-3 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold rounded-lg transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
           Add Note
@@ -79,7 +79,7 @@ export function NotesTab({ employeeId }: { employeeId: string }) {
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+              className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
             >
               {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
@@ -91,14 +91,14 @@ export function NotesTab({ employeeId }: { employeeId: string }) {
               onChange={e => setNote(e.target.value)}
               rows={3}
               placeholder="Write the note here…"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 resize-none"
             />
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={save}
               disabled={saving || !note.trim()}
-              className="flex items-center gap-1.5 h-8 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 h-8 px-4 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition-colors"
             >
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {saving ? 'Saving…' : 'Save Note'}

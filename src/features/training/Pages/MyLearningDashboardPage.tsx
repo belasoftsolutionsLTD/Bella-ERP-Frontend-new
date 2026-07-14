@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { BookOpen, Award, Clock, AlertTriangle } from 'lucide-react';
 import { useMyEnrollments, useMyLearningPaths } from '../Hooks/useEnrollments';
 import { useMyCertificates } from '../Hooks/useCertificates';
-import { ENROLLMENT_STATUS_STYLES, ENROLLMENT_STATUS_LABELS } from '../constants';
+import { ENROLLMENT_STATUS_MAP, ENROLLMENT_STATUS_LABELS } from '../constants';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 function StatTile({ icon: Icon, label, value, accent }: { icon: any; label: string; value: number; accent?: string }) {
   return (
@@ -67,7 +68,7 @@ export function MyLearningDashboardPage({ locale }: { locale: string }) {
                 <div className="w-28 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
                   <div className="h-full bg-primary rounded-full" style={{ width: `${e.progressPercentage}%` }} />
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full border ${ENROLLMENT_STATUS_STYLES[e.status]}`}>{ENROLLMENT_STATUS_LABELS[e.status]}</span>
+                <StatusBadge status={ENROLLMENT_STATUS_MAP[e.status]} label={ENROLLMENT_STATUS_LABELS[e.status]} />
               </div>
             </Link>
           ))}

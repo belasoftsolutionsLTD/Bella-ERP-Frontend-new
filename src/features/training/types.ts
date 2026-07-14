@@ -11,8 +11,29 @@ export type ModuleProgressStatus = 'notStarted' | 'inProgress' | 'completed';
 export type EnrollmentTrigger = 'manual' | 'onHire' | 'onRoleChange' | 'onPerformanceReview' | 'scheduled';
 export type PathStatus = 'active' | 'archived';
 export type RuleTrigger = 'onHire' | 'onRoleChange' | 'onDepartmentChange' | 'onPerformanceScore' | 'onCertExpiry' | 'scheduled';
-export type ScheduledRecurrence = 'monthly' | 'quarterly' | 'annual';
+export type ScheduledRecurrence = 'monthly' | 'quarterly' | 'annual' | 'custom';
 export type ExternalCertStatus = 'pending' | 'verified' | 'rejected';
+export type DeliveryMethod = 'self_paced' | 'instructor_led';
+export type SessionStatus = 'scheduled' | 'completed' | 'cancelled';
+
+export interface TrainingSession {
+  _id: string;
+  courseId: string;
+  title: string;
+  facilitatorId?: string | null;
+  facilitatorName?: string | null;
+  scheduledAt: string;
+  durationMinutes: number;
+  meetingLink: string;
+  capacity?: number | null;
+  attendeeIds: string[];
+  status: SessionStatus;
+  attendance: { employeeId: string; attended: boolean }[];
+  createdAt: string;
+  updatedAt: string;
+  // populated on /my/sessions
+  course?: { title: string } | null;
+}
 
 export interface Course {
   _id: string;
@@ -30,6 +51,7 @@ export interface Course {
   targetDepartments: string[];
   hasCertificate: boolean;
   certificateValidityDays?: number | null;
+  deliveryMethod: DeliveryMethod;
   createdBy: string;
   authors: string[];
   publishedAt?: string;
@@ -188,6 +210,7 @@ export interface RuleTriggerConditions {
   skillGaps?: string[];
   daysBeforeCertExpiry?: number;
   scheduledRecurrence?: ScheduledRecurrence;
+  customIntervalDays?: number;
 }
 
 export interface RuleAction {

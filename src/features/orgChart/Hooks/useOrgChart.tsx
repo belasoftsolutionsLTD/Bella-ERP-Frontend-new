@@ -13,7 +13,11 @@ export interface OrgEmployee {
   staffNumber: string;
   profilePhoto: string | null;
   email?: string;
-  staffCategory?: string;
+  managerId?: string | null;
+}
+
+export interface OrgTreeNode extends OrgEmployee {
+  reports: OrgTreeNode[];
 }
 
 export interface OrgDepartment {
@@ -22,6 +26,7 @@ export interface OrgDepartment {
 }
 
 export interface OrgChartData {
+  tree: OrgTreeNode[];
   departments: OrgDepartment[];
   total: number;
 }

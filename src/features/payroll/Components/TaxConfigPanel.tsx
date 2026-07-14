@@ -311,7 +311,7 @@ export function TaxConfigPanel() {
         </div>
         <div className="flex gap-2">
           <button onClick={load}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border text-foreground/60 hover:bg-gray-50 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-muted transition-colors">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
           <button onClick={save} disabled={saving}

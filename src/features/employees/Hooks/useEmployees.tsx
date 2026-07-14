@@ -7,6 +7,8 @@ import { API_BASE_URL } from '@/configs/constants';
 export interface Employee {
   _id: string;
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   staffNumber: string;
   nationalId: string;
   designation: string;
@@ -14,7 +16,6 @@ export interface Employee {
   department: string;
   dateOfHire: string;
   contractEndDate?: string;
-  salaryGrade: string;
   grossPay?: number;
   jobGroupId?: string;
   kraPin?: string;
@@ -22,8 +23,20 @@ export interface Employee {
   mpesaNumber?: string;
   email: string;
   phone?: string;
-  staffCategory: string;
   status: string;
+  location?: string;
+  preferredName?: string;
+  gender?: 'male' | 'female' | 'preferNotToSay';
+  maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
+  nationality?: string;
+  passportNumber?: string;
+  passportExpiryDate?: string;
+  address?: { street?: string; city?: string; state?: string; country?: string; postalCode?: string } | null;
+  emergencyContacts?: { id: string; name: string; relationship?: string | null; phone: string; email?: string | null }[];
+  skills?: string[];
+  certifications?: { id: string; name: string; issuingOrganization: string; issueDate: string; expiryDate?: string | null; fileUrl?: string | null }[];
+  educationHistory?: { id: string; institution: string; degree: string; fieldOfStudy: string; startYear: number; endYear?: number | null }[];
+  pendingPerformanceFlag?: { type: 'promote' | 'pip'; reviewId: string; cycleId: string; flaggedAt: string } | null;
   createdAt: string;
 }
 
@@ -31,7 +44,6 @@ export interface EmployeeFilters {
   department?: string;
   designation?: string;
   employmentType?: string;
-  staffCategory?: string;
   status?: string;
   search?: string;
   page?: number;

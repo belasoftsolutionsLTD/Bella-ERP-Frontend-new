@@ -23,19 +23,19 @@ export function EmployeeCard({ emp }: { emp: Employee }) {
   return (
     <Link href={`/${locale}/employees/${emp._id}`} className="block">
       <div className={cn(
-        'rounded-2xl border bg-[#1e293b] p-4 hover:border-slate-600 transition-colors cursor-pointer',
+        'rounded-2xl border bg-brand-bg-soft p-4 hover:border-brand-border-strong transition-colors cursor-pointer',
         hasCrit         ? 'border-red-500/40'    :
         gaps.length > 0 ? 'border-amber-500/40'  :
-                          'border-slate-700/60',
+                          'border-brand-border/60',
       )}>
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            <div className="h-10 w-10 rounded-full bg-brand-primary flex items-center justify-center text-white font-bold text-sm shrink-0">
               {initials}
             </div>
             <div>
-              <p className="font-semibold text-sm text-slate-100">{emp.fullName}</p>
-              <p className="text-xs text-slate-500 font-mono">{emp.staffNumber}</p>
+              <p className="font-semibold text-sm text-brand-text">{emp.fullName}</p>
+              <p className="text-xs text-brand-text-muted font-mono">{emp.staffNumber}</p>
             </div>
           </div>
           {gaps.length > 0 && (
@@ -45,8 +45,8 @@ export function EmployeeCard({ emp }: { emp: Employee }) {
           )}
         </div>
 
-        <p className="text-xs text-slate-400">{emp.designation}</p>
-        <p className="text-xs text-slate-500">{emp.department}</p>
+        <p className="text-xs text-brand-text-secondary">{emp.designation}</p>
+        <p className="text-xs text-brand-text-muted">{emp.department}{emp.location ? ` · ${emp.location}` : ''}</p>
 
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',

@@ -12,7 +12,7 @@ const COLORS: Record<string, string> = {
 const LABELS: Record<string, string> = { present: 'P', absent: 'A', late: 'L', incomplete: 'I', half_day: 'H', remote: 'R' };
 
 export function AttendanceCell({ status, offsite }: { status?: string; offsite?: boolean }) {
-  if (!status) return <div className="w-8 h-8 rounded border border-slate-700/50 bg-slate-800/30" />;
+  if (!status) return <div className="w-8 h-8 rounded border border-brand-border/50 bg-brand-bg-soft/30" />;
   return (
     <div className="relative inline-flex">
       <div className={cn('w-8 h-8 rounded flex items-center justify-center text-xs font-bold', COLORS[status] ?? 'bg-gray-100')}>

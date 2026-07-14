@@ -16,7 +16,6 @@ export interface StaffEmployee {
   phone?: string;
   photoPath?: string;
   dateOfHire: string;
-  staffCategory: string;
   paymentMethod?: string;
   bankName?: string;
   bankAccountNumber?: string;

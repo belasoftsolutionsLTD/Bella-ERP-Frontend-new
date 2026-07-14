@@ -98,12 +98,12 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
             <button
               type="button"
               onClick={() => setStep(i)}
-              className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold ${i === step ? 'bg-primary text-white' : i < step ? 'bg-primary/20 text-primary' : 'bg-slate-100 text-slate-400'}`}
+              className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold ${i === step ? 'bg-primary text-white' : i < step ? 'bg-primary/20 text-primary' : 'bg-slate-100 text-brand-text-secondary'}`}
             >
               {i + 1}
             </button>
-            <span className={`text-xs font-medium ${i === step ? 'text-slate-100' : 'text-slate-500'} hidden sm:block`}>{label}</span>
-            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-slate-700" />}
+            <span className={`text-xs font-medium ${i === step ? 'text-brand-text' : 'text-brand-text-muted'} hidden sm:block`}>{label}</span>
+            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-brand-bg-muted" />}
           </div>
         ))}
       </div>
@@ -142,7 +142,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
               {screeningQuestions.fields.map((field, i) => (
                 <div key={field.id} className="flex items-center gap-2">
                   <input {...register(`screeningQuestions.${i}.question`)} placeholder="e.g. Are you authorized to work in this location?" className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                  <label className="flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
+                  <label className="flex items-center gap-1.5 text-xs text-brand-text-muted whitespace-nowrap">
                     <input type="checkbox" {...register(`screeningQuestions.${i}.required`)} /> Required
                   </label>
                   <button type="button" onClick={() => screeningQuestions.remove(i)} className="text-red-500 hover:text-red-700 p-1.5">
@@ -150,7 +150,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                   </button>
                 </div>
               ))}
-              {screeningQuestions.fields.length === 0 && <p className="text-xs text-slate-400">Candidates applying on the careers site will answer these alongside the standard fields.</p>}
+              {screeningQuestions.fields.length === 0 && <p className="text-xs text-brand-text-secondary">Candidates applying on the careers site will answer these alongside the standard fields.</p>}
             </div>
           </div>
         )}
@@ -163,7 +163,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                 <Plus className="h-4 w-4 mr-1" /> Add Competency
               </Button>
             </div>
-            {competencies.fields.length === 0 && <p className="text-sm text-slate-500">No competencies added yet. These become the scorecard categories interviewers rate.</p>}
+            {competencies.fields.length === 0 && <p className="text-sm text-brand-text-muted">No competencies added yet. These become the scorecard categories interviewers rate.</p>}
             {competencies.fields.map((field, i) => (
               <div key={field.id} className="border border-slate-200 rounded-lg p-4 space-y-2">
                 <div className="flex items-start gap-2">
@@ -171,7 +171,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                     <input {...register(`competencies.${i}.name`)} placeholder="Competency name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                     <textarea {...register(`competencies.${i}.description`)} placeholder="Description / evaluation guidance" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" rows={2} />
                     <div className="flex items-center gap-2">
-                      <label className="text-xs text-slate-500">Weight (1-5)</label>
+                      <label className="text-xs text-brand-text-muted">Weight (1-5)</label>
                       <input type="number" min={1} max={5} {...register(`competencies.${i}.weight`, { valueAsNumber: true })} className="w-16 rounded-md border border-slate-300 px-2 py-1 text-sm" />
                     </div>
                   </div>
@@ -209,7 +209,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                         </select>
                       )}
                     />
-                    <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <label className="flex items-center gap-2 text-sm text-brand-text-muted">
                       <input type="checkbox" {...register(`pipelineStages.${i}.requiresScorecard`)} /> Requires scorecard
                     </label>
                   </div>
@@ -252,11 +252,11 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                     return (
                       <div className="pt-1 border-t border-slate-100 mt-2 space-y-2">
                         <div className="flex flex-wrap gap-4">
-                          <label className="flex items-center gap-2 text-xs text-slate-600">
+                          <label className="flex items-center gap-2 text-xs text-brand-text-muted">
                             <input type="checkbox" checked={has('emailCandidate')} onChange={() => toggle('emailCandidate')} />
                             Email the candidate when they enter this stage
                           </label>
-                          <label className="flex items-center gap-2 text-xs text-slate-600">
+                          <label className="flex items-center gap-2 text-xs text-brand-text-muted">
                             <input type="checkbox" checked={has('notifyHiringManager')} onChange={() => toggle('notifyHiringManager')} />
                             Notify hiring manager when they enter this stage
                           </label>
@@ -278,7 +278,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
               </div>
               );
             })}
-            <p className="text-xs text-slate-500">Order matters — candidates move through these stages left to right. Include a final stage of type &quot;Hired&quot; to trigger onboarding automatically. Candidate emails use a standard &quot;your application has moved to X&quot; message.</p>
+            <p className="text-xs text-brand-text-muted">Order matters — candidates move through these stages left to right. Include a final stage of type &quot;Hired&quot; to trigger onboarding automatically. Candidate emails use a standard &quot;your application has moved to X&quot; message.</p>
           </div>
         )}
 
@@ -290,7 +290,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                 <Plus className="h-4 w-4 mr-1" /> Add Approver
               </Button>
             </div>
-            {approvalChain.fields.length === 0 && <p className="text-sm text-slate-500">Add at least one approver before this requisition can be submitted.</p>}
+            {approvalChain.fields.length === 0 && <p className="text-sm text-brand-text-muted">Add at least one approver before this requisition can be submitted.</p>}
             {approvalChain.fields.map((field, i) => (
               <div key={field.id} className="flex items-center gap-2">
                 <Controller
@@ -323,15 +323,15 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Review</h2>
             <dl className="text-sm space-y-2">
-              <div className="flex justify-between"><dt className="text-slate-500">Title</dt><dd className="font-medium">{values.title}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Department</dt><dd className="font-medium">{values.department}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Location</dt><dd className="font-medium">{values.location}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Headcount</dt><dd className="font-medium">{values.headcount}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Competencies</dt><dd className="font-medium">{values.competencies?.length || 0}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Pipeline Stages</dt><dd className="font-medium">{values.pipelineStages?.length || 0}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Approvers</dt><dd className="font-medium">{values.approvalChain?.length || 0}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Title</dt><dd className="font-medium">{values.title}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Department</dt><dd className="font-medium">{values.department}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Location</dt><dd className="font-medium">{values.location}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Headcount</dt><dd className="font-medium">{values.headcount}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Competencies</dt><dd className="font-medium">{values.competencies?.length || 0}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Pipeline Stages</dt><dd className="font-medium">{values.pipelineStages?.length || 0}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Approvers</dt><dd className="font-medium">{values.approvalChain?.length || 0}</dd></div>
             </dl>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-brand-text-muted">
               {isEditMode
                 ? 'Changes are saved immediately and apply to the live requisition — including any candidates already in the pipeline.'
                 : 'This requisition will be created as a Draft. You can submit it for approval from the requisition detail page once ready.'}

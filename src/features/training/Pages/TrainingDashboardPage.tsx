@@ -12,7 +12,7 @@ function StatTile({ icon: Icon, label, value }: { icon: any; label: string; valu
         <Icon className="h-5 w-5" />
       </div>
       <div>
-        <p className="text-xs text-slate-500">{label}</p>
+        <p className="text-xs text-brand-text-muted">{label}</p>
         <p className="text-xl font-semibold text-slate-900">{value}</p>
       </div>
     </div>
@@ -29,13 +29,13 @@ export function TrainingDashboardPage({ locale }: { locale: string }) {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Training</h1>
-          <p className="text-sm text-slate-400">Build courses, track compliance, and grow your team&apos;s skills.</p>
+          <h1 className="text-xl font-semibold text-brand-text">Training</h1>
+          <p className="text-sm text-brand-text-secondary">Build courses, track compliance, and grow your team&apos;s skills.</p>
         </div>
         <div className="flex gap-2">
           <Link href={`/${locale}/training/courses/new`} className="px-3 py-2 rounded-md bg-primary text-white text-sm font-medium">Build Course</Link>
-          <Link href={`/${locale}/training/assignments`} className="px-3 py-2 rounded-md border border-slate-700 text-slate-200 text-sm font-medium">Assign Training</Link>
-          <Link href={`/${locale}/training/compliance`} className="px-3 py-2 rounded-md border border-slate-700 text-slate-200 text-sm font-medium">Compliance Report</Link>
+          <Link href={`/${locale}/training/assignments`} className="px-3 py-2 rounded-md border border-brand-border text-brand-text text-sm font-medium">Assign Training</Link>
+          <Link href={`/${locale}/training/compliance`} className="px-3 py-2 rounded-md border border-brand-border text-brand-text text-sm font-medium">Compliance Report</Link>
         </div>
       </div>
 
@@ -50,12 +50,12 @@ export function TrainingDashboardPage({ locale }: { locale: string }) {
       <div className="bg-white rounded-xl border border-slate-200 p-4">
         <h2 className="font-semibold text-slate-900 mb-3">Department Compliance</h2>
         {mandatoryCourses.length === 0 ? (
-          <p className="text-sm text-slate-400">No mandatory courses configured yet.</p>
+          <p className="text-sm text-brand-text-secondary">No mandatory courses configured yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-slate-500 uppercase">
+                <tr className="text-left text-xs text-brand-text-muted uppercase">
                   <th className="py-2 pr-4">Department</th>
                   {mandatoryCourses.map((c) => <th key={c.courseId} className="py-2 px-2 text-center">{c.title}</th>)}
                 </tr>
@@ -67,17 +67,17 @@ export function TrainingDashboardPage({ locale }: { locale: string }) {
                     {mandatoryCourses.map((c) => {
                       const inScope = c.targetDepartments.includes(dept);
                       const rate = c.completionRate;
-                      const color = !inScope ? 'bg-slate-50 text-slate-300' : rate >= 80 ? 'bg-green-100 text-green-800' : rate >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
+                      const color = !inScope ? 'bg-slate-50 text-brand-text-secondary' : rate >= 80 ? 'bg-green-100 text-green-800' : rate >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
                       return (
                         <td key={c.courseId} className="py-2 px-2 text-center">
-                          {inScope ? <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${color}`}>{rate}%</span> : <span className="text-slate-300">—</span>}
+                          {inScope ? <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${color}`}>{rate}%</span> : <span className="text-brand-text-secondary">—</span>}
                         </td>
                       );
                     })}
                   </tr>
                 ))}
                 {departments.length === 0 && (
-                  <tr><td colSpan={mandatoryCourses.length + 1} className="py-4 text-center text-slate-400">No target departments configured.</td></tr>
+                  <tr><td colSpan={mandatoryCourses.length + 1} className="py-4 text-center text-brand-text-secondary">No target departments configured.</td></tr>
                 )}
               </tbody>
             </table>
@@ -93,7 +93,7 @@ export function TrainingDashboardPage({ locale }: { locale: string }) {
         ].map((item) => (
           <Link key={item.href} href={`/${locale}/training/${item.href}`} className="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary/40 hover:shadow-sm transition">
             <p className="font-medium text-slate-900">{item.label}</p>
-            <p className="text-xs text-slate-500">{item.desc}</p>
+            <p className="text-xs text-brand-text-muted">{item.desc}</p>
           </Link>
         ))}
       </div>

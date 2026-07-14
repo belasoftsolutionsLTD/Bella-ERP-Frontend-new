@@ -9,11 +9,11 @@ import { CustomInput } from '@/components/custom-ui/CustomInput';
 import { Button } from '@/components/ui/button';
 import { useCourse, useCourses } from '../Hooks/useCourses';
 import { useUserAccounts } from '../Hooks/useUserAccounts';
+import { useCourseSessions } from '../Hooks/useSessions';
 import { CreateCourseSchema, type CreateCourseFormValues } from '../schemas';
 import { CATEGORY_OPTIONS, DIFFICULTY_OPTIONS, MODULE_TYPE_OPTIONS } from '../constants';
 import { AddModuleForm, QuizBuilder } from '../Components/ModuleEditor';
-
-const STEPS = ['Details', 'Modules', 'Co-Authors', 'Review'];
+import { SessionsManager } from '../Components/SessionsManager';
 
 export function CourseBuilderPage({ locale, courseId }: { locale: string; courseId?: string }) {
   const router = useRouter();
@@ -21,17 +21,21 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
   const { createCourse } = useCourses();
   const { course, updateCourse, publishCourse, addAuthor, addModule, deleteModule, createQuiz } = useCourse(courseId);
   const { accounts } = useUserAccounts();
+  const { sessions } = useCourseSessions(courseId);
   const [step, setStep] = useState(0);
   const [quizModuleId, setQuizModuleId] = useState<string | null>(null);
 
-  const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<CreateCourseFormValues>({
+  const { control, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm<CreateCourseFormValues>({
     resolver: zodResolver(CreateCourseSchema),
     defaultValues: {
       title: '', description: '', category: 'Technical', tags: [], skillsTaught: [],
       estimatedDurationMinutes: 30, difficultyLevel: 'beginner', isMandatory: false,
       targetRoles: [], targetDepartments: [], hasCertificate: false, certificateValidityDays: null,
+      deliveryMethod: 'self_paced',
     },
   });
+  const isInstructorLed = (course?.deliveryMethod ?? watch('deliveryMethod')) === 'instructor_led';
+  const STEPS = ['Details', isInstructorLed ? 'Sessions' : 'Modules', 'Co-Authors', 'Review'];
 
   useEffect(() => {
     if (course) {
@@ -41,6 +45,7 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
         estimatedDurationMinutes: course.estimatedDurationMinutes, difficultyLevel: course.difficultyLevel,
         isMandatory: course.isMandatory, targetRoles: course.targetRoles, targetDepartments: course.targetDepartments,
         hasCertificate: course.hasCertificate, certificateValidityDays: course.certificateValidityDays,
+        deliveryMethod: course.deliveryMethod ?? 'self_paced',
       });
     }
   }, [course?._id]);
@@ -62,11 +67,11 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
       <div className="flex items-center gap-2 mb-6">
         {STEPS.map((label, i) => (
           <div key={label} className="flex items-center gap-2 flex-1">
-            <button type="button" onClick={() => setStep(i)} className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold ${i === step ? 'bg-primary text-white' : i < step ? 'bg-primary/20 text-primary' : 'bg-slate-100 text-slate-400'}`}>
+            <button type="button" onClick={() => setStep(i)} className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold ${i === step ? 'bg-primary text-white' : i < step ? 'bg-primary/20 text-primary' : 'bg-slate-100 text-brand-text-secondary'}`}>
               {i + 1}
             </button>
-            <span className={`text-xs font-medium ${i === step ? 'text-slate-100' : 'text-slate-500'} hidden sm:block`}>{label}</span>
-            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-slate-700" />}
+            <span className={`text-xs font-medium ${i === step ? 'text-brand-text' : 'text-brand-text-muted'} hidden sm:block`}>{label}</span>
+            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-brand-bg-muted" />}
           </div>
         ))}
       </div>
@@ -84,10 +89,29 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
           <CustomInput component="number" name="estimatedDurationMinutes" control={control} label="Estimated Duration (minutes)" />
           <Controller
             control={control}
+            name="deliveryMethod"
+            render={({ field }) => (
+              <div>
+                <label className="text-sm text-brand-text-muted block mb-1">Delivery Method</label>
+                <select
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  disabled={isEditMode}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-brand-text-secondary"
+                >
+                  <option value="self_paced">Self-Paced (video/document/quiz modules)</option>
+                  <option value="instructor_led">Instructor-Led (scheduled live sessions)</option>
+                </select>
+                {isEditMode && <p className="text-xs text-brand-text-secondary mt-1">Delivery method can't be changed after a course is created.</p>}
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
             name="targetRoles"
             render={({ field }) => (
               <div>
-                <label className="text-sm text-slate-600 block mb-1">Target Roles (comma separated)</label>
+                <label className="text-sm text-brand-text-muted block mb-1">Target Roles (comma separated)</label>
                 <input
                   defaultValue={field.value.join(', ')}
                   onBlur={(e) => field.onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
@@ -102,7 +126,7 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
             name="targetDepartments"
             render={({ field }) => (
               <div>
-                <label className="text-sm text-slate-600 block mb-1">Target Departments (comma separated)</label>
+                <label className="text-sm text-brand-text-muted block mb-1">Target Departments (comma separated)</label>
                 <input
                   defaultValue={field.value.join(', ')}
                   onBlur={(e) => field.onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
@@ -117,7 +141,7 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
             name="skillsTaught"
             render={({ field }) => (
               <div>
-                <label className="text-sm text-slate-600 block mb-1">Skills Taught (comma separated)</label>
+                <label className="text-sm text-brand-text-muted block mb-1">Skills Taught (comma separated)</label>
                 <input
                   defaultValue={field.value.join(', ')}
                   onBlur={(e) => field.onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
@@ -128,10 +152,10 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
           />
           <div className="flex gap-6">
             <Controller control={control} name="isMandatory" render={({ field }) => (
-              <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={field.value} onChange={(e) => field.onChange(e.target.checked)} /> Mandatory</label>
+              <label className="flex items-center gap-2 text-sm text-brand-text-muted"><input type="checkbox" checked={field.value} onChange={(e) => field.onChange(e.target.checked)} /> Mandatory</label>
             )} />
             <Controller control={control} name="hasCertificate" render={({ field }) => (
-              <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={field.value} onChange={(e) => field.onChange(e.target.checked)} /> Awards certificate</label>
+              <label className="flex items-center gap-2 text-sm text-brand-text-muted"><input type="checkbox" checked={field.value} onChange={(e) => field.onChange(e.target.checked)} /> Awards certificate</label>
             )} />
           </div>
           <CustomInput component="number" name="certificateValidityDays" control={control} label="Certificate Validity (days, blank = never expires)" />
@@ -147,14 +171,23 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
       {step === 1 && (
         <div className="space-y-4">
           {!isEditMode && <p className="text-sm text-amber-400">Save the course details first.</p>}
-          {isEditMode && (
+          {isEditMode && isInstructorLed && courseId && (
+            <>
+              <SessionsManager courseId={courseId} />
+              <div className="flex justify-between pt-2">
+                <Button variant="outline" onClick={() => setStep(0)}><ChevronLeft className="h-4 w-4 mr-1" /> Back</Button>
+                <Button className="bg-primary text-white" onClick={() => setStep(2)}>Next <ChevronRight className="h-4 w-4 ml-1" /></Button>
+              </div>
+            </>
+          )}
+          {isEditMode && !isInstructorLed && (
             <>
               <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
                 {modules.map((m: any) => (
                   <div key={m._id} className="p-3 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-slate-800">{m.order + 1}. {m.title}</p>
-                      <p className="text-xs text-slate-500">{MODULE_TYPE_OPTIONS.find((o) => o.value === m.type)?.label}{m.isRequired ? ' · Required' : ''}</p>
+                      <p className="text-xs text-brand-text-muted">{MODULE_TYPE_OPTIONS.find((o) => o.value === m.type)?.label}{m.isRequired ? ' · Required' : ''}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {m.type === 'quiz' && (
@@ -166,7 +199,7 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
                     </div>
                   </div>
                 ))}
-                {modules.length === 0 && <p className="p-6 text-sm text-slate-400 text-center">No modules yet.</p>}
+                {modules.length === 0 && <p className="p-6 text-sm text-brand-text-secondary text-center">No modules yet.</p>}
               </div>
 
               {quizModuleId && (
@@ -211,9 +244,14 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
           <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">Review</h2>
             <dl className="text-sm space-y-1.5">
-              <div className="flex justify-between"><dt className="text-slate-500">Title</dt><dd className="font-medium">{course.title}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Modules</dt><dd className="font-medium">{modules.length}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Status</dt><dd className="font-medium capitalize">{course.status}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Title</dt><dd className="font-medium">{course.title}</dd></div>
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Delivery</dt><dd className="font-medium">{isInstructorLed ? 'Instructor-Led' : 'Self-Paced'}</dd></div>
+              {isInstructorLed ? (
+                <div className="flex justify-between"><dt className="text-brand-text-muted">Sessions</dt><dd className="font-medium">{sessions.filter((s) => s.status !== 'cancelled').length}</dd></div>
+              ) : (
+                <div className="flex justify-between"><dt className="text-brand-text-muted">Modules</dt><dd className="font-medium">{modules.length}</dd></div>
+              )}
+              <div className="flex justify-between"><dt className="text-brand-text-muted">Status</dt><dd className="font-medium capitalize">{course.status}</dd></div>
             </dl>
           </div>
           <div className="flex justify-between">

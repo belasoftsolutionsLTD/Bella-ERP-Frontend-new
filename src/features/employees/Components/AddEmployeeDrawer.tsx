@@ -1,32 +1,38 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, User, Briefcase, CalendarDays, DollarSign, CreditCard, Heart, Loader2, Upload, AlertCircle } from 'lucide-react';
+import { X, User, Briefcase, CalendarDays, DollarSign, CreditCard, Heart, Loader2, Upload, AlertCircle, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
-import { employeeSchema, DEPARTMENTS, DESIGNATIONS } from './EmployeeSchema';
+import { employeeSchema, DEPARTMENTS, DESIGNATIONS, KENYA_BANKS, MPESA_NUMBER_REGEX, MPESA_NUMBER_ERROR } from './EmployeeSchema';
 import { useConfigSection } from '@/hooks/useConfigSection';
 
 const schema = employeeSchema.pick({
-  fullName: true, nationalId: true, designation: true, employmentType: true,
-  department: true, dateOfHire: true, dateOfBirth: true, contractEndDate: true, salaryGrade: true,
+  firstName: true, lastName: true, nationalId: true, designation: true, employmentType: true,
+  department: true, dateOfHire: true, dateOfBirth: true, contractEndDate: true, jobGroupId: true,
+  probationEndDate: true, confirmationDate: true,
   grossPay: true, taxId: true, paymentMethod: true, bankName: true, bankAccountNumber: true,
   mpesaNumber: true, paypalEmail: true, cryptoWalletAddress: true, cryptoNetwork: true,
   email: true, phone: true, nokName: true, nokRelationship: true, nokPhone: true,
   nokNationalId: true, nokEmail: true, location: true, costCenter: true,
-  staffCategory: true,
+  preferredName: true, gender: true, maritalStatus: true, nationality: true,
+  passportNumber: true, passportExpiryDate: true,
+  addressStreet: true, addressCity: true, addressState: true, addressCountry: true, addressPostalCode: true,
 }).superRefine((data, ctx) => {
   if (data.paymentMethod === 'bank_transfer' && !data.bankAccountNumber?.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account number is required for bank transfer', path: ['bankAccountNumber'] });
   }
   if (data.paymentMethod === 'mpesa' && !data.mpesaNumber?.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'M-Pesa number is required', path: ['mpesaNumber'] });
+  }
+  if (data.paymentMethod === 'mpesa' && data.mpesaNumber?.trim() && !MPESA_NUMBER_REGEX.test(data.mpesaNumber.trim())) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: MPESA_NUMBER_ERROR, path: ['mpesaNumber'] });
   }
   if (data.paymentMethod === 'paypal' && !data.paypalEmail?.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'PayPal email is required', path: ['paypalEmail'] });
@@ -50,7 +56,7 @@ const PAYMENT_METHODS = [
   { label: 'Crypto',        value: 'crypto'        },
 ];
 
-const inp = 'w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-300 transition-colors';
+const inp = 'w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors';
 const sel = `${inp} appearance-none`;
 
 function SectionHeader({ icon: Icon, title, color }: { icon: React.ElementType; title: string; color: string }) {
@@ -75,23 +81,29 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
   const designations = useConfigSection('designations');
   const jobGroups = useConfigSection('job-groups');
 
-  const { register, handleSubmit, watch, formState: { isSubmitting, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { isSubmitting, errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { paymentMethod: 'bank_transfer' },
   });
   const paymentMethod = watch('paymentMethod');
+  const bankName = watch('bankName');
+  const [bankIsOther, setBankIsOther] = useState(false);
   const departmentOptions = (departments.items.length > 0 ? departments.items : DEPARTMENTS.map(name => ({ name })))
     .map((d) => ({ label: d.name, value: d.name }));
   const designationOptions = (designations.items.length > 0 ? designations.items : DESIGNATIONS.map(name => ({ name })))
     .map((d) => ({ label: d.name, value: d.name }));
 
   const submit = async (data: FormValues) => {
-    const { nokName, nokRelationship, nokPhone, nokNationalId, nokEmail, taxId, ...rest } = data;
+    const { nokName, nokRelationship, nokPhone, nokNationalId, nokEmail, taxId, addressStreet, addressCity, addressState, addressCountry, addressPostalCode, ...rest } = data;
     const payload = {
       ...rest,
+      fullName: `${data.firstName} ${data.lastName}`.trim(),
       kraPin: taxId || null,
       nextOfKin: (nokName || nokPhone || nokNationalId || nokEmail)
         ? { name: nokName, relationship: nokRelationship, phone: nokPhone, nationalId: nokNationalId, email: nokEmail }
+        : null,
+      address: (addressStreet || addressCity || addressState || addressCountry || addressPostalCode)
+        ? { street: addressStreet, city: addressCity, state: addressState, country: addressCountry, postalCode: addressPostalCode }
         : null,
     };
     await apiCallFunction<any>({
@@ -121,7 +133,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-              <User className="h-4 w-4 text-indigo-600" />
+              <User className="h-4 w-4 text-brand-primary" />
             </div>
             <div>
               <p className="font-bold text-sm text-slate-900">Add Employee</p>
@@ -144,10 +156,15 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
             <div className="space-y-4">
               <SectionHeader icon={User} title="Personal Information" color="text-blue-600 border-blue-100" />
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Full Name *</label>
-                  <input {...register('fullName')} placeholder="e.g. Jane Wanjiku" className={inp} />
-                  {errors.fullName && <p className="text-xs text-red-500">{errors.fullName.message}</p>}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">First Name *</label>
+                  <input {...register('firstName')} placeholder="e.g. Jane" className={inp} />
+                  {errors.firstName && <p className="text-xs text-red-500">{errors.firstName.message}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Last Name *</label>
+                  <input {...register('lastName')} placeholder="e.g. Wanjiku" className={inp} />
+                  {errors.lastName && <p className="text-xs text-red-500">{errors.lastName.message}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-slate-600">National ID *</label>
@@ -160,6 +177,68 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-slate-600">Phone</label>
                   <input {...register('phone')} placeholder="+254 7XX XXX XXX" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Preferred Name</label>
+                  <input {...register('preferredName')} placeholder="e.g. Jay" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Gender</label>
+                  <select {...register('gender')} className={sel}>
+                    <option value="">Not specified</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="preferNotToSay">Prefer not to say</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Marital Status</label>
+                  <select {...register('maritalStatus')} className={sel}>
+                    <option value="">Not specified</option>
+                    <option value="single">Single</option>
+                    <option value="married">Married</option>
+                    <option value="divorced">Divorced</option>
+                    <option value="widowed">Widowed</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Nationality</label>
+                  <input {...register('nationality')} placeholder="e.g. Kenyan" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Passport Number</label>
+                  <input {...register('passportNumber')} placeholder="e.g. A1234567" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Passport Expiry</label>
+                  <input {...register('passportExpiryDate')} type="date" className={inp} />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Address ─────────────────────────────────────────────── */}
+            <div className="space-y-4">
+              <SectionHeader icon={MapPin} title="Address" color="text-teal-600 border-teal-100" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Street</label>
+                  <input {...register('addressStreet')} placeholder="e.g. Waiyaki Way" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">City</label>
+                  <input {...register('addressCity')} placeholder="e.g. Nairobi" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">State / County</label>
+                  <input {...register('addressState')} placeholder="e.g. Nairobi County" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Country</label>
+                  <input {...register('addressCountry')} placeholder="e.g. Kenya" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Postal Code</label>
+                  <input {...register('addressPostalCode')} placeholder="e.g. 00100" className={inp} />
                 </div>
               </div>
             </div>
@@ -187,17 +266,6 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                   <select {...register('employmentType')} className={sel}>
                     <option value="">Select…</option>
                     {EMPLOYMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Staff Category</label>
-                  <select {...register('staffCategory')} className={sel}>
-                    <option value="">Not specified</option>
-                    <option value="full-time">Full-Time</option>
-                    <option value="part-time">Part-Time</option>
-                    <option value="contract">Contract</option>
-                    <option value="casual">Casual</option>
-                    <option value="management">Management</option>
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -231,6 +299,14 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                   <input {...register('contractEndDate')} type="date" className={inp} />
                   <p className="text-[10px] text-slate-400">Leave blank for permanent staff.</p>
                 </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Probation End Date</label>
+                  <input {...register('probationEndDate')} type="date" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Confirmation Date</label>
+                  <input {...register('confirmationDate')} type="date" className={inp} />
+                </div>
               </div>
             </div>
 
@@ -250,22 +326,19 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-slate-600">Job Group *</label>
-                  {jobGroups.items.length > 0 ? (
-                    <select {...register('salaryGrade')} className={sel}>
-                      <option value="">Select job group…</option>
-                      {jobGroups.items.map(g => <option key={g._id} value={g.name}>{g.name}</option>)}
-                    </select>
-                  ) : (
-                    <input {...register('salaryGrade')} placeholder="e.g. Grade 5" className={inp} />
-                  )}
-                  {errors.salaryGrade && <p className="text-xs text-red-500">{errors.salaryGrade.message}</p>}
+                  <select {...register('jobGroupId')} className={sel}>
+                    <option value="">Select job group…</option>
+                    {jobGroups.items.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
+                  </select>
+                  {jobGroups.items.length === 0 && <p className="text-[10px] text-amber-600">No job groups defined yet — create one in People Settings first.</p>}
+                  {errors.jobGroupId && <p className="text-xs text-red-500">{errors.jobGroupId.message}</p>}
                 </div>
                 <div className="col-span-2 space-y-1">
                   <label className="text-xs font-medium text-slate-600">Tax ID / PIN</label>
                   <input {...register('taxId')} placeholder="e.g. A000123456X / TIN-00123" className={inp} />
                   <div className="flex items-center gap-1.5 mt-1">
                     <Upload className="h-3 w-3 text-indigo-400 shrink-0" />
-                    <p className="text-[10px] text-indigo-600">Upload the tax certificate in the <strong>Documents</strong> tab after saving this employee.</p>
+                    <p className="text-[10px] text-brand-primary">Upload the tax certificate in the <strong>Documents</strong> tab after saving this employee.</p>
                   </div>
                 </div>
               </div>
@@ -273,7 +346,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
 
             {/* ── Payment Method ──────────────────────────────────────── */}
             <div className="space-y-4">
-              <SectionHeader icon={CreditCard} title="Payment Method" color="text-indigo-600 border-indigo-100" />
+              <SectionHeader icon={CreditCard} title="Payment Method" color="text-brand-primary border-indigo-100" />
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 space-y-1">
                   <label className="text-xs font-medium text-slate-600">Method</label>
@@ -284,7 +357,17 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                 {paymentMethod === 'bank_transfer' && (<>
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-slate-600">Bank Name</label>
-                    <input {...register('bankName')} placeholder="e.g. Equity Bank" className={inp} />
+                    <select value={bankIsOther ? 'Other' : (bankName ?? '')}
+                      onChange={e => {
+                        if (e.target.value === 'Other') { setBankIsOther(true); setValue('bankName', ''); }
+                        else { setBankIsOther(false); setValue('bankName', e.target.value); }
+                      }} className={sel}>
+                      <option value="" disabled>Select a bank…</option>
+                      {KENYA_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                    {bankIsOther && (
+                      <input {...register('bankName')} placeholder="Type the bank name" className={cn(inp, 'mt-1.5')} />
+                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-slate-600">Account Number *</label>
@@ -295,7 +378,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                 {paymentMethod === 'mpesa' && (
                   <div className="col-span-2 space-y-1">
                     <label className="text-xs font-medium text-slate-600">M-Pesa Number *</label>
-                    <input {...register('mpesaNumber')} placeholder="+254 7XX XXX XXX" className={inp} />
+                    <input {...register('mpesaNumber')} placeholder="254712345678" className={inp} />
                     {errors.mpesaNumber && <p className="text-xs text-red-500">{errors.mpesaNumber.message}</p>}
                   </div>
                 )}
@@ -362,7 +445,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
             type="button"
             onClick={handleSubmit(submit)}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 disabled:opacity-60 transition-colors"
+            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-brand-primary text-white rounded-xl hover:bg-brand-primary-hover disabled:opacity-60 transition-colors"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {isSubmitting ? 'Saving…' : 'Save Employee'}

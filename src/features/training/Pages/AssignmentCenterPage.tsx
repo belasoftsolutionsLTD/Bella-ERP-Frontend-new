@@ -8,6 +8,7 @@ import { useCourses } from '../Hooks/useCourses';
 import { useLearningPaths } from '../Hooks/useLearningPaths';
 import { useEnrollments } from '../Hooks/useEnrollments';
 import { useRules } from '../Hooks/useRules';
+import type { RuleTrigger } from '../types';
 
 function AssignTab() {
   const { accounts } = useUserAccounts();
@@ -54,7 +55,7 @@ function AssignTab() {
           {filteredAccounts.map((a) => (
             <label key={a._id} className="flex items-center gap-2 py-1.5 text-sm text-slate-700">
               <input type="checkbox" checked={selected.includes(a._id)} onChange={() => toggle(a._id)} />
-              {a.name} <span className="text-xs text-slate-400">({a.department || 'no dept'})</span>
+              {a.name} <span className="text-xs text-brand-text-secondary">({a.department || 'no dept'})</span>
             </label>
           ))}
         </div>
@@ -72,7 +73,7 @@ function AssignTab() {
             {(target.type === 'course' ? courses : paths).map((item: any) => <option key={item._id} value={item._id}>{item.title || item.name}</option>)}
           </select>
         </div>
-        <label className="block text-xs text-slate-500">Due date (optional)
+        <label className="block text-xs text-brand-text-muted">Due date (optional)
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
         </label>
         <Button className="bg-primary text-white w-full" disabled={!selected.length || !target.id} onClick={submit}>
@@ -88,14 +89,27 @@ function RulesTab() {
   const { courses } = useCourses({ status: 'published' });
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({
-    name: '', trigger: 'onHire' as const, enrollInCourseIds: [] as string[], dueDateOffsetDays: 7, notifyEmployee: true, notifyManager: false,
+    name: '', trigger: 'onHire' as RuleTrigger, enrollInCourseIds: [] as string[], dueDateOffsetDays: 7, notifyEmployee: true, notifyManager: false,
+    scheduledRecurrence: 'monthly' as 'monthly' | 'quarterly' | 'annual' | 'custom',
+    customIntervalDays: 30,
+    daysBeforeCertExpiry: 30,
+    performanceScoreBelow: 60,
   });
 
   const submit = async () => {
+    const triggerConditions: Record<string, unknown> =
+      form.trigger === 'scheduled' ? {
+        scheduledRecurrence: form.scheduledRecurrence,
+        ...(form.scheduledRecurrence === 'custom' ? { customIntervalDays: form.customIntervalDays } : {}),
+      }
+      : form.trigger === 'onCertExpiry' ? { daysBeforeCertExpiry: form.daysBeforeCertExpiry }
+      : form.trigger === 'onPerformanceScore' ? { performanceScoreBelow: form.performanceScoreBelow }
+      : {};
+
     const result = await createRule({
       name: form.name,
       trigger: form.trigger,
-      triggerConditions: {},
+      triggerConditions,
       action: { enrollInCourseIds: form.enrollInCourseIds, enrollInLearningPathIds: [], dueDateOffsetDays: form.dueDateOffsetDays, notifyEmployee: form.notifyEmployee, notifyManager: form.notifyManager },
       isActive: true,
     });
@@ -115,36 +129,80 @@ function RulesTab() {
             <option value="onRoleChange">On Role Change</option>
             <option value="onDepartmentChange">On Department Change</option>
             <option value="onPerformanceScore">On Performance Score</option>
-            <option value="onCertExpiry">On Certificate Expiry</option>
-            <option value="scheduled">Scheduled</option>
+            <option value="onCertExpiry">On Certificate Expiry (refresher when a certificate is about to lapse)</option>
+            <option value="scheduled">Scheduled (recurring refresher, not tied to any expiry)</option>
           </select>
+
+          {form.trigger === 'scheduled' && (
+            <div className="grid grid-cols-2 gap-2 bg-slate-50 rounded-md p-2.5">
+              <label className="text-xs text-brand-text-muted col-span-2">How often should this re-run?
+                <select value={form.scheduledRecurrence} onChange={(e) => setForm((f) => ({ ...f, scheduledRecurrence: e.target.value as any }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  <option value="monthly">Every month</option>
+                  <option value="quarterly">Every quarter (3 months)</option>
+                  <option value="annual">Every year</option>
+                  <option value="custom">Custom interval</option>
+                </select>
+              </label>
+              {form.scheduledRecurrence === 'custom' && (
+                <label className="text-xs text-brand-text-muted col-span-2">Repeat every N days
+                  <input type="number" min={1} value={form.customIntervalDays} onChange={(e) => setForm((f) => ({ ...f, customIntervalDays: Number(e.target.value) }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+              )}
+            </div>
+          )}
+          {form.trigger === 'onCertExpiry' && (
+            <div className="bg-slate-50 rounded-md p-2.5">
+              <label className="text-xs text-brand-text-muted">Re-enroll this many days before the certificate expires
+                <input type="number" min={1} value={form.daysBeforeCertExpiry} onChange={(e) => setForm((f) => ({ ...f, daysBeforeCertExpiry: Number(e.target.value) }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </label>
+            </div>
+          )}
+          {form.trigger === 'onPerformanceScore' && (
+            <div className="bg-slate-50 rounded-md p-2.5">
+              <label className="text-xs text-brand-text-muted">Trigger when performance score falls below
+                <input type="number" min={0} max={100} value={form.performanceScoreBelow} onChange={(e) => setForm((f) => ({ ...f, performanceScoreBelow: Number(e.target.value) }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </label>
+            </div>
+          )}
+
           <select multiple value={form.enrollInCourseIds} onChange={(e) => setForm((f) => ({ ...f, enrollInCourseIds: Array.from(e.target.selectedOptions).map((o) => o.value) }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm h-24">
             {courses.map((c) => <option key={c._id} value={c._id}>{c.title}</option>)}
           </select>
           <input type="number" placeholder="Due in (days)" value={form.dueDateOffsetDays} onChange={(e) => setForm((f) => ({ ...f, dueDateOffsetDays: Number(e.target.value) }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={form.notifyEmployee} onChange={(e) => setForm((f) => ({ ...f, notifyEmployee: e.target.checked }))} /> Notify employee</label>
-            <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={form.notifyManager} onChange={(e) => setForm((f) => ({ ...f, notifyManager: e.target.checked }))} /> Notify manager</label>
+            <label className="flex items-center gap-2 text-xs text-brand-text-muted"><input type="checkbox" checked={form.notifyEmployee} onChange={(e) => setForm((f) => ({ ...f, notifyEmployee: e.target.checked }))} /> Notify employee</label>
+            <label className="flex items-center gap-2 text-xs text-brand-text-muted"><input type="checkbox" checked={form.notifyManager} onChange={(e) => setForm((f) => ({ ...f, notifyManager: e.target.checked }))} /> Notify manager</label>
           </div>
           <Button size="sm" className="bg-primary text-white" onClick={submit} disabled={!form.name || !form.enrollInCourseIds.length}>Create Rule</Button>
         </div>
       )}
       <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
-        {rules.map((r) => (
+        {rules.map((r) => {
+          const recurrenceLabel = r.trigger === 'scheduled'
+            ? (r.triggerConditions?.scheduledRecurrence === 'custom'
+                ? `every ${r.triggerConditions?.customIntervalDays ?? 30} days`
+                : `${r.triggerConditions?.scheduledRecurrence ?? 'monthly'}`)
+            : r.trigger === 'onCertExpiry'
+              ? `${r.triggerConditions?.daysBeforeCertExpiry ?? 30} days before cert expiry`
+              : null;
+          return (
           <div key={r._id} className="p-3 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-800">{r.name}</p>
-              <p className="text-xs text-slate-500">{r.trigger} · last run: {r.lastRunAt ? new Date(r.lastRunAt).toLocaleDateString() : 'never'} ({r.lastRunCreated ?? 0} created)</p>
+              <p className="text-xs text-brand-text-muted">
+                {r.trigger}{recurrenceLabel && ` (${recurrenceLabel})`} · last run: {r.lastRunAt ? new Date(r.lastRunAt).toLocaleDateString() : 'never'} ({r.lastRunCreated ?? 0} created)
+              </p>
             </div>
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs text-slate-600">
+              <label className="flex items-center gap-1.5 text-xs text-brand-text-muted">
                 <input type="checkbox" checked={r.isActive} onChange={(e) => updateRule(r._id, { isActive: e.target.checked })} /> Active
               </label>
               <button onClick={() => runRuleNow(r._id)} className="text-xs text-primary hover:underline">Run Now</button>
             </div>
           </div>
-        ))}
-        {rules.length === 0 && <p className="p-6 text-sm text-slate-400 text-center">No rules yet.</p>}
+          );
+        })}
+        {rules.length === 0 && <p className="p-6 text-sm text-brand-text-secondary text-center">No rules yet.</p>}
       </div>
     </div>
   );
@@ -156,11 +214,11 @@ function QueueTab() {
     <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
       {rules.filter((r) => r.isActive).map((r) => (
         <div key={r._id} className="p-3 flex items-center justify-between text-sm">
-          <span className="text-slate-700">{r.name} <span className="text-xs text-slate-400">({r.trigger})</span></span>
-          <span className="text-xs text-slate-500">Last run matched {r.lastRunMatched ?? 0}, created {r.lastRunCreated ?? 0}</span>
+          <span className="text-slate-700">{r.name} <span className="text-xs text-brand-text-secondary">({r.trigger})</span></span>
+          <span className="text-xs text-brand-text-muted">Last run matched {r.lastRunMatched ?? 0}, created {r.lastRunCreated ?? 0}</span>
         </div>
       ))}
-      {rules.filter((r) => r.isActive).length === 0 && <p className="p-6 text-sm text-slate-400 text-center">No active rules queued.</p>}
+      {rules.filter((r) => r.isActive).length === 0 && <p className="p-6 text-sm text-brand-text-secondary text-center">No active rules queued.</p>}
     </div>
   );
 }
@@ -170,12 +228,12 @@ export function AssignmentCenterPage() {
   return (
     <div className="p-6 space-y-4">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Assignment Center</h1>
-        <p className="text-sm text-slate-400">Assign training and manage automation rules</p>
+        <h1 className="text-xl font-semibold text-brand-text">Assignment Center</h1>
+        <p className="text-sm text-brand-text-secondary">Assign training and manage automation rules</p>
       </div>
-      <div className="flex gap-1 border-b border-slate-800">
+      <div className="flex gap-1 border-b border-brand-border">
         {(['assign', 'rules', 'queue'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-slate-400'}`}>{t}</button>
+          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-brand-text-secondary'}`}>{t}</button>
         ))}
       </div>
       {tab === 'assign' && <AssignTab />}

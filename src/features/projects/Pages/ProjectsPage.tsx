@@ -10,6 +10,7 @@ import {
   Plus, Search, X, Briefcase, CheckCircle2, Clock,
   Users, Calendar, Check, ChevronDown, ChevronUp, AlertCircle,
 } from 'lucide-react';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,12 +39,12 @@ interface Employee {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG = {
-  in_progress: { label: 'In Progress', color: 'text-indigo-400 bg-indigo-500/20' },
-  completed:   { label: 'Completed',   color: 'text-emerald-400 bg-emerald-500/20' },
-  on_hold:     { label: 'On Hold',     color: 'text-amber-400 bg-amber-500/20' },
-  cancelled:   { label: 'Cancelled',   color: 'text-slate-400 bg-slate-600/40' },
-} as const;
+const STATUS_MAP: Record<string, { status: Status; label: string }> = {
+  in_progress: { status: 'inProgress', label: 'In Progress' },
+  completed:   { status: 'completed',  label: 'Completed' },
+  on_hold:     { status: 'pending',    label: 'On Hold' },
+  cancelled:   { status: 'cancelled',  label: 'Cancelled' },
+};
 
 const fmtDate = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
@@ -66,19 +67,19 @@ function MultiSelectList({
     : items;
 
   return (
-    <div className="border border-slate-700 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-700 bg-slate-800/40">
-        <Search className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+    <div className="border border-brand-border rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-brand-border bg-brand-bg-soft/40">
+        <Search className="h-3.5 w-3.5 text-brand-text-muted shrink-0" />
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-[13px] text-slate-200 placeholder-slate-500 outline-none"
+          className="flex-1 bg-transparent text-[13px] text-brand-text placeholder-slate-500 outline-none"
         />
       </div>
       <div className="max-h-44 overflow-y-auto">
         {filtered.length === 0 && (
-          <p className="text-[12px] text-slate-500 text-center py-4">No results</p>
+          <p className="text-[12px] text-brand-text-muted text-center py-4">No results</p>
         )}
         {filtered.map(item => {
           const id  = getId(item);
@@ -88,12 +89,12 @@ function MultiSelectList({
               key={id}
               type="button"
               onClick={() => onToggle(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-slate-700/50 last:border-0 hover:bg-slate-700/40 transition-colors ${sel ? 'bg-indigo-500/10' : ''}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-brand-border/50 last:border-0 hover:bg-brand-bg-muted/40 transition-colors ${sel ? 'bg-brand-primary/10' : ''}`}
             >
-              <div className={`h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-indigo-500 border-indigo-500' : 'border-slate-500'}`}>
+              <div className={`h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${sel ? 'bg-brand-primary border-brand-primary' : 'border-slate-500'}`}>
                 {sel && <Check className="h-2.5 w-2.5 text-white" />}
               </div>
-              <span className={`text-[13px] truncate ${sel ? 'text-indigo-300 font-medium' : 'text-slate-200'}`}>
+              <span className={`text-[13px] truncate ${sel ? 'text-indigo-300 font-medium' : 'text-brand-text'}`}>
                 {getLabel(item)}
               </span>
             </button>
@@ -162,49 +163,49 @@ function CreateProjectModal({ onClose, onSaved }: { onClose: () => void; onSaved
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(5,12,30,0.88)' }}>
-      <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col bg-[#1e293b] border border-slate-700" style={{ maxHeight: '92vh' }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
-          <h2 className="text-[16px] font-bold text-slate-100">New Project</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200"><X className="h-5 w-5" /></button>
+      <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col bg-brand-bg-soft border border-brand-border" style={{ maxHeight: '92vh' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border shrink-0">
+          <h2 className="text-[16px] font-bold text-brand-text">New Project</h2>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
+            <label className="block text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-1">
               Project Name <span className="text-red-400">*</span>
             </label>
             <input
               value={form.name}
               onChange={e => set('name', e.target.value)}
               placeholder="e.g. Annual Report 2026"
-              className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border-strong rounded-xl text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Description</label>
+            <label className="block text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-1">Description</label>
             <textarea
               value={form.description}
               onChange={e => set('description', e.target.value)}
               rows={2}
               placeholder="Brief description of the project…"
-              className="w-full px-3 py-2 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-brand-bg-soft border border-brand-border-strong rounded-xl text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary resize-none"
             />
           </div>
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Start Date</label>
+              <label className="block text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-1">Start Date</label>
               <input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)}
-                className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border-strong rounded-xl text-brand-text focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">End Date</label>
+              <label className="block text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-1">End Date</label>
               <input type="date" value={form.endDate} onChange={e => set('endDate', e.target.value)}
-                className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border-strong rounded-xl text-brand-text focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
 
@@ -213,7 +214,7 @@ function CreateProjectModal({ onClose, onSaved }: { onClose: () => void; onSaved
             <button
               type="button"
               onClick={() => setShowDepts(!showDepts)}
-              className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2"
+              className="w-full flex items-center justify-between text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-2"
             >
               <span>Departments Involved {selectedDepts.size > 0 && <span className="text-indigo-400 ml-1">({selectedDepts.size})</span>}</span>
               {showDepts ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -232,11 +233,11 @@ function CreateProjectModal({ onClose, onSaved }: { onClose: () => void; onSaved
 
           {/* Team Leader */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Team Leader (optional)</label>
+            <label className="block text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-1">Team Leader (optional)</label>
             <select
               value={teamLeaderId}
               onChange={e => setTeamLeaderId(e.target.value)}
-              className="w-full h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border-strong rounded-xl text-brand-text focus:outline-none focus:border-brand-primary"
             >
               <option value="">— No team leader —</option>
               {employees.map(e => (
@@ -252,7 +253,7 @@ function CreateProjectModal({ onClose, onSaved }: { onClose: () => void; onSaved
             <button
               type="button"
               onClick={() => setShowMembers(!showMembers)}
-              className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2"
+              className="w-full flex items-center justify-between text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-2"
             >
               <span>Project Members {selectedMembers.size > 0 && <span className="text-indigo-400 ml-1">({selectedMembers.size})</span>}</span>
               {showMembers ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -270,13 +271,13 @@ function CreateProjectModal({ onClose, onSaved }: { onClose: () => void; onSaved
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 pb-5 pt-3 border-t border-slate-700 shrink-0">
+        <div className="flex gap-3 px-6 pb-5 pt-3 border-t border-brand-border shrink-0">
           <button onClick={onClose}
-            className="flex-1 h-10 rounded-xl border border-slate-600 text-[13px] text-slate-400 hover:bg-slate-800 transition-colors">
+            className="flex-1 h-10 rounded-xl border border-brand-border-strong text-[13px] text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">
             Cancel
           </button>
           <button onClick={save} disabled={saving || !form.name.trim()}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-[13px] font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Creating…' : 'Create Project'}
           </button>
         </div>
@@ -288,7 +289,7 @@ function CreateProjectModal({ onClose, onSaved }: { onClose: () => void; onSaved
 // ── Project Card ──────────────────────────────────────────────────────────────
 
 function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
-  const cfg = STATUS_CONFIG[project.status] ?? STATUS_CONFIG.in_progress;
+  const cfg = STATUS_MAP[project.status] ?? STATUS_MAP.in_progress;
   const pct = project.subtaskCount > 0
     ? Math.round((project.completedSubtasks / project.subtaskCount) * 100)
     : 0;
@@ -296,31 +297,29 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   return (
     <div
       onClick={onClick}
-      className="bg-slate-800 border border-slate-700 rounded-2xl p-5 cursor-pointer hover:border-indigo-500/50 transition-all group"
+      className="bg-brand-bg-soft border border-brand-border rounded-2xl p-5 cursor-pointer hover:border-brand-primary/50 transition-all group"
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3 gap-2">
-        <div className="h-9 w-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+        <div className="h-9 w-9 rounded-xl bg-brand-primary/20 flex items-center justify-center shrink-0">
           <Briefcase className="h-4.5 w-4.5 text-indigo-400" />
         </div>
-        <span className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>
-          {cfg.label}
-        </span>
+        <StatusBadge status={cfg.status} label={cfg.label} className="text-[11px]" />
       </div>
 
       <h3 className="font-bold text-white text-[15px] mb-0.5 group-hover:text-indigo-300 transition-colors leading-tight">
         {project.name}
       </h3>
-      <p className="text-[11px] text-slate-500 mb-3">Supervisor: {project.supervisorName}</p>
+      <p className="text-[11px] text-brand-text-muted mb-3">Supervisor: {project.supervisorName}</p>
 
       {/* Departments */}
       {(project.departments?.length ?? 0) > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {project.departments.slice(0, 3).map(d => (
-            <span key={d} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{d}</span>
+            <span key={d} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-bg-muted text-brand-text-secondary">{d}</span>
           ))}
           {project.departments.length > 3 && (
-            <span className="text-[10px] text-slate-500">+{project.departments.length - 3}</span>
+            <span className="text-[10px] text-brand-text-muted">+{project.departments.length - 3}</span>
           )}
         </div>
       )}
@@ -329,10 +328,10 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
       {project.subtaskCount > 0 && (
         <div className="mb-3">
           <div className="flex justify-between text-[11px] mb-1">
-            <span className="text-slate-400">Subtask progress</span>
-            <span className="text-slate-300 font-semibold">{project.completedSubtasks}/{project.subtaskCount}</span>
+            <span className="text-brand-text-secondary">Subtask progress</span>
+            <span className="text-brand-text-secondary font-semibold">{project.completedSubtasks}/{project.subtaskCount}</span>
           </div>
-          <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-brand-bg-muted rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
               style={{
@@ -345,7 +344,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
       )}
 
       {/* Footer stats */}
-      <div className="flex items-center gap-4 text-[11px] text-slate-500">
+      <div className="flex items-center gap-4 text-[11px] text-brand-text-muted">
         <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {project.memberCount} members</span>
         {project.teamLeaderName && (
           <span className="flex items-center gap-1.5 truncate">Lead: {project.teamLeaderName}</span>
@@ -353,7 +352,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
       </div>
 
       {(project.startDate || project.endDate) && (
-        <div className="mt-3 pt-3 border-t border-slate-700 flex items-center gap-1.5 text-[11px] text-slate-500">
+        <div className="mt-3 pt-3 border-t border-brand-border flex items-center gap-1.5 text-[11px] text-brand-text-muted">
           <Calendar className="h-3 w-3" />
           <span>{fmtDate(project.startDate) ?? '—'} → {fmtDate(project.endDate) ?? '—'}</span>
         </div>
@@ -397,17 +396,17 @@ export default function ProjectsPage() {
   const other      = projects.filter(p => p.status !== 'in_progress' && p.status !== 'completed');
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+    <div className="min-h-screen bg-white text-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-bold text-white">Projects</h1>
-          <p className="text-[13px] text-slate-400 mt-0.5">Cross-department project coordination</p>
+          <p className="text-[13px] text-brand-text-secondary mt-0.5">Cross-department project coordination</p>
         </div>
         {canCreate && (
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-indigo-500 transition-colors"
+            className="flex items-center gap-2 bg-brand-primary text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-primary-hover transition-colors"
           >
             <Plus className="h-4 w-4" /> New Project
           </button>
@@ -417,21 +416,21 @@ export default function ProjectsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-52">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-text-muted" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search projects…"
-            className="w-full pl-9 pr-3 h-9 text-[13px] bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-3 h-9 text-[13px] bg-brand-bg-soft border border-brand-border rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary"
           />
         </div>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="h-9 px-3 text-[13px] bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500"
+          className="h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border rounded-xl text-white focus:outline-none focus:border-brand-primary"
         >
           <option value="">All Statuses</option>
-          {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+          {Object.entries(STATUS_MAP).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>
           ))}
         </select>
@@ -440,10 +439,10 @@ export default function ProjectsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center h-48">
-          <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-8 w-8 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-48 text-slate-500 gap-2">
+        <div className="flex flex-col items-center justify-center h-48 text-brand-text-muted gap-2">
           <Briefcase className="h-10 w-10 opacity-30" />
           <p className="text-[13px]">No projects found.</p>
           {canCreate && (
@@ -456,7 +455,7 @@ export default function ProjectsPage() {
         <div className="space-y-6">
           {inProgress.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <p className="text-[11px] font-bold text-brand-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Clock className="h-3.5 w-3.5 text-indigo-400" /> In Progress ({inProgress.length})
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -468,7 +467,7 @@ export default function ProjectsPage() {
           )}
           {completed.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <p className="text-[11px] font-bold text-brand-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Completed ({completed.length})
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -480,7 +479,7 @@ export default function ProjectsPage() {
           )}
           {other.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <p className="text-[11px] font-bold text-brand-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
                 <AlertCircle className="h-3.5 w-3.5 text-amber-400" /> Other ({other.length})
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

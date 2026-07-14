@@ -7,13 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Wrapper } from '@/components/custom-ui/Wrapper';
 import { EmployeeDetailTabs } from '../Components/EmployeeDetailTabs';
 import { useEmployeeDetail } from '../Hooks/useEmployeeDetail';
-import { cn } from '@/lib/utils';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 
-const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-emerald-500/20 text-emerald-400',
-  on_leave: 'bg-yellow-500/20 text-yellow-400',
-  suspended: 'bg-orange-500/20 text-orange-400',
-  terminated: 'bg-red-500/20 text-red-400',
+const EMPLOYEE_STATUS_MAP: Record<string, Status> = {
+  active: 'active', on_leave: 'onLeave', suspended: 'suspended', terminated: 'terminated',
 };
 
 export default function EmployeeDetailPage({ id }: { id: string }) {
@@ -29,7 +26,7 @@ export default function EmployeeDetailPage({ id }: { id: string }) {
       <Wrapper loading={loading} error={error} onRetry={refetch}>
         {employee && (
           <>
-            <div className="flex items-center gap-5 rounded-xl bg-indigo-600 p-6 text-white">
+            <div className="flex items-center gap-5 rounded-xl bg-brand-primary p-6 text-white">
               <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold text-white">
                 {employee.fullName.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
               </div>
@@ -38,11 +35,9 @@ export default function EmployeeDetailPage({ id }: { id: string }) {
                 <p className="opacity-70">{employee.designation} · {employee.department}</p>
                 <p className="font-mono text-sm opacity-60">{employee.staffNumber}</p>
               </div>
-              <span className={cn('px-3 py-1 rounded-full text-sm font-medium capitalize', STATUS_COLORS[employee.status] ?? 'bg-slate-700 text-slate-300')}>
-                {employee.status.replace('_', ' ')}
-              </span>
+              <StatusBadge status={EMPLOYEE_STATUS_MAP[employee.status] ?? 'inactive'} className="text-sm px-3 py-1" />
             </div>
-            <EmployeeDetailTabs employee={employee} />
+            <EmployeeDetailTabs employee={employee} onChanged={refetch} />
           </>
         )}
       </Wrapper>

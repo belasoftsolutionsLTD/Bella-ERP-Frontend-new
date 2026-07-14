@@ -11,6 +11,7 @@ import {
   CheckCircle2, AlertCircle, Info, ChevronDown, ChevronUp,
   Search,
 } from 'lucide-react';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 
 // ── Backend URL for file serving ──────────────────────────────────────────────
 
@@ -95,10 +96,8 @@ const fmtDate  = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-K
 const fmtTime  = (d: string)         => new Date(d).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
 const fmtFull  = (d: string)         => new Date(d).toLocaleString('en-KE', { dateStyle: 'short', timeStyle: 'short' });
 
-const STATUS_COLOR: Record<string, string> = {
-  not_started: 'text-slate-400 bg-slate-700',
-  in_progress: 'text-indigo-400 bg-indigo-500/20',
-  completed:   'text-emerald-400 bg-emerald-500/20',
+const SUBTASK_STATUS_MAP: Record<string, Status> = {
+  not_started: 'draft', in_progress: 'inProgress', completed: 'completed',
 };
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
@@ -134,8 +133,8 @@ function OverviewTab({ project, onComplete, onRefresh }: {
           { label: 'Members',  value: String(project.members.length + 1) },
           { label: 'Status',   value: project.status === 'completed' ? 'Done' : 'In Progress' },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-            <p className="text-[11px] text-slate-400 mb-1">{label}</p>
+          <div key={label} className="bg-brand-bg-soft rounded-xl p-4 border border-brand-border">
+            <p className="text-[11px] text-brand-text-secondary mb-1">{label}</p>
             <p className="text-[18px] font-bold text-white">{value}</p>
           </div>
         ))}
@@ -143,12 +142,12 @@ function OverviewTab({ project, onComplete, onRefresh }: {
 
       {/* Overall progress */}
       {project.subtaskCount > 0 && (
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+        <div className="bg-brand-bg-soft rounded-xl p-4 border border-brand-border">
           <div className="flex justify-between text-[12px] mb-2">
-            <span className="text-slate-400 font-semibold">Overall Progress</span>
+            <span className="text-brand-text-secondary font-semibold">Overall Progress</span>
             <span className="font-bold" style={{ color: pct === 100 ? '#22c55e' : '#6366f1' }}>{pct}%</span>
           </div>
-          <div className="h-2.5 bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-brand-bg-muted rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : '#6366f1' }}
@@ -158,7 +157,7 @@ function OverviewTab({ project, onComplete, onRefresh }: {
       )}
 
       {/* Details */}
-      <div className="bg-slate-800 rounded-xl p-5 border border-slate-700 space-y-3">
+      <div className="bg-brand-bg-soft rounded-xl p-5 border border-brand-border space-y-3">
         <Row label="Supervisor"    value={project.supervisorName} />
         <Row label="Team Leader"   value={project.teamLeaderName || '—'} />
         <Row label="Start Date"    value={fmtDate(project.startDate)} />
@@ -166,10 +165,10 @@ function OverviewTab({ project, onComplete, onRefresh }: {
         {project.completedAt && <Row label="Completed" value={fmtDate(project.completedAt)} />}
         {project.departments.length > 0 && (
           <div className="flex justify-between text-[13px]">
-            <span className="text-slate-400">Departments</span>
+            <span className="text-brand-text-secondary">Departments</span>
             <div className="flex flex-wrap gap-1 justify-end max-w-xs">
               {project.departments.map(d => (
-                <span key={d} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{d}</span>
+                <span key={d} className="text-[11px] px-2 py-0.5 rounded-full bg-brand-bg-muted text-brand-text-secondary">{d}</span>
               ))}
             </div>
           </div>
@@ -178,18 +177,18 @@ function OverviewTab({ project, onComplete, onRefresh }: {
 
       {/* Per-department progress */}
       {Object.keys(project.deptProgress).length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Progress by Department</p>
+        <div className="bg-brand-bg-soft rounded-xl p-5 border border-brand-border">
+          <p className="text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wider mb-3">Progress by Department</p>
           <div className="space-y-2.5">
             {Object.entries(project.deptProgress).map(([dept, dp]) => {
               const dp_pct = dp.total > 0 ? Math.round((dp.completed / dp.total) * 100) : 0;
               return (
                 <div key={dept}>
                   <div className="flex justify-between text-[12px] mb-1">
-                    <span className="text-slate-300 font-medium">{dept}</span>
-                    <span className="text-slate-400">{dp.completed}/{dp.total} subtasks</span>
+                    <span className="text-brand-text-secondary font-medium">{dept}</span>
+                    <span className="text-brand-text-secondary">{dp.completed}/{dp.total} subtasks</span>
                   </div>
-                  <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-brand-bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{ width: `${dp_pct}%`, background: dp_pct === 100 ? '#22c55e' : '#6366f1' }}
@@ -203,9 +202,9 @@ function OverviewTab({ project, onComplete, onRefresh }: {
       )}
 
       {project.description && (
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase mb-2">Description</p>
-          <p className="text-[13px] text-slate-300 leading-relaxed">{project.description}</p>
+        <div className="bg-brand-bg-soft rounded-xl p-4 border border-brand-border">
+          <p className="text-[11px] font-semibold text-brand-text-secondary uppercase mb-2">Description</p>
+          <p className="text-[13px] text-brand-text-secondary leading-relaxed">{project.description}</p>
         </div>
       )}
 
@@ -221,7 +220,7 @@ function OverviewTab({ project, onComplete, onRefresh }: {
         </button>
       )}
       {project.status === 'completed' && (
-        <div className="flex items-center justify-center gap-2 text-emerald-400 py-3 text-[13px] font-semibold">
+        <div className="flex items-center justify-center gap-2 text-status-success-text py-3 text-[13px] font-semibold">
           <CheckCircle2 className="h-4 w-4" /> Project completed {project.completedAt ? `on ${fmtDate(project.completedAt)}` : ''}
         </div>
       )}
@@ -232,7 +231,7 @@ function OverviewTab({ project, onComplete, onRefresh }: {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between text-[13px]">
-      <span className="text-slate-400">{label}</span>
+      <span className="text-brand-text-secondary">{label}</span>
       <span className="text-white font-medium">{value}</span>
     </div>
   );
@@ -362,7 +361,7 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
         <div className="flex justify-end">
           <button
             onClick={() => setShowCreate(!showCreate)}
-            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold transition-colors"
+            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white text-[13px] font-semibold transition-colors"
           >
             <Plus className="h-4 w-4" /> Add Subtask
           </button>
@@ -370,48 +369,48 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
       )}
 
       {showCreate && isSupervisor && (
-        <div className="bg-slate-800 border border-slate-600 rounded-xl p-4 space-y-3">
-          <p className="text-[12px] font-bold text-slate-300 uppercase tracking-wide">New Subtask</p>
+        <div className="bg-brand-bg-soft border border-brand-border-strong rounded-xl p-4 space-y-3">
+          <p className="text-[12px] font-bold text-brand-text-secondary uppercase tracking-wide">New Subtask</p>
           <input
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
             placeholder="Subtask title *"
-            className="w-full h-9 px-3 text-[13px] bg-slate-900 border border-slate-600 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full h-9 px-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary"
           />
           <textarea
             value={newDesc}
             onChange={e => setNewDesc(e.target.value)}
             rows={2}
             placeholder="Description (optional)"
-            className="w-full px-3 py-2 text-[13px] bg-slate-900 border border-slate-600 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+            className="w-full px-3 py-2 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary resize-none"
           />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Assign to Department *</label>
+              <label className="text-[11px] text-brand-text-secondary block mb-1">Assign to Department *</label>
               <select
                 value={newDept}
                 onChange={e => setNewDept(e.target.value)}
-                className="w-full h-9 px-3 text-[13px] bg-slate-900 border border-slate-600 rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="w-full h-9 px-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text focus:outline-none focus:border-brand-primary"
               >
                 <option value="">— Select dept —</option>
                 {project.departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Attachment (optional)</label>
+              <label className="text-[11px] text-brand-text-secondary block mb-1">Attachment (optional)</label>
               <input
                 type="file"
                 onChange={e => setNewFile(e.target.files?.[0] ?? null)}
-                className="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-600 file:text-white file:text-[11px] file:cursor-pointer"
+                className="w-full text-[11px] text-brand-text-secondary file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-brand-primary file:text-white file:text-[11px] file:cursor-pointer"
               />
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setShowCreate(false)} className="px-3 h-8 text-[13px] text-slate-400 border border-slate-600 rounded-lg hover:bg-slate-700">Cancel</button>
+            <button onClick={() => setShowCreate(false)} className="px-3 h-8 text-[13px] text-brand-text-secondary border border-brand-border-strong rounded-lg hover:bg-brand-bg-muted">Cancel</button>
             <button
               onClick={createSubtask}
               disabled={creating || !newTitle.trim() || !newDept}
-              className="px-4 h-8 text-[13px] bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50"
+              className="px-4 h-8 text-[13px] bg-brand-primary text-white rounded-lg hover:bg-brand-primary-hover disabled:opacity-50"
             >
               {creating ? 'Creating…' : 'Create'}
             </button>
@@ -421,10 +420,10 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
 
       {loading ? (
         <div className="flex justify-center py-8">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : subtasks.length === 0 ? (
-        <div className="text-center py-10 text-slate-500">
+        <div className="text-center py-10 text-brand-text-muted">
           <ListChecks className="h-8 w-8 mx-auto mb-2 opacity-30" />
           <p className="text-[13px]">No subtasks yet.</p>
         </div>
@@ -433,46 +432,44 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
         <div className="space-y-5">
           {Object.entries(byDept).map(([dept, subs]) => (
             <div key={dept}>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-indigo-500" /> {dept}
-                <span className="font-normal text-slate-500">({subs.filter(s => s.status === 'completed').length}/{subs.length} done)</span>
+              <p className="text-[11px] font-bold text-brand-text-secondary uppercase tracking-wider mb-2 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-brand-primary" /> {dept}
+                <span className="font-normal text-brand-text-muted">({subs.filter(s => s.status === 'completed').length}/{subs.length} done)</span>
               </p>
               <div className="space-y-2">
                 {subs.map(sub => (
-                  <div key={sub._id} className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                  <div key={sub._id} className="bg-brand-bg-soft border border-brand-border rounded-xl overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setExpandedId(expandedId === sub._id ? null : sub._id)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left"
                     >
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${STATUS_COLOR[sub.status]}`}>
-                        {sub.status.replace('_', ' ')}
-                      </span>
-                      <p className="text-[13px] font-semibold text-slate-200 flex-1 truncate">{sub.title}</p>
+                      <StatusBadge status={SUBTASK_STATUS_MAP[sub.status] ?? 'draft'} label={sub.status.replace('_', ' ')} className="text-[10px] font-bold shrink-0" />
+                      <p className="text-[13px] font-semibold text-brand-text flex-1 truncate">{sub.title}</p>
                       {sub.deptHeadReport && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 shrink-0">Report in</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-status-success-text shrink-0">Report in</span>
                       )}
                       <button
                         type="button"
                         onClick={e => { e.stopPropagation(); deleteSubtask(sub._id); }}
-                        className="text-slate-500 hover:text-red-400 shrink-0"
+                        className="text-brand-text-muted hover:text-status-danger-text shrink-0"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                      {expandedId === sub._id ? <ChevronUp className="h-3.5 w-3.5 text-slate-500 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-500 shrink-0" />}
+                      {expandedId === sub._id ? <ChevronUp className="h-3.5 w-3.5 text-brand-text-muted shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-brand-text-muted shrink-0" />}
                     </button>
 
                     {expandedId === sub._id && (
-                      <div className="px-4 pb-4 space-y-3 border-t border-slate-700">
+                      <div className="px-4 pb-4 space-y-3 border-t border-brand-border">
                         {sub.description && (
-                          <p className="text-[12px] text-slate-400 mt-3">{sub.description}</p>
+                          <p className="text-[12px] text-brand-text-secondary mt-3">{sub.description}</p>
                         )}
                         {sub.attachmentFilename && (
                           <a
                             href={projectFileUrl(sub.attachmentFilename)}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-2 text-[12px] text-indigo-400 hover:text-indigo-300"
+                            className="inline-flex items-center gap-2 text-[12px] text-brand-primary hover:text-brand-primary"
                           >
                             <Paperclip className="h-3.5 w-3.5" />
                             {sub.attachmentOriginalName || sub.attachmentFilename}
@@ -480,26 +477,26 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
                         )}
                         {sub.assignedEmployees.length > 0 && (
                           <div>
-                            <p className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">Assigned to</p>
+                            <p className="text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">Assigned to</p>
                             <div className="flex flex-wrap gap-1">
                               {sub.assignedEmployees.map(ae => (
-                                <span key={ae.employeeId} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{ae.name}</span>
+                                <span key={ae.employeeId} className="text-[11px] px-2 py-0.5 rounded-full bg-brand-bg-muted text-brand-text-secondary">{ae.name}</span>
                               ))}
                             </div>
                           </div>
                         )}
                         {sub.deptHeadReport ? (
-                          <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-lg p-3">
-                            <p className="text-[11px] text-emerald-400 font-bold mb-1">
+                          <div className="bg-status-success-bg border border-status-success-text/20 rounded-lg p-3">
+                            <p className="text-[11px] text-status-success-text font-bold mb-1">
                               Report from {sub.deptHeadReport.submittedByName} · {fmtFull(sub.deptHeadReport.submittedAt)}
                             </p>
-                            <p className="text-[12px] text-slate-300">{sub.deptHeadReport.text}</p>
+                            <p className="text-[12px] text-brand-text-secondary">{sub.deptHeadReport.text}</p>
                             {sub.deptHeadReport.attachmentFilename && (
                               <a
                                 href={projectFileUrl(sub.deptHeadReport.attachmentFilename)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-indigo-400 hover:text-indigo-300"
+                                className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-brand-primary hover:text-brand-primary"
                               >
                                 <Paperclip className="h-3 w-3" />
                                 {sub.deptHeadReport.attachmentOriginalName || sub.deptHeadReport.attachmentFilename}
@@ -507,7 +504,7 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
                             )}
                           </div>
                         ) : (
-                          <p className="text-[11px] text-slate-500 italic">Waiting for department report…</p>
+                          <p className="text-[11px] text-brand-text-muted italic">Waiting for department report…</p>
                         )}
                       </div>
                     )}
@@ -521,30 +518,28 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
         /* ── Dept Head / Member view ── */
         <div className="space-y-3">
           {subtasks.map(sub => (
-            <div key={sub._id} className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+            <div key={sub._id} className="bg-brand-bg-soft border border-brand-border rounded-xl overflow-hidden">
               <button
                 type="button"
                 onClick={() => setExpandedId(expandedId === sub._id ? null : sub._id)}
                 className="w-full flex items-center gap-3 px-4 py-3 text-left"
               >
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${STATUS_COLOR[sub.status]}`}>
-                  {sub.status.replace('_', ' ')}
-                </span>
-                <p className="text-[13px] font-semibold text-slate-200 flex-1 truncate">{sub.title}</p>
-                <span className="text-[11px] text-slate-500 shrink-0">{sub.department}</span>
-                {expandedId === sub._id ? <ChevronUp className="h-3.5 w-3.5 text-slate-500" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-500" />}
+                <StatusBadge status={SUBTASK_STATUS_MAP[sub.status] ?? 'draft'} label={sub.status.replace('_', ' ')} className="text-[10px] font-bold shrink-0" />
+                <p className="text-[13px] font-semibold text-brand-text flex-1 truncate">{sub.title}</p>
+                <span className="text-[11px] text-brand-text-muted shrink-0">{sub.department}</span>
+                {expandedId === sub._id ? <ChevronUp className="h-3.5 w-3.5 text-brand-text-muted" /> : <ChevronDown className="h-3.5 w-3.5 text-brand-text-muted" />}
               </button>
 
               {expandedId === sub._id && (
-                <div className="px-4 pb-4 space-y-3 border-t border-slate-700">
-                  {sub.description && <p className="text-[12px] text-slate-400 mt-3">{sub.description}</p>}
+                <div className="px-4 pb-4 space-y-3 border-t border-brand-border">
+                  {sub.description && <p className="text-[12px] text-brand-text-secondary mt-3">{sub.description}</p>}
 
                   {sub.attachmentFilename && (
                     <a
                       href={projectFileUrl(sub.attachmentFilename)}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-2 text-[12px] text-indigo-400 hover:text-indigo-300"
+                      className="inline-flex items-center gap-2 text-[12px] text-brand-primary hover:text-brand-primary"
                     >
                       <Paperclip className="h-3.5 w-3.5" />
                       {sub.attachmentOriginalName || sub.attachmentFilename}
@@ -556,10 +551,10 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
                     <>
                       {sub.assignedEmployees.length > 0 && (
                         <div>
-                          <p className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">Assigned to</p>
+                          <p className="text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">Assigned to</p>
                           <div className="flex flex-wrap gap-1">
                             {sub.assignedEmployees.map(ae => (
-                              <span key={ae.employeeId} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{ae.name}</span>
+                              <span key={ae.employeeId} className="text-[11px] px-2 py-0.5 rounded-full bg-brand-bg-muted text-brand-text-secondary">{ae.name}</span>
                             ))}
                           </div>
                         </div>
@@ -567,18 +562,18 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
 
                       {/* Assign panel */}
                       {assigningId === sub._id ? (
-                        <div className="space-y-2 bg-slate-900/50 rounded-lg p-3">
-                          <p className="text-[11px] font-semibold text-slate-400 uppercase">Assign Employees</p>
+                        <div className="space-y-2 bg-white/50 rounded-lg p-3">
+                          <p className="text-[11px] font-semibold text-brand-text-secondary uppercase">Assign Employees</p>
                           <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-text-muted" />
                             <input
                               value={assignSearch}
                               onChange={e => setAssignSearch(e.target.value)}
                               placeholder="Search…"
-                              className="w-full h-8 pl-8 pr-3 text-[12px] bg-slate-800 border border-slate-600 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none"
+                              className="w-full h-8 pl-8 pr-3 text-[12px] bg-brand-bg-soft border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted focus:outline-none"
                             />
                           </div>
-                          <div className="max-h-36 overflow-y-auto border border-slate-700 rounded-lg">
+                          <div className="max-h-36 overflow-y-auto border border-brand-border rounded-lg">
                             {filteredEmps.map(e => {
                               const sel = assignSelected.has(e._id);
                               return (
@@ -586,22 +581,22 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
                                   key={e._id}
                                   type="button"
                                   onClick={() => setAssignSelected(prev => { const s = new Set(prev); s.has(e._id) ? s.delete(e._id) : s.add(e._id); return s; })}
-                                  className={`w-full flex items-center gap-2 px-3 py-2 text-left border-b border-slate-700/50 last:border-0 hover:bg-slate-700/40 ${sel ? 'bg-indigo-500/10' : ''}`}
+                                  className={`w-full flex items-center gap-2 px-3 py-2 text-left border-b border-brand-border/50 last:border-0 hover:bg-brand-bg-muted/40 ${sel ? 'bg-brand-primary/10' : ''}`}
                                 >
-                                  <div className={`h-3.5 w-3.5 rounded border shrink-0 flex items-center justify-center ${sel ? 'bg-indigo-500 border-indigo-500' : 'border-slate-500'}`}>
+                                  <div className={`h-3.5 w-3.5 rounded border shrink-0 flex items-center justify-center ${sel ? 'bg-brand-primary border-brand-primary' : 'border-slate-500'}`}>
                                     {sel && <Check className="h-2 w-2 text-white" />}
                                   </div>
-                                  <span className="text-[12px] text-slate-200 truncate">{e.fullName}</span>
+                                  <span className="text-[12px] text-brand-text truncate">{e.fullName}</span>
                                 </button>
                               );
                             })}
                           </div>
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => { setAssigningId(null); setAssignSelected(new Set()); }} className="px-3 h-7 text-[12px] text-slate-400 border border-slate-600 rounded-lg hover:bg-slate-700">Cancel</button>
+                            <button onClick={() => { setAssigningId(null); setAssignSelected(new Set()); }} className="px-3 h-7 text-[12px] text-brand-text-secondary border border-brand-border-strong rounded-lg hover:bg-brand-bg-muted">Cancel</button>
                             <button
                               onClick={() => assignEmployees(sub._id)}
                               disabled={assigning || assignSelected.size === 0}
-                              className="px-3 h-7 text-[12px] bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50"
+                              className="px-3 h-7 text-[12px] bg-brand-primary text-white rounded-lg hover:bg-brand-primary-hover disabled:opacity-50"
                             >
                               {assigning ? 'Assigning…' : `Assign (${assignSelected.size})`}
                             </button>
@@ -611,7 +606,7 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
                         !sub.deptHeadReport && (
                           <button
                             onClick={() => { setAssigningId(sub._id); setAssignSelected(new Set(sub.assignedEmployees.map(ae => ae.employeeId))); }}
-                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] text-slate-300"
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-brand-bg-muted hover:bg-brand-border-strong text-[12px] text-brand-text-secondary"
                           >
                             <Users className="h-3 w-3" /> {sub.assignedEmployees.length > 0 ? 'Re-assign' : 'Assign Employees'}
                           </button>
@@ -621,25 +616,25 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
                       {/* Submit report */}
                       {!sub.deptHeadReport ? (
                         reportingId === sub._id ? (
-                          <div className="space-y-2 bg-slate-900/50 rounded-lg p-3">
-                            <p className="text-[11px] font-semibold text-slate-400 uppercase">Submit Department Report</p>
+                          <div className="space-y-2 bg-white/50 rounded-lg p-3">
+                            <p className="text-[11px] font-semibold text-brand-text-secondary uppercase">Submit Department Report</p>
                             <textarea
                               value={reportText}
                               onChange={e => setReportText(e.target.value)}
                               rows={3}
                               placeholder="Describe what your team accomplished…"
-                              className="w-full px-3 py-2 text-[12px] bg-slate-800 border border-slate-600 rounded-lg text-slate-200 placeholder:text-slate-500 resize-none focus:outline-none"
+                              className="w-full px-3 py-2 text-[12px] bg-brand-bg-soft border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted resize-none focus:outline-none"
                             />
                             <div>
-                              <label className="text-[11px] text-slate-400 block mb-1">Attach file (optional)</label>
+                              <label className="text-[11px] text-brand-text-secondary block mb-1">Attach file (optional)</label>
                               <input
                                 type="file"
                                 onChange={e => setReportFile(e.target.files?.[0] ?? null)}
-                                className="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-600 file:text-white file:cursor-pointer"
+                                className="text-[11px] text-brand-text-secondary file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-brand-primary file:text-white file:cursor-pointer"
                               />
                             </div>
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => { setReportingId(null); setReportText(''); setReportFile(null); }} className="px-3 h-7 text-[12px] text-slate-400 border border-slate-600 rounded-lg hover:bg-slate-700">Cancel</button>
+                              <button onClick={() => { setReportingId(null); setReportText(''); setReportFile(null); }} className="px-3 h-7 text-[12px] text-brand-text-secondary border border-brand-border-strong rounded-lg hover:bg-brand-bg-muted">Cancel</button>
                               <button
                                 onClick={() => submitReport(sub._id)}
                                 disabled={submittingReport || (!reportText.trim() && !reportFile)}
@@ -652,15 +647,15 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
                         ) : (
                           <button
                             onClick={() => setReportingId(sub._id)}
-                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-[12px] text-emerald-400 font-semibold"
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-[12px] text-status-success-text font-semibold"
                           >
                             <Upload className="h-3 w-3" /> Submit Report to Supervisor
                           </button>
                         )
                       ) : (
-                        <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-lg p-3">
-                          <p className="text-[11px] text-emerald-400 font-bold mb-1">Report submitted · {fmtFull(sub.deptHeadReport.submittedAt)}</p>
-                          <p className="text-[12px] text-slate-300">{sub.deptHeadReport.text}</p>
+                        <div className="bg-status-success-bg border border-status-success-text/20 rounded-lg p-3">
+                          <p className="text-[11px] text-status-success-text font-bold mb-1">Report submitted · {fmtFull(sub.deptHeadReport.submittedAt)}</p>
+                          <p className="text-[12px] text-brand-text-secondary">{sub.deptHeadReport.text}</p>
                         </div>
                       )}
                     </>
@@ -726,35 +721,35 @@ function ChatTab({ projectId }: { projectId: string }) {
   };
 
   const ROLE_COLORS: Record<string, string> = {
-    supervisor:   'text-indigo-400',
-    team_leader:  'text-amber-400',
-    member:       'text-slate-400',
+    supervisor:   'text-brand-primary',
+    team_leader:  'text-status-warning-text',
+    member:       'text-brand-text-secondary',
   };
 
   return (
-    <div className="flex flex-col h-[520px] bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+    <div className="flex flex-col h-[520px] bg-white rounded-xl border border-brand-border overflow-hidden">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2">
+          <div className="h-full flex flex-col items-center justify-center text-brand-text-muted gap-2">
             <MessageSquare className="h-8 w-8 opacity-30" />
             <p className="text-[13px]">No messages yet. Start the conversation!</p>
           </div>
         )}
         {messages.map(m => (
           <div key={m._id} className="flex gap-3">
-            <div className="h-7 w-7 rounded-full bg-slate-700 flex items-center justify-center shrink-0 text-[11px] font-bold text-slate-300 mt-0.5">
+            <div className="h-7 w-7 rounded-full bg-brand-bg-muted flex items-center justify-center shrink-0 text-[11px] font-bold text-brand-text-secondary mt-0.5">
               {m.senderName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2 mb-0.5">
-                <span className={`text-[12px] font-bold ${ROLE_COLORS[m.senderRole] ?? 'text-slate-400'}`}>
+                <span className={`text-[12px] font-bold ${ROLE_COLORS[m.senderRole] ?? 'text-brand-text-secondary'}`}>
                   {m.senderName}
                 </span>
-                <span className="text-[10px] text-slate-600 capitalize">{m.senderRole.replace('_', ' ')}</span>
-                <span className="text-[10px] text-slate-600 ml-auto">{fmtTime(m.createdAt)}</span>
+                <span className="text-[10px] text-brand-text-muted capitalize">{m.senderRole.replace('_', ' ')}</span>
+                <span className="text-[10px] text-brand-text-muted ml-auto">{fmtTime(m.createdAt)}</span>
               </div>
-              <p className="text-[13px] text-slate-300 leading-relaxed break-words">{m.message}</p>
+              <p className="text-[13px] text-brand-text-secondary leading-relaxed break-words">{m.message}</p>
             </div>
           </div>
         ))}
@@ -762,18 +757,18 @@ function ChatTab({ projectId }: { projectId: string }) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-slate-700 p-3 flex gap-2">
+      <div className="border-t border-brand-border p-3 flex gap-2">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
           placeholder="Type a message… (Enter to send)"
-          className="flex-1 h-9 px-3 text-[13px] bg-slate-800 border border-slate-600 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+          className="flex-1 h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border-strong rounded-xl text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary"
         />
         <button
           onClick={sendMsg}
           disabled={sending || !input.trim()}
-          className="h-9 w-9 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center disabled:opacity-40 transition-colors"
+          className="h-9 w-9 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white flex items-center justify-center disabled:opacity-40 transition-colors"
         >
           <Send className="h-4 w-4" />
         </button>
@@ -823,19 +818,19 @@ function NotesTab({ project }: { project: Project }) {
   return (
     <div className="space-y-4">
       {/* Add note */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
+      <div className="bg-brand-bg-soft border border-brand-border rounded-xl p-4 space-y-3">
         <textarea
           value={newNote}
           onChange={e => setNewNote(e.target.value)}
           rows={2}
           placeholder="Add a project note…"
-          className="w-full px-3 py-2 text-[13px] bg-slate-900 border border-slate-600 rounded-lg text-slate-200 placeholder:text-slate-500 resize-none focus:outline-none focus:border-indigo-500"
+          className="w-full px-3 py-2 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted resize-none focus:outline-none focus:border-brand-primary"
         />
         <div className="flex justify-end">
           <button
             onClick={add}
             disabled={saving || !newNote.trim()}
-            className="flex items-center gap-1.5 h-8 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold disabled:opacity-50"
+            className="flex items-center gap-1.5 h-8 px-4 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-[13px] font-semibold disabled:opacity-50"
           >
             <Plus className="h-3.5 w-3.5" /> Add Note
           </button>
@@ -845,26 +840,26 @@ function NotesTab({ project }: { project: Project }) {
       {/* Notes list */}
       <div className="space-y-2">
         {notes.length === 0 && (
-          <div className="text-center py-8 text-slate-500">
+          <div className="text-center py-8 text-brand-text-muted">
             <FileText className="h-7 w-7 mx-auto mb-2 opacity-30" />
             <p className="text-[13px]">No notes yet.</p>
           </div>
         )}
         {notes.map(n => (
-          <div key={n._id} className="flex gap-3 bg-slate-800 border border-slate-700 rounded-xl p-4">
-            <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 text-[12px] font-bold text-indigo-300">
+          <div key={n._id} className="flex gap-3 bg-brand-bg-soft border border-brand-border rounded-xl p-4">
+            <div className="h-8 w-8 rounded-full bg-brand-primary/20 flex items-center justify-center shrink-0 text-[12px] font-bold text-brand-primary">
               {n.createdByName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-slate-200 leading-relaxed">{n.text}</p>
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-[13px] text-brand-text leading-relaxed">{n.text}</p>
+              <p className="text-[11px] text-brand-text-muted mt-1">
                 {n.createdByName} · {fmtFull(n.createdAt)}
               </p>
             </div>
             {(String(n.createdBy) === String(userData?._id) || ['super_admin', 'hr_manager'].includes(userData?.role ?? '')) && (
               <button
                 onClick={() => del(n._id)}
-                className="shrink-0 text-slate-500 hover:text-red-400 transition-colors"
+                className="shrink-0 text-brand-text-muted hover:text-status-danger-text transition-colors"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -926,19 +921,19 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
   };
 
   const ROLE_BADGE: Record<string, string> = {
-    supervisor:  'text-indigo-400 bg-indigo-500/20',
-    team_leader: 'text-amber-400 bg-amber-500/20',
-    member:      'text-slate-400 bg-slate-600/40',
+    supervisor:  'text-brand-primary bg-brand-primary/20',
+    team_leader: 'text-status-warning-text bg-amber-500/20',
+    member:      'text-brand-text-secondary bg-slate-600/40',
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-[13px] text-slate-400">{project.members.length + 1} team members</p>
+        <p className="text-[13px] text-brand-text-secondary">{project.members.length + 1} team members</p>
         {project.myRole === 'supervisor' && (
           <button
             onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-semibold transition-colors"
+            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white text-[13px] font-semibold transition-colors"
           >
             <Plus className="h-4 w-4" /> Add Members
           </button>
@@ -946,29 +941,29 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
       </div>
 
       {showAdd && project.myRole === 'supervisor' && (
-        <div className="bg-slate-800 border border-slate-600 rounded-xl p-4 space-y-3">
+        <div className="bg-brand-bg-soft border border-brand-border-strong rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-text-muted" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search employees…"
-                className="w-full h-9 pl-8 pr-3 text-[13px] bg-slate-900 border border-slate-600 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none"
+                className="w-full h-9 pl-8 pr-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted focus:outline-none"
               />
             </div>
             <select
               value={memberRole}
               onChange={e => setMemberRole(e.target.value)}
-              className="h-9 px-3 text-[13px] bg-slate-900 border border-slate-600 rounded-lg text-slate-200 focus:outline-none"
+              className="h-9 px-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text focus:outline-none"
             >
               <option value="member">Member</option>
               <option value="team_leader">Team Leader</option>
             </select>
           </div>
-          <div className="border border-slate-700 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+          <div className="border border-brand-border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
             {available.length === 0 && (
-              <p className="text-[12px] text-slate-500 text-center py-4">No available employees</p>
+              <p className="text-[12px] text-brand-text-muted text-center py-4">No available employees</p>
             )}
             {available.map(e => {
               const sel = selected.has(e._id);
@@ -977,25 +972,25 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
                   key={e._id}
                   type="button"
                   onClick={() => toggle(e._id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-slate-700/50 last:border-0 hover:bg-slate-700/40 ${sel ? 'bg-indigo-500/10' : ''}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-brand-border/50 last:border-0 hover:bg-brand-bg-muted/40 ${sel ? 'bg-brand-primary/10' : ''}`}
                 >
-                  <div className={`h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center ${sel ? 'bg-indigo-500 border-indigo-500' : 'border-slate-500'}`}>
+                  <div className={`h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center ${sel ? 'bg-brand-primary border-brand-primary' : 'border-slate-500'}`}>
                     {sel && <Check className="h-2.5 w-2.5 text-white" />}
                   </div>
                   <div>
-                    <p className={`text-[13px] font-medium ${sel ? 'text-indigo-300' : 'text-slate-200'}`}>{e.fullName}</p>
-                    <p className="text-[11px] text-slate-500">{e.department}</p>
+                    <p className={`text-[13px] font-medium ${sel ? 'text-brand-primary' : 'text-brand-text'}`}>{e.fullName}</p>
+                    <p className="text-[11px] text-brand-text-muted">{e.department}</p>
                   </div>
                 </button>
               );
             })}
           </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setShowAdd(false)} className="px-3 h-8 text-[13px] text-slate-400 border border-slate-600 rounded-lg hover:bg-slate-700">Cancel</button>
+            <button onClick={() => setShowAdd(false)} className="px-3 h-8 text-[13px] text-brand-text-secondary border border-brand-border-strong rounded-lg hover:bg-brand-bg-muted">Cancel</button>
             <button
               onClick={add}
               disabled={saving || selected.size === 0}
-              className="px-4 h-8 text-[13px] bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50"
+              className="px-4 h-8 text-[13px] bg-brand-primary text-white rounded-lg hover:bg-brand-primary-hover disabled:opacity-50"
             >
               {saving ? 'Adding…' : `Add ${selected.size || ''} Member${selected.size !== 1 ? 's' : ''}`}
             </button>
@@ -1005,26 +1000,26 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
 
       <div className="space-y-2">
         {/* Supervisor row */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-indigo-600/30 flex items-center justify-center text-[13px] font-bold text-indigo-300 shrink-0">
+        <div className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-brand-primary/30 flex items-center justify-center text-[13px] font-bold text-brand-primary shrink-0">
             {project.supervisorName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-white">{project.supervisorName}</p>
-            <p className="text-[11px] text-slate-500">Project Supervisor</p>
+            <p className="text-[11px] text-brand-text-muted">Project Supervisor</p>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-indigo-400 bg-indigo-500/20">Supervisor</span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-brand-primary bg-brand-primary/20">Supervisor</span>
         </div>
 
         {/* Other members */}
         {project.members.map(m => (
-          <div key={String(m.employeeId)} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-slate-700 flex items-center justify-center text-[13px] font-bold text-slate-300 shrink-0">
+          <div key={String(m.employeeId)} className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3 flex items-center gap-3">
+            <div className="h-9 w-9 rounded-full bg-brand-bg-muted flex items-center justify-center text-[13px] font-bold text-brand-text-secondary shrink-0">
               {(m.employee?.fullName ?? m.name).charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium text-white">{m.employee?.fullName ?? m.name}</p>
-              <p className="text-[11px] text-slate-500">{m.employee?.department ?? m.department}</p>
+              <p className="text-[11px] text-brand-text-muted">{m.employee?.department ?? m.department}</p>
             </div>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${ROLE_BADGE[m.role] ?? ROLE_BADGE.member}`}>
               {m.role.replace('_', ' ')}
@@ -1032,7 +1027,7 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
             {project.myRole === 'supervisor' && (
               <button
                 onClick={() => remove(String(m.employeeId))}
-                className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                className="h-7 w-7 flex items-center justify-center text-brand-text-muted hover:text-status-danger-text hover:bg-red-500/10 rounded-lg transition-colors"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -1074,47 +1069,47 @@ export default function ProjectDetailPage({ projectId }: { projectId: string }) 
   useEffect(() => { load(); }, [load]);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-      <div className="h-10 w-10 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="h-10 w-10 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
     </div>
   );
 
   if (!project) return (
-    <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center gap-3 text-slate-400">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3 text-brand-text-secondary">
       <AlertCircle className="h-10 w-10" />
       <p>Project not found.</p>
-      <button onClick={() => router.back()} className="text-indigo-400 hover:text-indigo-300">← Go back</button>
+      <button onClick={() => router.back()} className="text-brand-primary hover:text-brand-primary">← Go back</button>
     </div>
   );
 
   const statusColors: Record<string, string> = {
-    in_progress: 'text-indigo-400',
-    completed:   'text-emerald-400',
-    on_hold:     'text-amber-400',
-    cancelled:   'text-slate-500',
+    in_progress: 'text-brand-primary',
+    completed:   'text-status-success-text',
+    on_hold:     'text-status-warning-text',
+    cancelled:   'text-brand-text-muted',
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+    <div className="min-h-screen bg-white text-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
         <button
           onClick={() => router.back()}
-          className="mt-1 h-8 w-8 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors shrink-0"
+          className="mt-1 h-8 w-8 flex items-center justify-center rounded-lg bg-brand-bg-soft border border-brand-border text-brand-text-secondary hover:text-brand-text transition-colors shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className={`text-[12px] font-semibold capitalize ${statusColors[project.status] ?? 'text-slate-400'}`}>
+            <span className={`text-[12px] font-semibold capitalize ${statusColors[project.status] ?? 'text-brand-text-secondary'}`}>
               {project.status.replace('_', ' ')}
             </span>
             {project.myRole && (
-              <span className="text-[11px] text-slate-500">· You: {project.myRole.replace('_', ' ')}</span>
+              <span className="text-[11px] text-brand-text-muted">· You: {project.myRole.replace('_', ' ')}</span>
             )}
           </div>
           <h1 className="text-[22px] font-bold text-white leading-tight">{project.name}</h1>
-          <p className="text-[13px] text-slate-400 mt-0.5">
+          <p className="text-[13px] text-brand-text-secondary mt-0.5">
             {project.departments.length > 0 ? project.departments.join(', ') : 'No departments assigned'}
           </p>
         </div>
@@ -1130,8 +1125,8 @@ export default function ProjectDetailPage({ projectId }: { projectId: string }) 
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-colors whitespace-nowrap ${
                 tab === t.key
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-brand-primary text-white'
+                  : 'text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-soft'
               }`}
             >
               <Icon className="h-4 w-4" />

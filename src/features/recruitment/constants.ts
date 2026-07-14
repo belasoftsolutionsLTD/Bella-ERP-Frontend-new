@@ -1,12 +1,8 @@
 import type { RequisitionStatus, StageType, ApplicationStatus, CandidateSource, PipelineStage } from './types';
+import type { Status } from '@/components/ui/StatusBadge';
 
-export const REQUISITION_STATUS_STYLES: Record<RequisitionStatus, string> = {
-  draft: 'bg-slate-100 text-slate-600 border-slate-200',
-  pendingApproval: 'bg-amber-50 text-amber-700 border-amber-200',
-  open: 'bg-green-50 text-green-700 border-green-200',
-  onHold: 'bg-orange-50 text-orange-700 border-orange-200',
-  filled: 'bg-blue-50 text-blue-700 border-blue-200',
-  closed: 'bg-slate-100 text-slate-500 border-slate-200',
+export const REQUISITION_STATUS_MAP: Record<RequisitionStatus, Status> = {
+  draft: 'draft', pendingApproval: 'pending', open: 'open', onHold: 'pending', filled: 'completed', closed: 'closed',
 };
 
 export const REQUISITION_STATUS_LABELS: Record<RequisitionStatus, string> = {
@@ -27,11 +23,8 @@ export const STAGE_TYPE_STYLES: Record<StageType, string> = {
   hired: 'bg-green-50 text-green-700 border-green-200',
 };
 
-export const APPLICATION_STATUS_STYLES: Record<ApplicationStatus, string> = {
-  active: 'bg-blue-50 text-blue-700 border-blue-200',
-  rejected: 'bg-red-50 text-red-700 border-red-200',
-  withdrawn: 'bg-slate-100 text-slate-500 border-slate-200',
-  hired: 'bg-green-50 text-green-700 border-green-200',
+export const APPLICATION_STATUS_MAP: Record<ApplicationStatus, Status> = {
+  active: 'info', rejected: 'rejected', withdrawn: 'cancelled', hired: 'completed',
 };
 
 export const SOURCE_LABELS: Record<CandidateSource, string> = {

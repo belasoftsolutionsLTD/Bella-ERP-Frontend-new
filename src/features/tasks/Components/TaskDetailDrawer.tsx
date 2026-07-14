@@ -13,11 +13,11 @@ import type { Task, TaskStatus, TaskPriority, TaskType, TaskComment, ActivityEnt
 
 // ── Style constants ───────────────────────────────────────────────────────────
 const STATUS_CFG: Record<TaskStatus, { label: string; color: string; icon: React.ElementType }> = {
-  not_started: { label: 'Not Started', color: 'bg-slate-700 text-slate-300',  icon: Circle },
-  in_progress: { label: 'In Progress', color: 'bg-indigo-900 text-indigo-300', icon: Clock },
-  completed:   { label: 'Completed',   color: 'bg-emerald-900 text-emerald-400',icon: CheckCircle2 },
-  overdue:     { label: 'Overdue',     color: 'bg-red-900/60 text-red-400',    icon: AlertTriangle },
-  blocked:     { label: 'Blocked',     color: 'bg-slate-800 text-slate-400',   icon: Ban },
+  not_started: { label: 'Not Started', color: 'bg-brand-bg-muted text-brand-text-secondary',  icon: Circle },
+  in_progress: { label: 'In Progress', color: 'bg-brand-primary/10 text-brand-primary', icon: Clock },
+  completed:   { label: 'Completed',   color: 'bg-status-success-bg text-status-success-text',icon: CheckCircle2 },
+  overdue:     { label: 'Overdue',     color: 'bg-status-danger-bg text-status-danger-text',    icon: AlertTriangle },
+  blocked:     { label: 'Blocked',     color: 'bg-brand-bg-soft text-brand-text-secondary',   icon: Ban },
 };
 const PRIORITY_CFG: Record<TaskPriority, { label: string; dot: string }> = {
   high:   { label: 'High',   dot: 'bg-red-500' },
@@ -30,7 +30,7 @@ const TYPE_CFG: Record<TaskType, { label: string; icon: React.ElementType; color
   form:      { label: 'Form',      icon: FileText,       color: 'text-pink-400' },
   meeting:   { label: 'Meeting',   icon: CalendarCheck,  color: 'text-green-400' },
   equipment: { label: 'Equipment', icon: Wrench,         color: 'text-orange-400' },
-  approval:  { label: 'Approval',  icon: Shield,         color: 'text-amber-400' },
+  approval:  { label: 'Approval',  icon: Shield,         color: 'text-status-warning-text' },
 };
 const MODULE_LABELS: Record<string, string> = {
   onboarding: 'Onboarding', offboarding: 'Offboarding', hr: 'HR',
@@ -171,10 +171,10 @@ export default function TaskDetailDrawer({
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[640px] bg-[#0f172a] border-l border-slate-800 flex flex-col shadow-2xl">
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[640px] bg-white border-l border-brand-border flex flex-col shadow-2xl">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="flex items-start gap-3 px-6 py-4 border-b border-slate-800 shrink-0">
+        <div className="flex items-start gap-3 px-6 py-4 border-b border-brand-border shrink-0">
           <div className="flex-1 min-w-0">
             {editingTitle ? (
               <input
@@ -183,15 +183,15 @@ export default function TaskDetailDrawer({
                 onChange={e => setTitleDraft(e.target.value)}
                 onBlur={saveTitle}
                 onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setEditTitle(false); setTitleDraft(task.title); } }}
-                className="w-full text-lg font-bold text-slate-100 bg-transparent border-b border-indigo-500 outline-none pb-0.5"
+                className="w-full text-lg font-bold text-brand-text bg-transparent border-b border-brand-primary outline-none pb-0.5"
               />
             ) : (
               <h2
-                className="text-lg font-bold text-slate-100 cursor-pointer hover:text-indigo-300 transition-colors leading-snug"
+                className="text-lg font-bold text-brand-text cursor-pointer hover:text-brand-primary transition-colors leading-snug"
                 onClick={() => setEditTitle(true)}
               >
                 {task.title}
-                <Pencil className="inline ml-2 h-3.5 w-3.5 text-slate-600 opacity-0 group-hover:opacity-100" />
+                <Pencil className="inline ml-2 h-3.5 w-3.5 text-brand-text-muted opacity-0 group-hover:opacity-100" />
               </h2>
             )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -204,12 +204,12 @@ export default function TaskDetailDrawer({
                   <SIcon className="h-3 w-3" /> {scfg.label} <ChevronDown className="h-3 w-3 ml-0.5" />
                 </button>
                 {showStatusDrop && (
-                  <div className="absolute top-full left-0 mt-1 w-44 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10 overflow-hidden">
+                  <div className="absolute top-full left-0 mt-1 w-44 bg-brand-bg-soft border border-brand-border rounded-xl shadow-xl z-10 overflow-hidden">
                     {(Object.keys(STATUS_CFG) as TaskStatus[]).map(s => {
                       const c = STATUS_CFG[s]; const I = c.icon;
                       return (
                         <button key={s} onClick={() => changeStatus(s)}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-700 text-slate-300">
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-brand-bg-muted text-brand-text-secondary">
                           <I className="h-3.5 w-3.5" /> {c.label}
                         </button>
                       );
@@ -217,28 +217,28 @@ export default function TaskDetailDrawer({
                   </div>
                 )}
               </div>
-              <span className={cn('flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400')}>
+              <span className={cn('flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-brand-bg-soft text-brand-text-secondary')}>
                 <span className={cn('h-2 w-2 rounded-full', pcfg?.dot)} /> {pcfg?.label}
               </span>
               {tcfg && (
-                <span className="flex items-center gap-1 text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-xs text-brand-text-secondary bg-brand-bg-soft px-2 py-0.5 rounded-full">
                   <TIcon className={cn('h-3 w-3', tcfg.color)} /> {tcfg.label}
                 </span>
               )}
               {task.module && (
-                <span className="text-xs text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-brand-text-muted bg-brand-bg-soft/60 px-2 py-0.5 rounded-full">
                   {MODULE_LABELS[task.module] ?? task.module}
                 </span>
               )}
             </div>
           </div>
-          <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 shrink-0 transition-colors">
+          <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-lg text-brand-text-muted hover:text-brand-text hover:bg-brand-bg-soft shrink-0 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* ── Section tabs ────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-1 px-6 pt-3 pb-0 border-b border-slate-800 shrink-0">
+        <div className="flex items-center gap-1 px-6 pt-3 pb-0 border-b border-brand-border shrink-0">
           {([
             { key: 'details',  label: 'Details',  icon: List },
             { key: 'comments', label: `Comments${(task.comments?.length ?? 0) > 0 ? ` (${task.comments.length})` : ''}`, icon: MessageSquare },
@@ -248,8 +248,8 @@ export default function TaskDetailDrawer({
               className={cn(
                 'flex items-center gap-1.5 text-xs font-medium px-3 py-2 border-b-2 transition-colors',
                 activeSection === key
-                  ? 'border-indigo-500 text-indigo-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-300',
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-brand-text-muted hover:text-brand-text-secondary',
               )}>
               <Icon className="h-3.5 w-3.5" /> {label}
             </button>
@@ -267,13 +267,13 @@ export default function TaskDetailDrawer({
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Status">
                   <select value={task.status} onChange={e => changeStatus(e.target.value as TaskStatus)}
-                    className="w-full h-8 text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    className="w-full h-8 text-xs bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-brand-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-primary">
                     {(Object.keys(STATUS_CFG) as TaskStatus[]).map(s => <option key={s} value={s}>{STATUS_CFG[s].label}</option>)}
                   </select>
                 </Field>
                 <Field label="Priority">
                   <select value={task.priority} onChange={e => patch({ priority: e.target.value as TaskPriority })}
-                    className="w-full h-8 text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    className="w-full h-8 text-xs bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-brand-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-primary">
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
                     <option value="low">Low</option>
@@ -281,36 +281,36 @@ export default function TaskDetailDrawer({
                 </Field>
                 <Field label="Type">
                   <select value={task.type} onChange={e => patch({ type: e.target.value as TaskType })}
-                    className="w-full h-8 text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    className="w-full h-8 text-xs bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-brand-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-primary">
                     {Object.entries(TYPE_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                 </Field>
                 <Field label="Due Date">
                   <input type="date" value={task.dueDate || ''} onChange={e => patch({ dueDate: e.target.value })}
-                    className="w-full h-8 text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                    className="w-full h-8 text-xs bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-brand-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-primary" />
                 </Field>
                 <Field label="Module">
                   <select value={task.module || ''} onChange={e => patch({ module: e.target.value as Task['module'] })}
-                    className="w-full h-8 text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    className="w-full h-8 text-xs bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-brand-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-primary">
                     {Object.entries(MODULE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </Field>
                 <Field label="Assigned To">
-                  <p className="text-xs text-slate-300 h-8 flex items-center">{task.assignedToName || '—'}</p>
+                  <p className="text-xs text-brand-text-secondary h-8 flex items-center">{task.assignedToName || '—'}</p>
                 </Field>
               </div>
 
               {/* Linked employee */}
               {task.linkedEmployee && (
-                <div className="bg-slate-800/50 rounded-xl p-3 flex items-center gap-3 border border-slate-700">
-                  <div className="h-8 w-8 rounded-lg bg-indigo-900/60 flex items-center justify-center shrink-0">
-                    <User className="h-4 w-4 text-indigo-400" />
+                <div className="bg-brand-bg-soft/50 rounded-xl p-3 flex items-center gap-3 border border-brand-border">
+                  <div className="h-8 w-8 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
+                    <User className="h-4 w-4 text-brand-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-200">{task.linkedEmployee.fullName}</p>
-                    <p className="text-xs text-slate-500">{task.linkedEmployee.department} · {task.linkedEmployee.designation}</p>
+                    <p className="text-sm font-semibold text-brand-text">{task.linkedEmployee.fullName}</p>
+                    <p className="text-xs text-brand-text-muted">{task.linkedEmployee.department} · {task.linkedEmployee.designation}</p>
                   </div>
-                  <span className="ml-auto text-xs text-slate-500 bg-slate-700 px-2 py-0.5 rounded">
+                  <span className="ml-auto text-xs text-brand-text-muted bg-brand-bg-muted px-2 py-0.5 rounded">
                     {MODULE_LABELS[task.module] ?? task.module}
                   </span>
                 </div>
@@ -318,7 +318,7 @@ export default function TaskDetailDrawer({
 
               {/* Due date alert */}
               {isOverdue && (
-                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-2 text-xs text-status-danger-text bg-status-danger-bg border border-status-danger-text/20 rounded-xl px-4 py-2.5">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
                   This task was due {fmtDate(task.dueDate)} and is overdue.
                 </div>
@@ -326,22 +326,22 @@ export default function TaskDetailDrawer({
 
               {/* Description */}
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Description</p>
+                <p className="text-xs font-semibold text-brand-text-muted uppercase tracking-wide mb-2">Description</p>
                 <textarea
                   value={task.description || ''}
                   onChange={e => setTask(prev => ({ ...prev, description: e.target.value }))}
                   onBlur={e => patch({ description: e.target.value })}
                   rows={4}
                   placeholder="Add a description or more context..."
-                  className="w-full text-sm text-slate-300 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-600"
+                  className="w-full text-sm text-brand-text-secondary bg-brand-bg-soft/50 border border-brand-border rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-1 focus:ring-brand-primary placeholder:text-brand-text-muted"
                 />
               </div>
 
               {/* Subtasks */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Subtasks {subtasksTotal > 0 && <span className="text-slate-400 normal-case font-normal ml-1">{subtasksDone}/{subtasksTotal}</span>}
+                  <p className="text-xs font-semibold text-brand-text-muted uppercase tracking-wide">
+                    Subtasks {subtasksTotal > 0 && <span className="text-brand-text-secondary normal-case font-normal ml-1">{subtasksDone}/{subtasksTotal}</span>}
                   </p>
                 </div>
                 <div className="space-y-1.5 mb-2">
@@ -349,10 +349,10 @@ export default function TaskDetailDrawer({
                     <div key={st._id} className="flex items-center gap-2.5">
                       <button onClick={() => toggleSubtask(st._id, st.isCompleted)}
                         className={cn('h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors',
-                          st.isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 hover:border-indigo-500')}>
+                          st.isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-brand-border-strong hover:border-brand-primary')}>
                         {st.isCompleted && <CheckCircle2 className="h-3 w-3 text-white" />}
                       </button>
-                      <span className={cn('text-sm flex-1', st.isCompleted && 'line-through text-slate-600')}>{st.title}</span>
+                      <span className={cn('text-sm flex-1', st.isCompleted && 'line-through text-brand-text-muted')}>{st.title}</span>
                     </div>
                   ))}
                 </div>
@@ -361,9 +361,9 @@ export default function TaskDetailDrawer({
                     value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addSubtask()}
                     placeholder="Add a subtask…"
-                    className="flex-1 h-8 text-xs bg-slate-800 border border-slate-700 rounded-lg px-3 text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-600"
+                    className="flex-1 h-8 text-xs bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-brand-text-secondary focus:outline-none focus:ring-1 focus:ring-brand-primary placeholder:text-brand-text-muted"
                   />
-                  <button onClick={addSubtask} className="h-8 px-3 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors">
+                  <button onClick={addSubtask} className="h-8 px-3 text-xs bg-brand-primary hover:bg-brand-primary-hover text-white rounded-lg transition-colors">
                     Add
                   </button>
                 </div>
@@ -372,11 +372,11 @@ export default function TaskDetailDrawer({
               {/* Dependencies */}
               {(task.blockedByTaskIds || []).length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Blocked By</p>
+                  <p className="text-xs font-semibold text-brand-text-muted uppercase tracking-wide mb-2">Blocked By</p>
                   <div className="space-y-1">
                     {task.blockedByTaskIds.map(id => (
-                      <div key={id} className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2">
-                        <Link2 className="h-3.5 w-3.5 text-slate-600" /> <span className="font-mono text-[10px] opacity-50">{id.slice(-8)}</span>
+                      <div key={id} className="flex items-center gap-2 text-xs text-brand-text-secondary bg-brand-bg-soft/50 rounded-lg px-3 py-2">
+                        <Link2 className="h-3.5 w-3.5 text-brand-text-muted" /> <span className="font-mono text-[10px] opacity-50">{id.slice(-8)}</span>
                       </div>
                     ))}
                   </div>
@@ -384,7 +384,7 @@ export default function TaskDetailDrawer({
               )}
 
               {/* Timestamps */}
-              <div className="text-xs text-slate-600 space-y-1 pt-2 border-t border-slate-800">
+              <div className="text-xs text-brand-text-muted space-y-1 pt-2 border-t border-brand-border">
                 <p>Created by {task.createdByName || task.assignedBy || 'Unknown'}</p>
                 {task.completedAt && <p>Completed {fmtDate(task.completedAt)}</p>}
               </div>
@@ -395,31 +395,31 @@ export default function TaskDetailDrawer({
           {activeSection === 'comments' && (
             <div className="px-6 py-5 space-y-4">
               {(task.comments || []).length === 0 && (
-                <p className="text-sm text-slate-600 py-8 text-center">No comments yet. Be the first to comment.</p>
+                <p className="text-sm text-brand-text-muted py-8 text-center">No comments yet. Be the first to comment.</p>
               )}
               {(task.comments || []).map(c => (
                 <div key={c._id} className="flex gap-3">
-                  <div className="h-8 w-8 rounded-full bg-indigo-900/60 flex items-center justify-center shrink-0 text-xs font-bold text-indigo-400">
+                  <div className="h-8 w-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-brand-primary">
                     {(c.authorName || 'U').slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-slate-300">{c.authorName}</span>
-                      <span className="text-[10px] text-slate-600">{fmtTs(c.createdAt)}</span>
+                      <span className="text-xs font-semibold text-brand-text-secondary">{c.authorName}</span>
+                      <span className="text-[10px] text-brand-text-muted">{fmtTs(c.createdAt)}</span>
                     </div>
-                    <p className="text-sm text-slate-300 mt-1 leading-relaxed">{c.text}</p>
+                    <p className="text-sm text-brand-text-secondary mt-1 leading-relaxed">{c.text}</p>
                   </div>
                 </div>
               ))}
-              <div className="flex gap-2 pt-2 border-t border-slate-800">
+              <div className="flex gap-2 pt-2 border-t border-brand-border">
                 <textarea
                   value={commentText} onChange={e => setCommentText(e.target.value)}
                   placeholder="Add a comment..."
                   rows={2}
-                  className="flex-1 text-sm text-slate-300 bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-600"
+                  className="flex-1 text-sm text-brand-text-secondary bg-brand-bg-soft/50 border border-brand-border rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-primary placeholder:text-brand-text-muted"
                 />
                 <button onClick={postComment} disabled={savingComment || !commentText.trim()}
-                  className="self-end h-9 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl disabled:opacity-40 transition-colors">
+                  className="self-end h-9 px-3 bg-brand-primary hover:bg-brand-primary-hover text-white rounded-xl disabled:opacity-40 transition-colors">
                   <Send className="h-4 w-4" />
                 </button>
               </div>
@@ -430,7 +430,7 @@ export default function TaskDetailDrawer({
           {activeSection === 'activity' && (
             <div className="px-6 py-5 space-y-3">
               {(task.activity || []).length === 0 && (
-                <p className="text-sm text-slate-600 py-8 text-center">No activity recorded.</p>
+                <p className="text-sm text-brand-text-muted py-8 text-center">No activity recorded.</p>
               )}
               {[...(task.activity || [])].reverse().map((a, i) => (
                 <ActivityRow key={i} entry={a} />
@@ -440,11 +440,11 @@ export default function TaskDetailDrawer({
         </div>
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}
-        <div className="border-t border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
-          <p className="text-xs text-slate-600">Created {fmtDate(task.createdAt)}</p>
+        <div className="border-t border-brand-border px-6 py-3 flex items-center justify-between shrink-0">
+          <p className="text-xs text-brand-text-muted">Created {fmtDate(task.createdAt)}</p>
           {task.status === 'completed' ? (
             <button onClick={reopenTask}
-              className="flex items-center gap-2 text-xs font-semibold text-slate-400 border border-slate-700 px-4 py-2 rounded-xl hover:text-slate-200 hover:border-slate-500 transition-colors">
+              className="flex items-center gap-2 text-xs font-semibold text-brand-text-secondary border border-brand-border px-4 py-2 rounded-xl hover:text-brand-text hover:border-slate-500 transition-colors">
               <RotateCcw className="h-3.5 w-3.5" /> Reopen
             </button>
           ) : (
@@ -462,22 +462,22 @@ export default function TaskDetailDrawer({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+      <p className="text-[10px] font-semibold text-brand-text-muted uppercase tracking-wide mb-1">{label}</p>
       {children}
     </div>
   );
 }
 
 const ACTIVITY_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
-  created:          { icon: Plus,        color: 'text-indigo-400' },
-  completed:        { icon: CheckCircle2,color: 'text-emerald-400' },
+  created:          { icon: Plus,        color: 'text-brand-primary' },
+  completed:        { icon: CheckCircle2,color: 'text-status-success-text' },
   status_changed:   { icon: ChevronRight,color: 'text-blue-400' },
   reassigned:       { icon: User,        color: 'text-purple-400' },
-  due_date_changed: { icon: CalendarCheck,color:'text-amber-400' },
+  due_date_changed: { icon: CalendarCheck,color:'text-status-warning-text' },
 };
 
 function ActivityRow({ entry }: { entry: ActivityEntry }) {
-  const cfg  = ACTIVITY_ICONS[entry.action] ?? { icon: Activity, color: 'text-slate-400' };
+  const cfg  = ACTIVITY_ICONS[entry.action] ?? { icon: Activity, color: 'text-brand-text-secondary' };
   const Icon = cfg.icon;
   const label = entry.action === 'status_changed'
     ? `Status changed: ${entry.from} → ${entry.to}`
@@ -489,12 +489,12 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
 
   return (
     <div className="flex items-start gap-3">
-      <div className={cn('h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center shrink-0 mt-0.5', cfg.color)}>
+      <div className={cn('h-6 w-6 rounded-full bg-brand-bg-soft flex items-center justify-center shrink-0 mt-0.5', cfg.color)}>
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-slate-400 capitalize">{label}</p>
-        <p className="text-[10px] text-slate-600 mt-0.5">
+        <p className="text-xs text-brand-text-secondary capitalize">{label}</p>
+        <p className="text-[10px] text-brand-text-muted mt-0.5">
           {entry.performedByName} · {fmtTs(entry.timestamp)}
         </p>
       </div>

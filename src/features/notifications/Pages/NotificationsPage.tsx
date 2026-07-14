@@ -83,18 +83,18 @@ function NotifRow({
   return (
     <div
       onClick={() => onNavigate(notif._id, notif.navigateTo)}
-      className={`flex items-start gap-3 px-5 py-4 border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors relative group ${
-        !notif.isRead ? 'bg-indigo-600/5' : ''
+      className={`flex items-start gap-3 px-5 py-4 border-b border-brand-border/50 hover:bg-brand-bg-muted/20 transition-colors relative group ${
+        !notif.isRead ? 'bg-brand-primary/5' : ''
       } ${notif.navigateTo ? 'cursor-pointer' : ''}`}
     >
       {/* Unread indicator */}
       {!notif.isRead && (
-        <span className="absolute left-0 inset-y-4 w-0.5 rounded-r-full bg-indigo-500" />
+        <span className="absolute left-0 inset-y-4 w-0.5 rounded-r-full bg-brand-primary" />
       )}
 
       {/* Checkbox */}
       <button onClick={() => onSelect(notif._id)}
-        className={`shrink-0 mt-0.5 h-4 w-4 rounded border transition-colors ${selected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-600 bg-slate-800'} flex items-center justify-center`}>
+        className={`shrink-0 mt-0.5 h-4 w-4 rounded border transition-colors ${selected ? 'bg-brand-primary border-brand-primary' : 'border-brand-border-strong bg-brand-bg-soft'} flex items-center justify-center`}>
         {selected && <Check className="h-2.5 w-2.5 text-white" />}
       </button>
 
@@ -106,13 +106,13 @@ function NotifRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <span className={`text-[13px] font-semibold leading-tight ${notif.isRead ? 'text-slate-400' : 'text-slate-100'}`}>
+          <span className={`text-[13px] font-semibold leading-tight ${notif.isRead ? 'text-brand-text-secondary' : 'text-brand-text'}`}>
             {notif.title}
           </span>
-          <span className="text-[11px] text-slate-500 shrink-0">{timeAgo(notif.createdAt)}</span>
+          <span className="text-[11px] text-brand-text-muted shrink-0">{timeAgo(notif.createdAt)}</span>
         </div>
         {(notif.body || notif.subtitle) && (
-          <p className="text-[12px] text-slate-500 mt-0.5 leading-snug">{notif.body || notif.subtitle}</p>
+          <p className="text-[12px] text-brand-text-muted mt-0.5 leading-snug">{notif.body || notif.subtitle}</p>
         )}
       </div>
 
@@ -120,12 +120,12 @@ function NotifRow({
       <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {!notif.isRead && (
           <button onClick={() => onMarkRead(notif._id)} title="Mark read"
-            className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-400 hover:bg-indigo-600/10 transition-colors">
+            className="h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-muted hover:text-indigo-400 hover:bg-brand-primary-hover/10 transition-colors">
             <Check className="h-3.5 w-3.5" />
           </button>
         )}
         <button onClick={() => onDismiss(notif._id)} title="Dismiss"
-          className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-600/10 transition-colors">
+          className="h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-muted hover:text-red-400 hover:bg-red-600/10 transition-colors">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -214,28 +214,28 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-[22px] font-bold text-slate-100">Notifications</h1>
-          <p className="text-[13px] text-slate-400 mt-0.5">
+          <h1 className="text-[22px] font-bold text-brand-text">Notifications</h1>
+          <p className="text-[13px] text-brand-text-secondary mt-0.5">
             {data?.total ?? 0} total{unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchAll}
-            className="h-9 w-9 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors border border-slate-700">
+            className="h-9 w-9 rounded-lg flex items-center justify-center text-brand-text-secondary hover:bg-brand-bg-soft hover:text-brand-text transition-colors border border-brand-border">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button onClick={markAllRead}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-lg border border-slate-700 text-slate-300 text-[13px] font-semibold hover:bg-slate-800 transition-colors">
+            className="flex items-center gap-1.5 h-9 px-4 rounded-lg border border-brand-border text-brand-text-secondary text-[13px] font-semibold hover:bg-brand-bg-soft transition-colors">
             <CheckCheck className="h-4 w-4" /> Mark all read
           </button>
         </div>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-[#1e293b]">
+      <div className="rounded-2xl overflow-hidden border border-brand-border/60 bg-brand-bg-soft">
         {/* Filters */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-700">
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-brand-border">
           <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1); }}
-            className="h-8 px-3 rounded-lg bg-slate-800 text-slate-300 text-[12px] border border-slate-700 focus:outline-none">
+            className="h-8 px-3 rounded-lg bg-brand-bg-soft text-brand-text-secondary text-[12px] border border-brand-border focus:outline-none">
             <option value="all">All Types</option>
             {Object.keys(TYPE_ICONS).map(t => (
               <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -243,7 +243,7 @@ export default function NotificationsPage() {
           </select>
           <button onClick={() => setReadFilter(v => v === 'all' ? 'unread' : 'all')}
             className={`h-8 px-3 rounded-lg text-[12px] font-semibold border transition-colors ${
-              readFilter === 'unread' ? 'bg-indigo-600/20 border-indigo-600/50 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+              readFilter === 'unread' ? 'bg-brand-primary/20 border-brand-primary/50 text-indigo-400' : 'bg-brand-bg-soft border-brand-border text-brand-text-secondary hover:text-brand-text'
             }`}>
             Unread only
           </button>
@@ -251,13 +251,13 @@ export default function NotificationsPage() {
           {/* Bulk bar */}
           {selected.size > 0 && (
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-[12px] text-slate-400">{selected.size} selected</span>
+              <span className="text-[12px] text-brand-text-secondary">{selected.size} selected</span>
               <button onClick={bulkDismiss}
                 className="flex items-center gap-1 h-8 px-3 rounded-lg bg-red-600/20 text-red-400 text-[12px] font-semibold hover:bg-red-600/30 transition-colors">
                 <Trash2 className="h-3.5 w-3.5" /> Dismiss
               </button>
               <button onClick={() => setSelected(new Set())}
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-700 transition-colors">
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-brand-text-secondary hover:bg-brand-bg-muted transition-colors">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -266,24 +266,24 @@ export default function NotificationsPage() {
 
         {/* Select all row */}
         {data && data.records.length > 0 && (
-          <div className="flex items-center gap-3 px-5 py-2.5 border-b border-slate-700/50 bg-slate-800/30">
+          <div className="flex items-center gap-3 px-5 py-2.5 border-b border-brand-border/50 bg-brand-bg-soft/30">
             <button onClick={selectAll}
               className={`h-4 w-4 rounded border transition-colors flex items-center justify-center ${
-                selected.size === data.records.length && data.records.length > 0 ? 'bg-indigo-600 border-indigo-600' : 'border-slate-600'
+                selected.size === data.records.length && data.records.length > 0 ? 'bg-brand-primary border-brand-primary' : 'border-brand-border-strong'
               }`}>
               {selected.size === data.records.length && data.records.length > 0 && <Check className="h-2.5 w-2.5 text-white" />}
             </button>
-            <span className="text-[11px] text-slate-500">Select all on this page</span>
+            <span className="text-[11px] text-brand-text-muted">Select all on this page</span>
           </div>
         )}
 
         {/* List */}
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Loading…</div>
+          <div className="text-center py-12 text-brand-text-muted">Loading…</div>
         ) : data?.records.length === 0 ? (
           <div className="text-center py-12">
-            <Bell className="h-8 w-8 mx-auto mb-2 text-slate-600" />
-            <p className="text-slate-500">No notifications</p>
+            <Bell className="h-8 w-8 mx-auto mb-2 text-brand-text-muted" />
+            <p className="text-brand-text-muted">No notifications</p>
           </div>
         ) : (
           data?.records.map(n => (
@@ -294,17 +294,17 @@ export default function NotificationsPage() {
 
         {/* Pagination */}
         {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-700">
-            <span className="text-[12px] text-slate-500">
+          <div className="flex items-center justify-between px-5 py-3 border-t border-brand-border">
+            <span className="text-[12px] text-brand-text-muted">
               Page {data.page} of {data.totalPages}
             </span>
             <div className="flex gap-2">
               <button disabled={data.page <= 1} onClick={() => setPage(p => p - 1)}
-                className="h-8 px-3 rounded-lg border border-slate-700 text-slate-400 text-[12px] hover:bg-slate-700 disabled:opacity-40 transition-colors">
+                className="h-8 px-3 rounded-lg border border-brand-border text-brand-text-secondary text-[12px] hover:bg-brand-bg-muted disabled:opacity-40 transition-colors">
                 Previous
               </button>
               <button disabled={data.page >= data.totalPages} onClick={() => setPage(p => p + 1)}
-                className="h-8 px-3 rounded-lg border border-slate-700 text-slate-400 text-[12px] hover:bg-slate-700 disabled:opacity-40 transition-colors">
+                className="h-8 px-3 rounded-lg border border-brand-border text-brand-text-secondary text-[12px] hover:bg-brand-bg-muted disabled:opacity-40 transition-colors">
                 Next
               </button>
             </div>

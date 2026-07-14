@@ -19,8 +19,20 @@ export const CreateCourseSchema = z.object({
   targetDepartments: z.array(z.string()).default([]),
   hasCertificate: z.boolean().default(false),
   certificateValidityDays: z.coerce.number().int().min(1).optional().nullable(),
+  deliveryMethod: z.enum(['self_paced', 'instructor_led']).default('self_paced'),
 });
 export type CreateCourseFormValues = z.infer<typeof CreateCourseSchema>;
+
+export const CreateSessionSchema = z.object({
+  title: z.string().optional(),
+  facilitatorId: z.string().optional(),
+  facilitatorName: z.string().optional(),
+  scheduledAt: z.string().min(1, 'Date/time is required'),
+  durationMinutes: z.coerce.number().int().min(1, 'Duration is required'),
+  meetingLink: z.string().min(1, 'Meeting link is required'),
+  capacity: z.coerce.number().int().min(1).optional().nullable(),
+});
+export type CreateSessionFormValues = z.infer<typeof CreateSessionSchema>;
 export const UpdateCourseSchema = CreateCourseSchema.partial();
 export type UpdateCourseFormValues = z.infer<typeof UpdateCourseSchema>;
 
@@ -103,7 +115,8 @@ export const CreateAssignmentRuleSchema = z.object({
     performanceScoreBelow: z.coerce.number().optional(),
     skillGaps: z.array(z.string()).optional(),
     daysBeforeCertExpiry: z.coerce.number().int().optional(),
-    scheduledRecurrence: z.enum(['monthly', 'quarterly', 'annual']).optional(),
+    scheduledRecurrence: z.enum(['monthly', 'quarterly', 'annual', 'custom']).optional(),
+    customIntervalDays: z.coerce.number().int().min(1).optional(),
   }).default({}),
   action: z.object({
     enrollInCourseIds: z.array(z.string()).default([]),

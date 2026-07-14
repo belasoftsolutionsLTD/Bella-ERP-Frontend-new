@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { MapPin, Users, Clock } from 'lucide-react';
 import type { JobRequisition } from '../types';
-import { REQUISITION_STATUS_STYLES, REQUISITION_STATUS_LABELS, EMPLOYMENT_TYPE_LABELS } from '../constants';
+import { REQUISITION_STATUS_MAP, REQUISITION_STATUS_LABELS, EMPLOYMENT_TYPE_LABELS } from '../constants';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export function RequisitionCard({ requisition, locale }: { requisition: JobRequisition; locale: string }) {
   const daysOpen = Math.floor((Date.now() - new Date(requisition.createdAt).getTime()) / 86400000);
@@ -18,9 +19,7 @@ export function RequisitionCard({ requisition, locale }: { requisition: JobRequi
           <h3 className="font-semibold text-slate-900">{requisition.title}</h3>
           <p className="text-sm text-slate-500">{requisition.department}</p>
         </div>
-        <span className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full border ${REQUISITION_STATUS_STYLES[requisition.status]}`}>
-          {REQUISITION_STATUS_LABELS[requisition.status]}
-        </span>
+        <StatusBadge status={REQUISITION_STATUS_MAP[requisition.status]} label={REQUISITION_STATUS_LABELS[requisition.status]} className="shrink-0 py-1" />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">

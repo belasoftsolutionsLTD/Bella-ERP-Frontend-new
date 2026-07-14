@@ -17,8 +17,8 @@ export function RequisitionsListPage({ locale }: { locale: string }) {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Job Requisitions</h1>
-          <p className="text-sm text-slate-400">Manage open roles and hiring approvals</p>
+          <h1 className="text-xl font-semibold text-brand-text">Job Requisitions</h1>
+          <p className="text-sm text-brand-text-secondary">Manage open roles and hiring approvals</p>
         </div>
         <Link href={`/${locale}/recruitment/requisitions/new`}>
           <Button className="bg-primary text-white"><Plus className="h-4 w-4 mr-1" /> New Requisition</Button>
@@ -26,7 +26,7 @@ export function RequisitionsListPage({ locale }: { locale: string }) {
       </div>
 
       <div className="flex gap-3">
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-md border border-slate-700 bg-slate-800 text-slate-200 px-3 py-2 text-sm">
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-md border border-brand-border bg-brand-bg-soft text-brand-text px-3 py-2 text-sm">
           <option value="">All statuses</option>
           {Object.entries(REQUISITION_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
@@ -34,14 +34,14 @@ export function RequisitionsListPage({ locale }: { locale: string }) {
           value={department}
           onChange={(e) => setDepartment(e.target.value)}
           placeholder="Filter by department"
-          className="rounded-md border border-slate-700 bg-slate-800 text-slate-200 placeholder:text-slate-500 px-3 py-2 text-sm"
+          className="rounded-md border border-brand-border bg-brand-bg-soft text-brand-text placeholder:text-brand-text-muted px-3 py-2 text-sm"
         />
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-slate-400">Loading...</p>
+        <p className="text-sm text-brand-text-secondary">Loading...</p>
       ) : requisitions.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-500">
+        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-brand-text-muted">
           No requisitions found. Create one to start hiring.
         </div>
       ) : (

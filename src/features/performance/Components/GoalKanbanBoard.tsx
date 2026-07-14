@@ -26,10 +26,10 @@ export function GoalKanbanBoard({ goals, onView, onEdit, onDelete, onMove }: Pro
         const cfg = goalStatusCfg(col.key);
         const colGoals = goals.filter(g => g.status === col.key);
         return (
-          <div key={col.key} className="w-[260px] min-w-[260px] flex flex-col bg-slate-800/50 rounded-xl border border-slate-700 border-t-[3px] overflow-hidden"
+          <div key={col.key} className="w-[260px] min-w-[260px] flex flex-col bg-brand-bg-soft/50 rounded-xl border border-brand-border border-t-[3px] overflow-hidden"
             style={{ borderTopColor: col.key === 'not_started' ? '#64748b' : col.key === 'in_progress' ? '#3b82f6' : col.key === 'at_risk' ? '#f59e0b' : '#6366f1' }}>
             {/* Column header */}
-            <div className="px-3 py-3 border-b border-slate-700 flex items-center gap-2">
+            <div className="px-3 py-3 border-b border-brand-border flex items-center gap-2">
               <span className={cn('text-xs font-bold', cfg.textCls)}>{col.label}</span>
               <span className={cn('ml-auto text-[11px] font-bold px-1.5 py-0.5 rounded-full', cfg.bgCls, cfg.textCls)}>
                 {colGoals.length}
@@ -39,7 +39,7 @@ export function GoalKanbanBoard({ goals, onView, onEdit, onDelete, onMove }: Pro
             {/* Cards */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[calc(100vh-340px)]">
               {colGoals.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8 text-slate-600">
+                <div className="flex flex-col items-center justify-center py-8 text-brand-text-muted">
                   <p className="text-xs">No goals here</p>
                 </div>
               )}
@@ -47,11 +47,11 @@ export function GoalKanbanBoard({ goals, onView, onEdit, onDelete, onMove }: Pro
                 <div key={g._id} className="relative group">
                   <GoalCard goal={g} onView={onView} onEdit={onEdit} onDelete={onDelete} compact />
                   {/* Move menu */}
-                  <div className="absolute top-2 left-2 hidden group-hover:flex flex-col gap-1 bg-slate-900 border border-slate-700 rounded-lg p-1 shadow-lg z-10 text-[11px]">
+                  <div className="absolute top-2 left-2 hidden group-hover:flex flex-col gap-1 bg-white border border-brand-border rounded-lg p-1 shadow-lg z-10 text-[11px]">
                     {COLUMNS.filter(c => c.key !== col.key).map(c => (
                       <button key={c.key}
                         onClick={(e) => { e.stopPropagation(); onMove(g._id, c.key); }}
-                        className={cn('px-2 py-1 rounded text-left font-medium hover:bg-slate-800 transition-colors', goalStatusCfg(c.key).textCls)}>
+                        className={cn('px-2 py-1 rounded text-left font-medium hover:bg-brand-bg-soft transition-colors', goalStatusCfg(c.key).textCls)}>
                         → {c.label}
                       </button>
                     ))}

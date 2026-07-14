@@ -68,24 +68,24 @@ export function CalibrationTab() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-slate-100">Talent Calibration</h2>
-          <p className="text-xs text-slate-400 mt-0.5">9-Box talent grid — click an employee to update their position</p>
+          <h2 className="text-base font-bold text-brand-text">Talent Calibration</h2>
+          <p className="text-xs text-brand-text-secondary mt-0.5">9-Box talent grid — click an employee to update their position</p>
         </div>
         <select value={cycleId} onChange={e => setCycleId(e.target.value)}
-          className="h-9 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:border-indigo-500">
+          className="h-9 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-sm text-brand-text-secondary focus:outline-none focus:border-brand-primary">
           <option value="">Select review cycle…</option>
           {activeCycles.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
         </select>
       </div>
 
       {!cycleId ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-600 gap-3">
+        <div className="flex flex-col items-center justify-center py-20 text-brand-text-muted gap-3">
           <LayoutGrid className="h-12 w-12" />
-          <p className="text-slate-400 font-semibold">Select an active review cycle to view the calibration grid</p>
+          <p className="text-brand-text-secondary font-semibold">Select an active review cycle to view the calibration grid</p>
         </div>
       ) : loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+          <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
         </div>
       ) : (
         <div className="flex gap-4">
@@ -95,17 +95,17 @@ export function CalibrationTab() {
             <div className="flex mb-1 pl-8">
               <div className="flex-1 grid grid-cols-3 gap-1">
                 {X_LABELS.map(l => (
-                  <div key={l} className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{l}</div>
+                  <div key={l} className="text-center text-[11px] font-semibold text-brand-text-muted uppercase tracking-wide">{l}</div>
                 ))}
               </div>
             </div>
-            <p className="text-center text-[11px] text-slate-600 mb-2">← Performance →</p>
+            <p className="text-center text-[11px] text-brand-text-muted mb-2">← Performance →</p>
 
             <div className="flex gap-2">
               {/* Y axis label */}
               <div className="flex flex-col justify-around w-7 shrink-0">
                 {Y_LABELS.map(l => (
-                  <div key={l} className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide -rotate-90 whitespace-nowrap">{l}</div>
+                  <div key={l} className="text-[11px] font-semibold text-brand-text-muted uppercase tracking-wide -rotate-90 whitespace-nowrap">{l}</div>
                 ))}
               </div>
 
@@ -125,7 +125,7 @@ export function CalibrationTab() {
                             title={e.employee?.fullName ?? 'Unknown'}
                             className={cn(
                               'h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow hover:scale-110 transition-transform',
-                              'bg-slate-700 hover:bg-slate-600',
+                              'bg-brand-bg-muted hover:bg-brand-border-strong',
                             )}
                           >
                             {(e.employee?.fullName ?? '?').charAt(0).toUpperCase()}
@@ -138,10 +138,10 @@ export function CalibrationTab() {
               </div>
             </div>
 
-            <p className="text-center text-[11px] text-slate-600 mt-1">↑ Potential ↑</p>
+            <p className="text-center text-[11px] text-brand-text-muted mt-1">↑ Potential ↑</p>
 
             {data.length === 0 && (
-              <div className="text-center py-6 text-slate-600 text-sm">
+              <div className="text-center py-6 text-brand-text-muted text-sm">
                 No manager reviews submitted for this cycle yet.
               </div>
             )}
@@ -149,34 +149,34 @@ export function CalibrationTab() {
 
           {/* Selected employee panel */}
           {selected && (
-            <div className="w-64 shrink-0 bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-4">
+            <div className="w-64 shrink-0 bg-brand-bg-soft border border-brand-border rounded-xl p-4 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
+                <div className="h-10 w-10 rounded-full bg-brand-primary flex items-center justify-center text-white font-bold">
                   {(selected.employee?.fullName ?? '?').charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-100 truncate">{selected.employee?.fullName ?? 'Unknown'}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{selected.employee?.designation}</p>
+                  <p className="text-sm font-bold text-brand-text truncate">{selected.employee?.fullName ?? 'Unknown'}</p>
+                  <p className="text-[11px] text-brand-text-secondary truncate">{selected.employee?.designation}</p>
                 </div>
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Current Box</span>
-                  <span className="text-slate-300 font-medium">{NINE_BOX_LABELS[selected.calibrationBox]?.label ?? selected.calibrationBox}</span>
+                  <span className="text-brand-text-muted">Current Box</span>
+                  <span className="text-brand-text-secondary font-medium">{NINE_BOX_LABELS[selected.calibrationBox]?.label ?? selected.calibrationBox}</span>
                 </div>
                 {selected.overallRating != null && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Overall Rating</span>
-                    <span className="text-slate-300 font-medium">{selected.overallRating}/5</span>
+                    <span className="text-brand-text-muted">Overall Rating</span>
+                    <span className="text-brand-text-secondary font-medium">{selected.overallRating}/5</span>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-500 uppercase tracking-wide">Move to Box</label>
+                <label className="text-[11px] text-brand-text-muted uppercase tracking-wide">Move to Box</label>
                 <select value={moveBox} onChange={e => setMoveBox(e.target.value)}
-                  className="w-full h-8 mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                  className="w-full h-8 mt-1 bg-white border border-brand-border rounded-lg px-2 text-xs text-brand-text focus:outline-none focus:border-brand-primary">
                   {Object.entries(NINE_BOX_LABELS).map(([key, val]) => (
                     <option key={key} value={key}>{val.label}</option>
                   ))}
@@ -184,19 +184,19 @@ export function CalibrationTab() {
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-500 uppercase tracking-wide">Session Notes</label>
+                <label className="text-[11px] text-brand-text-muted uppercase tracking-wide">Session Notes</label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)}
                   rows={3} placeholder="Calibration notes…"
-                  className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 resize-none" />
+                  className="w-full mt-1 bg-white border border-brand-border rounded-lg px-2 py-1.5 text-xs text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary resize-none" />
               </div>
 
               <div className="flex gap-2">
                 <button onClick={() => setSelected(null)}
-                  className="flex-1 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                  className="flex-1 py-1.5 rounded-lg border border-brand-border text-xs text-brand-text-secondary hover:text-brand-text transition-colors">
                   Cancel
                 </button>
                 <button onClick={handleSaveCalibration} disabled={saving}
-                  className="flex-1 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors">
+                  className="flex-1 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold disabled:opacity-50 transition-colors">
                   {saving ? 'Saving…' : 'Save'}
                 </button>
               </div>

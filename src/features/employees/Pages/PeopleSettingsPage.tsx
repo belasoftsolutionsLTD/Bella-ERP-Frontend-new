@@ -23,8 +23,8 @@ export default function PeopleSettingsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-100">People Settings</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Departments, job groups, and designations used across onboarding and org structure.</p>
+        <h1 className="text-2xl font-bold text-brand-text">People Settings</h1>
+        <p className="text-sm text-brand-text-secondary mt-0.5">Departments, job groups, and designations used across onboarding and org structure.</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -35,8 +35,8 @@ export default function PeopleSettingsPage() {
             className={cn(
               'px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors',
               tab === t.key
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60 hover:text-white'
+                ? 'bg-brand-primary text-white'
+                : 'bg-brand-bg-muted/60 text-brand-text-secondary hover:bg-brand-border-strong/60 hover:text-brand-text'
             )}
           >
             {t.label}

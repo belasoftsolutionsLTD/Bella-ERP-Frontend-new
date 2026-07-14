@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import {
@@ -11,26 +11,26 @@ import {
   CheckCheck, FileText, BarChart3, FolderOpen, Shield,
   Upload, Trash2, Download, Printer, Star, TrendingUp, TrendingDown,
   Trophy, BookOpen, Dumbbell, MapPin, BellOff, Menu, Eye, ShoppingCart,
+  GraduationCap, Award, Sparkles, Heart,
 } from 'lucide-react';
 import { DocViewerModal } from '@/components/custom-ui/DocViewerModal';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/configs/constants';
 import { downloadFile, openFile } from '@/functions/downloadFile';
 import { apiCallFunction } from '@/functions/apiCallFunction';
-import { useMyPortal, type OnboardingTask, type OffboardingTask, type MyDocument, type AppraisalRecord, type EmpAward, type ScheduledEvent, type EmployeeTask, type MyGoal, type ReviewResult, type MyProject, type MyProjectTimeEntry } from '../Hooks/useMyPortal';
+import { useMyPortal, type MyDocument, type AppraisalRecord, type EmpAward, type ScheduledEvent, type EmployeeTask, type ReviewResult, type MyProject, type MyProjectTimeEntry } from '../Hooks/useMyPortal';
+import { GoalsTab } from '@/features/performance/Components/GoalsTab';
 import { MyShiftsTab } from './MyShiftsTab';
 import CommunicationPage from '@/features/communication/Pages/CommunicationPage';
 import InboxPage from '@/features/inbox/Pages/InboxPage';
 import AwardsPage from '@/features/awards/Pages/AwardsPage';
-import { LeaveBalanceCard } from '@/features/leave/Components/LeaveBalanceCard';
 import { MyPayslipsPanel } from '@/features/payroll/Components/MyPayslipsPanel';
 import { AttendanceGrid } from '@/features/attendance/Components/AttendanceGrid';
 import { ClockInWidget } from '@/features/attendance/Components/ClockInWidget';
 import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
-import { LogLeaveModal } from '@/features/leave/Components/LogLeaveModal';
-import type { LeaveRequest } from '@/features/leave/Hooks/useLeave';
 
-type Section = 'profile' | 'leave' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'onboarding' | 'offboarding' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'jd' | 'terms' | 'expenses' | 'requests' | 'projects' | 'jobs';
+type Section = 'profile' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'jd' | 'terms' | 'expenses' | 'requests' | 'projects' | 'jobs' | 'skills';
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-600',
@@ -39,11 +39,8 @@ const AVATAR_COLORS = [
 ];
 const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 
-const STATUS_STYLE: Record<string, string> = {
-  active:     'bg-emerald-100 text-emerald-700',
-  on_leave:   'bg-amber-100 text-amber-700',
-  suspended:  'bg-red-100 text-red-700',
-  terminated: 'bg-gray-100 text-gray-500',
+const EMPLOYEE_STATUS_MAP: Record<string, Status> = {
+  active: 'active', on_leave: 'onLeave', suspended: 'suspended', terminated: 'terminated',
 };
 
 const NOTIF_COLORS: Record<string, string> = {
@@ -51,11 +48,12 @@ const NOTIF_COLORS: Record<string, string> = {
   leave:        'bg-blue-100 text-blue-700',
   announcement: 'bg-violet-100 text-violet-700',
   onboarding:   'bg-amber-100 text-amber-700',
-  task:         'bg-indigo-100 text-indigo-700',
+  offboarding:  'bg-orange-100 text-orange-700',
+  task:         'bg-brand-primary/10 text-brand-primary',
   general:      'bg-gray-100 text-gray-600',
 };
 
-const NAV: { key: Section | 'my-training'; label: string; icon: typeof User; description: string; href?: string }[] = [
+const NAV: { key: Section | 'my-training' | 'my-onboarding' | 'my-offboarding' | 'my-leave'; label: string; icon: typeof User; description: string; href?: string }[] = [
   // ── Daily essentials ──
   { key: 'profile',      label: 'My Profile',          icon: User,          description: 'Personal & contact info' },
   { key: 'inbox',        label: 'Inbox',                icon: Bell,          description: 'Approvals & action items' },
@@ -63,11 +61,12 @@ const NAV: { key: Section | 'my-training'; label: string; icon: typeof User; des
   { key: 'attendance',   label: 'Attendance',           icon: Clock,         description: 'Daily records & clock-in' },
   { key: 'timesheets',   label: 'Timesheets',           icon: Clock,         description: 'Weekly timesheets & hours logged' },
   { key: 'shifts',       label: 'My Shifts',            icon: CalendarDays,  description: 'Upcoming shifts & open shift applications' },
-  { key: 'leave',        label: 'Leave',                icon: CalendarDays,  description: 'Balance & requests' },
+  { key: 'my-leave',     label: 'Leave',                icon: CalendarDays,  description: 'Balance & requests', href: '/my/leave' },
   // ── Tasks & work ──
   { key: 'tasks',        label: 'My Tasks',             icon: CheckCircle2,  description: 'Tasks assigned by HR' },
   { key: 'projects',     label: 'My Projects',          icon: Briefcase,     description: 'Projects you are a member of' },
   { key: 'jd',           label: 'Job Description',      icon: FileText,      description: 'Your role & responsibilities' },
+  { key: 'skills',       label: 'Skills & Qualifications', icon: GraduationCap, description: 'Skills, certifications & education' },
   // ── Finance ──
   { key: 'payslips',     label: 'Payslips',             icon: DollarSign,    description: 'Monthly payroll history' },
   { key: 'expenses',     label: 'My Expenses',          icon: DollarSign,    description: 'Submit & track claims' },
@@ -83,8 +82,8 @@ const NAV: { key: Section | 'my-training'; label: string; icon: typeof User; des
   { key: 'events',       label: 'Events & Schedule',    icon: CalendarDays,  description: 'Upcoming training & team building' },
   // ── Documents & onboarding ──
   { key: 'documents',    label: 'My Documents',         icon: FolderOpen,    description: 'Certificates & files' },
-  { key: 'onboarding',   label: 'Onboarding',           icon: ClipboardList, description: 'Tasks & checklist' },
-  { key: 'offboarding',  label: 'Offboarding',          icon: ClipboardList, description: 'Exit checklist' },
+  { key: 'my-onboarding',  label: 'Onboarding',         icon: ClipboardList, description: 'Tasks & checklist', href: '/my/onboarding' },
+  { key: 'my-offboarding', label: 'Offboarding',        icon: ClipboardList, description: 'Exit checklist', href: '/my/offboarding' },
   // ── Policies ──
   { key: 'terms',        label: 'Terms & Conditions',   icon: Shield,        description: 'Policies & agreements' },
 ];
@@ -141,16 +140,15 @@ export function MyPortalView() {
   const router = useRouter();
   const locale = useLocale();
   const {
-    profile, leaveBalance, leaveRequests, payslips, attendance, onboardingTasks, offboardingTasks,
-    notifications, announcements, documents, appraisals, goals, reviewResults, events, myTasks, myProjects, loading,
-    refreshLeave, refreshOnboarding, refreshOffboarding, updateProfile, disputeLeave,
+    profile, payslips, attendance,
+    notifications, announcements, documents, appraisals, reviewResults, events, myTasks, myProjects, loading,
+    updateProfile,
     markNotifRead, markAllNotifsRead,
     refreshDocuments, deleteDocument,
   } = useMyPortal();
 
   const [active, setActive]           = useState<Section>('profile');
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [notifsOn, setNotifsOn]       = useState(true);
   const [togglingNotif, setTogglingNotif] = useState(false);
@@ -185,23 +183,19 @@ export function MyPortalView() {
 
   if (!profile) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <User className="h-12 w-12 text-slate-500 opacity-50" />
-      <p className="text-sm font-medium text-slate-300">No employee record linked to your account.</p>
-      <p className="text-xs text-slate-500">Contact HR to link your account to an employee record.</p>
+      <User className="h-12 w-12 text-brand-text-muted opacity-50" />
+      <p className="text-sm font-medium text-brand-text-secondary">No employee record linked to your account.</p>
+      <p className="text-xs text-brand-text-muted">Contact HR to link your account to an employee record.</p>
     </div>
   );
 
-  const pendingOnboarding  = onboardingTasks.filter(t => t.status !== 'completed').length;
   const unreadAnnouncements = announcements.filter(a => !a.isRead).length;
   const unreadNotifs = notifications.length;
   const totalUnread  = unreadNotifs + unreadAnnouncements;
 
   const pendingTasks        = myTasks.filter(t => t.status !== 'completed').length;
-  const pendingOffboarding  = offboardingTasks.filter(t => t.status !== 'completed').length;
 
-  const navBadge = (key: Section | 'my-training') => {
-    if (key === 'onboarding')    return pendingOnboarding || null;
-    if (key === 'offboarding')   return pendingOffboarding || null;
+  const navBadge = (key: Section | 'my-training' | 'my-onboarding' | 'my-offboarding' | 'my-leave') => {
     if (key === 'messages')      return unreadAnnouncements || null;
     if (key === 'tasks')         return pendingTasks || null;
     return null;
@@ -209,15 +203,6 @@ export function MyPortalView() {
 
   return (
     <>
-      {showLeaveModal && (
-        <LogLeaveModal
-          employeeId={profile._id}
-          employeeName={profile.fullName}
-          onClose={() => setShowLeaveModal(false)}
-          onSuccess={() => { setShowLeaveModal(false); refreshLeave(); }}
-        />
-      )}
-
       {/* Mobile sidebar backdrop */}
       {showSidebar && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setShowSidebar(false)} />
@@ -233,7 +218,7 @@ export function MyPortalView() {
             ? 'fixed inset-y-4 left-4 z-50 w-72 max-h-[calc(100vh-2rem)]'
             : 'hidden lg:flex',
         )}>
-          <div className="bg-gradient-to-br from-primary to-[#1a3461] p-5 text-white">
+          <div className="bg-brand-sidebar p-5 text-white">
             <div className="flex items-center gap-3 mb-3">
               <ProfilePhotoAvatar profile={profile} />
 
@@ -251,9 +236,7 @@ export function MyPortalView() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-mono bg-white/20 px-2 py-0.5 rounded-md">{profile.staffNumber}</span>
-              <span className={cn('text-xs px-2 py-0.5 rounded-md font-medium capitalize', STATUS_STYLE[profile.status] ?? 'bg-gray-100 text-gray-500')}>
-                {profile.status.replace(/_/g, ' ')}
-              </span>
+              <StatusBadge status={EMPLOYEE_STATUS_MAP[profile.status] ?? 'inactive'} className="rounded-md" />
             </div>
             <p className="text-white/50 text-xs mt-2">{profile.department}</p>
           </div>
@@ -265,17 +248,17 @@ export function MyPortalView() {
               return (
                 <button key={key} onClick={() => { href ? router.push(`/${locale}${href}`) : setActive(key as Section); setShowSidebar(false); }}
                   className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all mb-0.5',
-                    isActive ? 'bg-primary text-white shadow-sm' : 'text-foreground/70 hover:bg-gray-50 hover:text-foreground')}>
-                  <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0', isActive ? 'bg-white/20' : 'bg-gray-100')}>
-                    <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-foreground/60')} />
+                    isActive ? 'bg-brand-primary text-white shadow-sm' : 'text-brand-text-secondary hover:bg-brand-bg-muted hover:text-brand-text')}>
+                  <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0', isActive ? 'bg-white/20' : 'bg-brand-bg-muted')}>
+                    <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-brand-text-secondary')} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn('text-sm font-medium', isActive ? 'text-white' : 'text-foreground')}>{label}</p>
-                    <p className={cn('text-xs truncate', isActive ? 'text-white/60' : 'text-foreground/40')}>{description}</p>
+                    <p className={cn('text-sm font-medium', isActive ? 'text-white' : 'text-brand-text')}>{label}</p>
+                    <p className={cn('text-xs truncate', isActive ? 'text-white/60' : 'text-brand-text-muted')}>{description}</p>
                   </div>
                   {badge
-                    ? <span className={cn('h-5 min-w-5 px-1.5 rounded-full text-xs font-bold flex items-center justify-center shrink-0', isActive ? 'bg-white text-primary' : 'bg-primary text-white')}>{badge}</span>
-                    : <ChevronRight className={cn('h-3.5 w-3.5 shrink-0', isActive ? 'text-white/60' : 'text-foreground/20')} />}
+                    ? <span className={cn('h-5 min-w-5 px-1.5 rounded-full text-xs font-bold flex items-center justify-center shrink-0', isActive ? 'bg-white text-brand-primary' : 'bg-brand-primary text-white')}>{badge}</span>
+                    : <ChevronRight className={cn('h-3.5 w-3.5 shrink-0', isActive ? 'text-white/60' : 'text-brand-text-muted')} />}
                 </button>
               );
             })}
@@ -308,13 +291,6 @@ export function MyPortalView() {
                   </div>
 
                   <div className="ml-auto flex items-center gap-2 shrink-0">
-                    {active === 'leave' && (
-                      <button onClick={() => setShowLeaveModal(true)}
-                        className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors">
-                        <Plus className="h-3.5 w-3.5" /> Apply for Leave
-                      </button>
-                    )}
-
                     {/* Notification bell */}
                     <div className="relative">
                       <button
@@ -346,22 +322,25 @@ export function MyPortalView() {
                               <div className="py-8 text-center text-foreground/30 text-sm">No new notifications</div>
                             ) : notifications.map(n => {
                               const LINK_MAP: Record<string, Section> = {
-                                '/leave': 'leave', '/tasks': 'tasks', '/onboarding': 'onboarding',
-                                '/offboarding': 'offboarding', '/payslips': 'payslips',
+                                '/tasks': 'tasks', '/payslips': 'payslips',
                                 '/attendance': 'attendance', '/payroll': 'payslips',
                                 '/projects': 'projects',
                                 '/expenses': 'expenses', '/performance': 'performance',
                               };
-                              const isTrainingLink = n.link?.includes('/training') ?? false;
-                              const dest = !isTrainingLink && n.link ? Object.entries(LINK_MAP).find(([k]) => n.link!.includes(k))?.[1] : undefined;
-                              const clickable = isTrainingLink || !!dest;
+                              const PUSH_LINK_MAP: Record<string, string> = {
+                                '/training': '/my/training', '/onboarding': '/my/onboarding', '/offboarding': '/my/offboarding',
+                                '/leave': '/my/leave',
+                              };
+                              const pushHref = n.link ? Object.entries(PUSH_LINK_MAP).find(([k]) => n.link!.includes(k))?.[1] : undefined;
+                              const dest = !pushHref && n.link ? Object.entries(LINK_MAP).find(([k]) => n.link!.includes(k))?.[1] : undefined;
+                              const clickable = !!pushHref || !!dest;
                               return (
                                 <div key={n._id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
                                   <button
                                     className="flex items-start gap-3 flex-1 min-w-0 text-left"
                                     onClick={() => {
                                       markNotifRead(n._id);
-                                      if (isTrainingLink) { router.push(`/${locale}/my/training`); setShowNotifPanel(false); }
+                                      if (pushHref) { router.push(`/${locale}${pushHref}`); setShowNotifPanel(false); }
                                       else if (dest) { setActive(dest); setShowNotifPanel(false); }
                                     }}
                                   >
@@ -401,9 +380,9 @@ export function MyPortalView() {
           {showNotifPanel && <div className="fixed inset-0 z-40" onClick={() => setShowNotifPanel(false)} />}
 
           <div className="p-6">
-            {active === 'profile'    && <ProfilePanel profile={profile} onSave={updateProfile} onEditPayment={() => setActive('payment')} />}
+            {active === 'profile'    && <ProfilePanel profile={profile} onSave={updateProfile} onEditPayment={() => setActive('payment')} onNavigate={setActive}
+              onContactHR={(topic) => apiCallFunction({ url: `${API_BASE_URL}/me/contact-hr`, method: 'POST', data: { topic } })} />}
             {active === 'payment'    && <PaymentPanel profile={profile} onSave={updateProfile} />}
-            {active === 'leave'      && <LeavePanel leaveBalance={leaveBalance} leaveRequests={leaveRequests} onDispute={disputeLeave} />}
             {active === 'payslips'   && (
               payslips.length > 0
                 ? <MyPayslipsPanel payslips={payslips} />
@@ -423,16 +402,15 @@ export function MyPortalView() {
             )}
             {active === 'timesheets'  && <div className="-mx-6"><TimesheetsTab /></div>}
             {active === 'shifts'      && <MyShiftsTab />}
-            {active === 'onboarding'  && <OnboardingTasksPanel tasks={onboardingTasks} onComplete={() => refreshOnboarding()} />}
-            {active === 'offboarding' && <OffboardingPanel tasks={offboardingTasks} onComplete={refreshOffboarding} />}
             {active === 'tasks'       && <MyTasksPanel tasks={myTasks} />}
             {active === 'projects'    && <MyProjectsPanel projects={myProjects} />}
             {active === 'documents'   && <DocumentsPanel docs={documents} onDeleted={deleteDocument} onUploaded={refreshDocuments} employeeId={profile._id} />}
-            {active === 'performance' && <PerformancePanel appraisals={appraisals} goals={goals} reviewResults={reviewResults} />}
+            {active === 'performance' && <PerformancePanel appraisals={appraisals} reviewResults={reviewResults} />}
             {active === 'awards'      && <div className="-m-6"><AwardsPage embedded /></div>}
             {active === 'events'      && <MyEventsPanel events={events} />}
             {active === 'jobs'        && <InternalJobsPanel />}
             {active === 'jd'          && <JobDescriptionPanel jd={(profile as any).jobDescription} />}
+            {active === 'skills'      && <SkillsPanel initialSkills={(profile as any).skills} initialCertifications={(profile as any).certifications} initialEducation={(profile as any).educationHistory} />}
             {active === 'expenses'    && <ExpensesPanel />}
             {active === 'requests'    && <RequestsPanel />}
             {active === 'terms'          && <TermsPanel />}
@@ -455,21 +433,46 @@ const NOTE_COLORS: Record<string, string> = {
   verbal_warning:      'bg-yellow-100 text-yellow-700 border-yellow-200',
   written_warning:     'bg-orange-100 text-orange-700 border-orange-200',
   disciplinary_action: 'bg-red-100 text-red-700 border-red-200',
-  general_note:        'bg-slate-100 text-slate-600 border-slate-200',
+  general_note:        'bg-slate-100 text-brand-text-muted border-slate-200',
 };
 
-function ProfilePanel({ profile, onSave, onEditPayment }: {
+function ProfilePanel({ profile, onSave, onEditPayment, onContactHR, onNavigate }: {
   profile: any;
-  onSave: (d: Record<string, string>) => void;
+  onSave: (d: Record<string, unknown>) => void;
   onEditPayment?: () => void;
+  onContactHR?: (topic: string) => void;
+  onNavigate?: (section: Section) => void;
 }) {
   const [editing, setEditing]     = useState(false);
   const [email, setEmail]         = useState(profile.email || '');
   const [phone, setPhone]         = useState(profile.phone || '');
-  const [nextOfKin, setNextOfKin] = useState(profile.nextOfKin || '');
+  const nokRecord = profile.nextOfKin && typeof profile.nextOfKin === 'object' ? profile.nextOfKin : {};
+  const [nokName, setNokName]                 = useState(nokRecord.name || '');
+  const [nokRelationship, setNokRelationship] = useState(nokRecord.relationship || '');
+  const [nokPhone, setNokPhone]               = useState(nokRecord.phone || '');
+  const nokDisplay = nokRecord.name
+    ? [nokRecord.name, nokRecord.relationship, nokRecord.phone].filter(Boolean).join(' · ')
+    : '—';
   const [kraPin, setKraPin]       = useState(profile.kraPin || '');
+  const [preferredName, setPreferredName] = useState(profile.preferredName || '');
+  const [gender, setGender]               = useState(profile.gender || '');
+  const [maritalStatus, setMaritalStatus] = useState(profile.maritalStatus || '');
+  const [nationality, setNationality]     = useState(profile.nationality || '');
+  const [passportNumber, setPassportNumber]         = useState(profile.passportNumber || '');
+  const [passportExpiryDate, setPassportExpiryDate] = useState(profile.passportExpiryDate ? String(profile.passportExpiryDate).slice(0, 10) : '');
+  const [addressStreet, setAddressStreet]         = useState(profile.address?.street || '');
+  const [addressCity, setAddressCity]             = useState(profile.address?.city || '');
+  const [addressState, setAddressState]           = useState(profile.address?.state || '');
+  const [addressCountry, setAddressCountry]       = useState(profile.address?.country || '');
+  const [addressPostalCode, setAddressPostalCode] = useState(profile.address?.postalCode || '');
   const [saving, setSaving]       = useState(false);
+  const [contactedTopics, setContactedTopics] = useState<Set<string>>(new Set());
   const [myNotes, setMyNotes]     = useState<any[]>([]);
+
+  const emergencyContacts: { id: string; name: string; relationship?: string | null; phone: string; email?: string | null }[] = profile.emergencyContacts ?? [];
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '' });
+  const [savingContact, setSavingContact] = useState(false);
 
   useEffect(() => {
     apiCallFunction<any>({
@@ -482,18 +485,63 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
   const gaps: { label: string; critical: boolean; action?: string }[] = [];
   if (!profile.grossPay)                                    gaps.push({ label: 'Gross Pay',       critical: true  });
   if (!profile.jobGroupId)                                  gaps.push({ label: 'Job Group',        critical: true  });
-  if (!profile.kraPin)                                      gaps.push({ label: 'Tax ID / PIN',          critical: false, action: 'edit' });
+  if (!profile.kraPin)                                      gaps.push({ label: 'KRA PIN',          critical: false, action: 'edit' });
   if (!profile.bankAccountNumber && !profile.mpesaNumber)   gaps.push({ label: 'Payment Details',  critical: false, action: 'payment' });
+
+  // Profile completeness — everything the employee can actually fill in themselves
+  // (deliberately excludes Gross Pay / Job Group above, which only HR can set, and
+  // passport, which is genuinely optional for anyone who doesn't have one).
+  const hasPaymentDetails = !!(profile.bankAccountNumber || profile.mpesaNumber || profile.paypalEmail || profile.cryptoWalletAddress);
+  const completenessChecklist: { label: string; done: boolean; section: Section }[] = [
+    { label: 'Preferred name',           done: !!profile.preferredName,                       section: 'profile' },
+    { label: 'Phone number',              done: !!profile.phone,                               section: 'profile' },
+    { label: 'Gender',                    done: !!profile.gender,                              section: 'profile' },
+    { label: 'Marital status',            done: !!profile.maritalStatus,                       section: 'profile' },
+    { label: 'Nationality',               done: !!profile.nationality,                         section: 'profile' },
+    { label: 'Address',                   done: !!(profile.address?.street && profile.address?.city), section: 'profile' },
+    { label: 'Emergency contact',         done: (profile.emergencyContacts ?? []).length > 0,  section: 'profile' },
+    { label: 'KRA PIN',                   done: !!profile.kraPin,                              section: 'profile' },
+    { label: 'Payment details',           done: hasPaymentDetails,                             section: 'payment' },
+    { label: 'Skills & qualifications',   done: (profile.skills ?? []).length > 0 || (profile.certifications ?? []).length > 0 || (profile.educationHistory ?? []).length > 0, section: 'skills' },
+  ];
+  const completedCount = completenessChecklist.filter(c => c.done).length;
+  const completenessPct = Math.round((completedCount / completenessChecklist.length) * 100);
 
   const save = async () => {
     setSaving(true);
     try {
-      await onSave({ email, phone, nextOfKin, kraPin });
+      await onSave({
+        email, phone, kraPin,
+        nextOfKin: (nokName || nokRelationship || nokPhone)
+          ? { ...nokRecord, name: nokName, relationship: nokRelationship || null, phone: nokPhone }
+          : null,
+        preferredName, gender: gender || undefined, maritalStatus: maritalStatus || undefined, nationality,
+        passportNumber, passportExpiryDate: passportExpiryDate || undefined,
+        address: (addressStreet || addressCity || addressState || addressCountry || addressPostalCode)
+          ? { street: addressStreet, city: addressCity, state: addressState, country: addressCountry, postalCode: addressPostalCode }
+          : null,
+      });
       setEditing(false);
     } finally {
       setSaving(false);
     }
   };
+
+  const saveEmergencyContacts = async (next: typeof emergencyContacts) => {
+    setSavingContact(true);
+    try {
+      await onSave({ emergencyContacts: next });
+    } finally {
+      setSavingContact(false);
+    }
+  };
+  const addEmergencyContact = () => {
+    if (!contactForm.name.trim() || !contactForm.phone.trim()) return;
+    saveEmergencyContacts([...emergencyContacts, { id: '', name: contactForm.name, relationship: contactForm.relationship || null, phone: contactForm.phone, email: contactForm.email || null }]);
+    setContactForm({ name: '', relationship: '', phone: '', email: '' });
+    setShowContactForm(false);
+  };
+  const removeEmergencyContact = (id: string) => saveEmergencyContacts(emergencyContacts.filter(c => c.id !== id));
 
   const paymentMethod = profile.paymentMethod || 'bank_transfer';
   const paymentLabel  = PAYMENT_METHOD_LABEL[paymentMethod] ?? paymentMethod;
@@ -509,6 +557,33 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
 
   return (
     <div className="space-y-5">
+      {/* Profile completeness meter */}
+      {completenessPct < 100 && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-slate-700">Your profile is {completenessPct}% complete</p>
+            <span className="text-xs text-brand-text-muted">{completedCount}/{completenessChecklist.length}</span>
+          </div>
+          <div className="h-2 bg-slate-200 rounded-full overflow-hidden mb-2.5">
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', completenessPct >= 80 ? 'bg-emerald-500' : completenessPct >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+              style={{ width: `${completenessPct}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {completenessChecklist.filter(c => !c.done).map(c => (
+              <button
+                key={c.label}
+                onClick={() => c.section === 'profile' ? setEditing(true) : onNavigate?.(c.section)}
+                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-slate-200 text-brand-text-muted hover:border-indigo-300 hover:text-brand-primary-hover transition-colors"
+              >
+                + {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Profile completeness banner */}
       {gaps.length > 0 && (
         <div className={cn(
@@ -520,19 +595,26 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
           </p>
           <div className="flex flex-wrap gap-2">
             {gaps.map(g => (
-              <span key={g.label} className={cn(
-                'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full',
+              <div key={g.label} className={cn(
+                'inline-flex items-center gap-2 text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full',
                 g.critical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700',
               )}>
-                {g.label}
+                <span>{g.label}</span>
                 {g.action === 'payment' && onEditPayment && (
-                  <button onClick={onEditPayment} className="underline font-bold ml-0.5">Fix →</button>
+                  <button onClick={onEditPayment} className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/70 hover:bg-white transition-colors">Fix →</button>
                 )}
                 {g.action === 'edit' && (
-                  <button onClick={() => setEditing(true)} className="underline font-bold ml-0.5">Fix →</button>
+                  <button onClick={() => setEditing(true)} className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/70 hover:bg-white transition-colors">Fix →</button>
                 )}
-                {!g.action && <span className="opacity-60 ml-0.5">— Contact HR</span>}
-              </span>
+                {!g.action && (
+                  contactedTopics.has(g.label)
+                    ? <span className="text-[11px] opacity-70 px-2 py-0.5">HR notified ✓</span>
+                    : onContactHR
+                      ? <button onClick={() => { onContactHR(g.label); setContactedTopics(prev => new Set(prev).add(g.label)); }}
+                          className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/70 hover:bg-white transition-colors">Contact HR →</button>
+                      : <span className="text-[11px] opacity-70 px-2 py-0.5">Contact HR</span>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -555,23 +637,137 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
         {editing ? <EditField icon={Phone} label="Phone"       value={phone}      onChange={setPhone}      color="text-green-600" />
                  : <InfoRow  icon={Phone}  label="Phone"       value={profile.phone || '—'}                color="text-green-600" />}
         <InfoRow icon={Building2}    label="Department"   value={profile.department || '—'}    color="text-violet-600" />
-        <InfoRow icon={Briefcase}    label="Designation"  value={profile.designation || '—'}   color="text-indigo-600" />
+        <InfoRow icon={Briefcase}    label="Designation"  value={profile.designation || '—'}   color="text-brand-primary" />
         <InfoRow icon={CalendarDays} label="Date of Hire" value={profile.dateOfHire ? new Date(profile.dateOfHire).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-rose-600" />
-        {editing ? <EditField icon={User}      label="Next of Kin" value={nextOfKin} onChange={setNextOfKin} color="text-primary" />
-                 : <InfoRow  icon={User}       label="Next of Kin" value={profile.nextOfKin || '—'}           color="text-primary" />}
-        {editing ? <EditField icon={FileText}  label="Tax ID / PIN"     value={kraPin}    onChange={setKraPin}    color="text-orange-600" />
-                 : <InfoRow  icon={FileText}   label="Tax ID / PIN"     value={profile.kraPin || '—'}              color="text-orange-600" />}
+        {editing ? <EditField icon={User} label="Next of Kin Name"         value={nokName}         onChange={setNokName}         color="text-brand-primary" />
+                 : <InfoRow  icon={User} label="Next of Kin"              value={nokDisplay}                                     color="text-brand-primary" />}
+        {editing && <EditField icon={User} label="Next of Kin Relationship" value={nokRelationship} onChange={setNokRelationship} color="text-brand-primary" />}
+        {editing && <EditField icon={Phone} label="Next of Kin Phone"       value={nokPhone}         onChange={setNokPhone}        color="text-brand-primary" />}
+        {editing ? <EditField icon={FileText}  label="KRA PIN"     value={kraPin}    onChange={setKraPin}    color="text-orange-600" />
+                 : <InfoRow  icon={FileText}   label="KRA PIN"     value={profile.kraPin || '—'}              color="text-orange-600" />}
+        {editing ? <EditField icon={User} label="Preferred Name" value={preferredName} onChange={setPreferredName} color="text-primary" />
+                 : profile.preferredName ? <InfoRow icon={User} label="Preferred Name" value={profile.preferredName} color="text-primary" /> : null}
+        {editing
+          ? <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <div className="h-9 w-9 rounded-lg bg-current/10 flex items-center justify-center shrink-0 text-primary"><User className="h-4 w-4" /></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-foreground/50 font-medium uppercase tracking-wide mb-1">Gender</p>
+                <select value={gender} onChange={e => setGender(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  <option value="">Not specified</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="preferNotToSay">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+          : profile.gender ? <InfoRow icon={User} label="Gender" value={({ male: 'Male', female: 'Female', preferNotToSay: 'Prefer not to say' } as Record<string, string>)[profile.gender] ?? profile.gender} color="text-primary" /> : null}
+        {editing
+          ? <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <div className="h-9 w-9 rounded-lg bg-current/10 flex items-center justify-center shrink-0 text-primary"><Heart className="h-4 w-4" /></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-foreground/50 font-medium uppercase tracking-wide mb-1">Marital Status</p>
+                <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  <option value="">Not specified</option>
+                  <option value="single">Single</option>
+                  <option value="married">Married</option>
+                  <option value="divorced">Divorced</option>
+                  <option value="widowed">Widowed</option>
+                </select>
+              </div>
+            </div>
+          : profile.maritalStatus ? <InfoRow icon={Heart} label="Marital Status" value={({ single: 'Single', married: 'Married', divorced: 'Divorced', widowed: 'Widowed' } as Record<string, string>)[profile.maritalStatus] ?? profile.maritalStatus} color="text-primary" /> : null}
+        {editing ? <EditField icon={User} label="Nationality" value={nationality} onChange={setNationality} color="text-primary" />
+                 : profile.nationality ? <InfoRow icon={User} label="Nationality" value={profile.nationality} color="text-primary" /> : null}
+        {editing ? <EditField icon={FileText} label="Passport Number" value={passportNumber} onChange={setPassportNumber} color="text-orange-600" />
+                 : profile.passportNumber ? <InfoRow icon={FileText} label="Passport Number" value={profile.passportNumber} color="text-orange-600" /> : null}
+        {editing && (
+          <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <div className="h-9 w-9 rounded-lg bg-current/10 flex items-center justify-center shrink-0 text-orange-600"><CalendarDays className="h-4 w-4" /></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-foreground/50 font-medium uppercase tracking-wide mb-1">Passport Expiry</p>
+              <input type="date" value={passportExpiryDate} onChange={e => setPassportExpiryDate(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+        )}
+        {!editing && profile.passportExpiryDate && <InfoRow icon={CalendarDays} label="Passport Expiry" value={new Date(profile.passportExpiryDate).toLocaleDateString('en-KE', { dateStyle: 'medium' })} color="text-orange-600" />}
       </div>
-      {editing && <p className="text-xs text-foreground/40 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">You can update your email, phone, Tax ID / PIN and next of kin. For salary or job group changes, contact HR.</p>}
+      {editing && <p className="text-xs text-foreground/40 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">You can update your personal details, KRA PIN and next of kin. For salary or job group changes, contact HR.</p>}
+
+      {/* Address */}
+      <div className="border-t pt-5">
+        <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Address</p>
+        {editing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <EditField icon={MapPin} label="Street" value={addressStreet} onChange={setAddressStreet} color="text-teal-600" />
+            <EditField icon={MapPin} label="City" value={addressCity} onChange={setAddressCity} color="text-teal-600" />
+            <EditField icon={MapPin} label="State / County" value={addressState} onChange={setAddressState} color="text-teal-600" />
+            <EditField icon={MapPin} label="Country" value={addressCountry} onChange={setAddressCountry} color="text-teal-600" />
+            <EditField icon={MapPin} label="Postal Code" value={addressPostalCode} onChange={setAddressPostalCode} color="text-teal-600" />
+          </div>
+        ) : profile.address && (profile.address.street || profile.address.city || profile.address.state || profile.address.country || profile.address.postalCode) ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <InfoRow icon={MapPin} label="Street" value={profile.address.street || '—'} color="text-teal-600" />
+            <InfoRow icon={MapPin} label="City" value={profile.address.city || '—'} color="text-teal-600" />
+            <InfoRow icon={MapPin} label="State / County" value={profile.address.state || '—'} color="text-teal-600" />
+            <InfoRow icon={MapPin} label="Country" value={profile.address.country || '—'} color="text-teal-600" />
+            <InfoRow icon={MapPin} label="Postal Code" value={profile.address.postalCode || '—'} color="text-teal-600" />
+          </div>
+        ) : (
+          <p className="text-sm text-foreground/30 italic">No address on file.</p>
+        )}
+      </div>
+
+      {/* Emergency Contacts */}
+      <div className="border-t pt-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Emergency Contacts</p>
+          <button onClick={() => setShowContactForm(v => !v)} className="flex items-center gap-1 h-7 px-2.5 text-xs bg-primary text-white font-semibold rounded-lg hover:bg-primary/90">
+            <Plus className="h-3.5 w-3.5" /> Add
+          </button>
+        </div>
+        {showContactForm && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2 mb-3">
+            <div className="grid grid-cols-2 gap-2">
+              <input value={contactForm.name} onChange={e => setContactForm(f => ({ ...f, name: e.target.value }))} placeholder="Name *" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={contactForm.relationship} onChange={e => setContactForm(f => ({ ...f, relationship: e.target.value }))} placeholder="Relationship" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={contactForm.phone} onChange={e => setContactForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone *" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={contactForm.email} onChange={e => setContactForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={addEmergencyContact} disabled={savingContact} className="flex items-center gap-1.5 h-8 px-3 bg-primary text-white text-xs font-semibold rounded-lg disabled:opacity-50">
+                {savingContact && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save
+              </button>
+              <button onClick={() => setShowContactForm(false)} className="text-xs text-foreground/40 hover:text-foreground px-2">Cancel</button>
+            </div>
+          </div>
+        )}
+        {emergencyContacts.length === 0 ? (
+          <p className="text-sm text-foreground/30 italic">No emergency contacts on file.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {emergencyContacts.map(c => (
+              <div key={c.id} className="relative rounded-xl border p-4">
+                <button onClick={() => removeEmergencyContact(c.id)} disabled={savingContact} className="absolute top-2 right-2 h-6 w-6 rounded-lg flex items-center justify-center text-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <p className="text-sm font-semibold pr-6">{c.name}</p>
+                <p className="text-xs text-foreground/50">{c.relationship || '—'}</p>
+                <p className="text-xs text-foreground/50">{c.phone}</p>
+                {c.email && <p className="text-xs text-foreground/50">{c.email}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Employment details */}
       <div className="border-t pt-5">
         <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Employment Details</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <InfoRow icon={Briefcase}    label="Employment Type"  value={profile.employmentType || '—'}                  color="text-amber-600" />
-          <InfoRow icon={Building2}    label="Staff Category"   value={profile.staffCategory || '—'}                  color="text-teal-600" />
-          <InfoRow icon={User}         label="Staff Number"     value={profile.staffNumber || '—'}                        color="text-slate-500" />
+          <InfoRow icon={User}         label="Staff Number"     value={profile.staffNumber || '—'}                        color="text-brand-text-muted" />
           <InfoRow icon={CalendarDays} label="Probation End"    value={profile.probationEndDate ? new Date(profile.probationEndDate).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-orange-600" />
+          {profile.location && <InfoRow icon={MapPin} label="Location" value={profile.location} color="text-teal-600" />}
         </div>
       </div>
 
@@ -602,7 +798,7 @@ function ProfilePanel({ profile, onSave, onEditPayment }: {
               <div key={n._id} className="flex gap-3 rounded-xl border bg-white/60 p-3">
                 <span className={cn(
                   'shrink-0 self-start mt-0.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border capitalize whitespace-nowrap',
-                  NOTE_COLORS[n.category] ?? 'bg-slate-100 text-slate-600 border-slate-200',
+                  NOTE_COLORS[n.category] ?? 'bg-slate-100 text-brand-text-muted border-slate-200',
                 )}>
                   {n.category.replace(/_/g, ' ')}
                 </span>
@@ -749,98 +945,6 @@ function PaymentPanel({ profile, onSave }: { profile: any; onSave: (d: Record<st
   );
 }
 
-// ── Leave panel ────────────────────────────────────────────────────────────────
-function LeavePanel({ leaveBalance, leaveRequests, onDispute }: { leaveBalance: any; leaveRequests: LeaveRequest[]; onDispute: (id: string, reason: string) => void }) {
-  const [disputingId, setDisputingId] = useState<string | null>(null);
-  const [disputeReason, setDisputeReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const submitDispute = async (id: string) => {
-    if (!disputeReason.trim()) return;
-    setSubmitting(true);
-    try {
-      await onDispute(id, disputeReason);
-      setDisputingId(null);
-      setDisputeReason('');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const STATUS_COLORS: Record<string, string> = {
-    pending:  'bg-yellow-100 text-yellow-700',
-    approved: 'bg-emerald-100 text-emerald-700',
-    rejected: 'bg-red-100 text-red-700',
-    disputed: 'bg-orange-100 text-orange-700',
-  };
-
-  return (
-    <div className="space-y-6">
-      {leaveBalance && <LeaveBalanceCard balance={leaveBalance} />}
-      {leaveRequests.length > 0 && (
-        <div>
-          <h3 className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Leave History</h3>
-          <div className="rounded-xl border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-primary/5 border-b">
-                <tr>{['Type','From','To','Days','Status','Action'].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-foreground/60">{h}</th>)}</tr>
-              </thead>
-              <tbody>
-                {leaveRequests.map(r => (
-                  <Fragment key={r._id}>
-                    <tr className="border-b last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3 capitalize font-medium">{r.leaveType.replace(/_/g, ' ')}</td>
-                      <td className="px-4 py-3 text-foreground/60">{new Date(r.startDate).toLocaleDateString('en-KE')}</td>
-                      <td className="px-4 py-3 text-foreground/60">{new Date(r.endDate).toLocaleDateString('en-KE')}</td>
-                      <td className="px-4 py-3">{r.numberOfDays}</td>
-                      <td className="px-4 py-3"><span className={cn('px-2 py-0.5 rounded-full text-xs font-medium capitalize', STATUS_COLORS[r.status] ?? 'bg-gray-100 text-gray-500')}>{r.status}</span></td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {r.status === 'rejected' && <button onClick={() => { setDisputingId(r._id); setDisputeReason(''); }} className="flex items-center gap-1 text-xs font-medium text-orange-600 hover:underline"><AlertTriangle className="h-3.5 w-3.5" /> Dispute</button>}
-                          {r.status === 'disputed' && <span className="text-xs text-orange-500 font-medium">Under review</span>}
-                          <button
-                            onClick={() => downloadFile(`${API_BASE_URL}/me/leave/requests/${r._id}/pdf`, `leave-${r._id}.pdf`).catch(err => alert(err.message))}
-                            className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
-                            aria-label="Download leave letter"
-                          >
-                            <Download className="h-3.5 w-3.5" /> Download
-                          </button>
-                          <button
-                            onClick={() => openFile(`${API_BASE_URL}/me/leave/requests/${r._id}/pdf`).catch(err => alert(err.message))}
-                            className="flex items-center gap-1 text-xs font-medium text-foreground/50 hover:text-foreground hover:underline"
-                            aria-label="Print leave letter"
-                          >
-                            <Printer className="h-3.5 w-3.5" /> Print
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {disputingId === r._id && (
-                      <tr className="bg-orange-50 border-b">
-                        <td colSpan={6} className="px-4 py-4">
-                          <div className="space-y-3">
-                            <p className="text-xs font-semibold text-orange-700 flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Dispute this rejection</p>
-                            <textarea rows={3} value={disputeReason} onChange={e => setDisputeReason(e.target.value)} placeholder="Explain why you are disputing this decision…" className="w-full text-sm border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" />
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => submitDispute(r._id)} disabled={!disputeReason.trim() || submitting} className="text-xs font-semibold bg-orange-600 text-white px-4 py-1.5 rounded-lg hover:bg-orange-700 disabled:opacity-50">{submitting ? 'Submitting…' : 'Submit Dispute'}</button>
-                              <button onClick={() => setDisputingId(null)} className="text-xs text-foreground/40 hover:text-foreground">Cancel</button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      {!leaveBalance && leaveRequests.length === 0 && <EmptyState icon={CalendarDays} text="No leave records yet." sub="Apply for leave using the button above." />}
-    </div>
-  );
-}
-
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 function EmptyState({ icon: Icon, text, sub }: { icon: typeof User; text: string; sub?: string }) {
   return (
@@ -873,218 +977,114 @@ function EditField({ icon: Icon, label, value, onChange, color = 'text-primary' 
   );
 }
 
-// ── Onboarding panel ───────────────────────────────────────────────────────────
-const TASK_STATUS: Record<string, { icon: typeof Circle; color: string; label: string }> = {
-  pending:     { icon: Circle,       color: 'text-foreground/30', label: 'Pending' },
-  in_progress: { icon: Clock,        color: 'text-amber-500',     label: 'In Progress' },
-  completed:   { icon: CheckCircle2, color: 'text-emerald-500',   label: 'Done' },
-};
 
-function OnboardingTasksPanel({ tasks, onComplete }: { tasks: OnboardingTask[]; onComplete: (id: string) => void }) {
-  const done = tasks.filter(t => t.status === 'completed');
-  const pending = tasks.filter(t => t.status !== 'completed');
-  const pct = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0;
-  const allDone = tasks.length > 0 && pending.length === 0;
+// ── Documents panel ────────────────────────────────────────────────────────────
+const DOC_TYPES = ['Degree Certificate', 'Diploma Certificate', 'Professional Certificate', 'KRA PIN Certificate', 'NHIF Card', 'NSSF Card', 'Other'];
 
-  if (tasks.length === 0) return <EmptyState icon={ClipboardList} text="No onboarding tasks assigned." />;
+// Identity documents are mutually exclusive — an employee has exactly one type on
+// file (National ID, Driving License, or Passport), each requiring specific pages/sides.
+const IDENTITY_DOC_CONFIG: { label: string; parts: string[] }[] = [
+  { label: 'National ID', parts: ['Front', 'Back'] },
+  { label: 'Driving License', parts: ['Front', 'Back'] },
+  { label: 'Passport', parts: ['Bio Data Page'] },
+];
 
-  if (allDone) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-        <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center">
-          <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-foreground">Successfully Onboarded!</h3>
-          <p className="text-sm text-foreground/50 mt-1">All {tasks.length} onboarding tasks have been completed. Welcome aboard!</p>
-        </div>
-        <div className="w-full max-w-xs bg-gray-50 rounded-xl border p-4">
-          <div className="flex justify-between text-xs mb-1"><span className="text-foreground/40">Onboarding Progress</span><span className="text-emerald-600 font-bold">100%</span></div>
-          <div className="h-2 rounded-full bg-gray-200"><div className="h-full bg-emerald-500 rounded-full w-full" /></div>
-        </div>
-        <details className="w-full max-w-xs">
-          <summary className="text-xs text-foreground/40 cursor-pointer hover:text-foreground/60">View completed tasks</summary>
-          <div className="mt-3 space-y-2">{done.map(t => <TaskRow key={t._id} task={t} onComplete={onComplete} />)}</div>
-        </details>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      <div className="rounded-xl border p-4 bg-gray-50">
-        <div className="flex items-center justify-between mb-2"><span className="text-sm font-semibold">Onboarding Progress</span><span className="text-sm font-bold text-emerald-600">{pct}%</span></div>
-        <div className="h-2.5 rounded-full bg-gray-200 overflow-hidden"><div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} /></div>
-        <p className="text-xs text-foreground/40 mt-2">{done.length} of {tasks.length} tasks completed</p>
-      </div>
-      {pending.length > 0 && <div><h4 className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">To Do ({pending.length})</h4><div className="space-y-2">{pending.map(t => <TaskRow key={t._id} task={t} onComplete={onComplete} />)}</div></div>}
-      {done.length > 0 && <div><h4 className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Completed ({done.length})</h4><div className="space-y-2">{done.map(t => <TaskRow key={t._id} task={t} onComplete={onComplete} />)}</div></div>}
-    </div>
-  );
+async function uploadIdentityFile(docType: string, file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('docType', docType);
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
+  await fetch(`${API_BASE_URL}/me/documents`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
 }
 
-function TaskRow({ task, onComplete }: { task: OnboardingTask; onComplete: (id: string) => void }) {
-  const [marking, setMarking] = useState(false);
-  const s = TASK_STATUS[task.status] ?? TASK_STATUS.pending;
-  const Icon = s.icon;
+function IdentityDocumentSection({ docs, onUploaded, onDeleted }: {
+  docs: MyDocument[]; onUploaded: () => void; onDeleted: (id: string) => void;
+}) {
+  const existing = IDENTITY_DOC_CONFIG.find(cfg => docs.some(d => d.docType.startsWith(`${cfg.label} (`)));
+  const [chosenLabel, setChosenLabel] = useState<string | null>(null);
+  const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [uploading, setUploading] = useState(false);
 
-  const handleDone = async () => {
-    setMarking(true);
+  const chosenConfig = IDENTITY_DOC_CONFIG.find(c => c.label === chosenLabel) ?? null;
+  const allPartsSelected = chosenConfig ? chosenConfig.parts.every(p => !!files[p]) : false;
+
+  const handleSubmit = async () => {
+    if (!chosenConfig || !allPartsSelected) return;
+    setUploading(true);
     try {
-      const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
-      await fetch(`${API_BASE_URL}/hr/onboarding/tasks/${task._id}`, {
-        method: 'PATCH',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      onComplete(task._id);
-    } finally { setMarking(false); }
+      for (const part of chosenConfig.parts) {
+        const file = files[part];
+        if (file) await uploadIdentityFile(`${chosenConfig.label} (${part})`, file);
+      }
+      setFiles({});
+      setChosenLabel(null);
+      onUploaded();
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleReplace = () => {
+    if (!existing) return;
+    docs.filter(d => d.docType.startsWith(`${existing.label} (`)).forEach(d => onDeleted(d.docId));
   };
 
   return (
-    <div className={cn('flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors', task.status === 'completed' ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white hover:bg-gray-50')}>
-      <Icon className={cn('h-5 w-5 shrink-0 mt-0.5', s.color)} />
-      <div className="flex-1 min-w-0">
-        <p className={cn('text-sm font-medium', task.status === 'completed' && 'line-through text-foreground/40')}>{task.taskTitle}</p>
-        <p className="text-xs text-foreground/40 mt-0.5">{task.assignedDepartment} · Due {new Date(task.dueDate).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</p>
-        {task.description && <p className="text-xs text-foreground/50 mt-1">{task.description}</p>}
-      </div>
-      {task.status !== 'completed' ? (
-        <button onClick={handleDone} disabled={marking}
-          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors shrink-0">
-          {marking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-          {marking ? '…' : 'Mark Done'}
-        </button>
+    <div className="rounded-xl border bg-gray-50 p-5 space-y-4">
+      <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider flex items-center gap-1.5">
+        <Shield className="h-3.5 w-3.5" /> Identity Document
+      </p>
+
+      {existing ? (
+        <div className="flex items-center justify-between rounded-lg border bg-white px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">{existing.label}</p>
+            <p className="text-xs text-foreground/40">On file — {existing.parts.length} file{existing.parts.length !== 1 ? 's' : ''} uploaded</p>
+          </div>
+          <button onClick={handleReplace} className="text-xs font-semibold text-primary hover:underline">Replace</button>
+        </div>
       ) : (
-        <span className={cn('text-xs font-medium shrink-0 mt-0.5', s.color)}>{s.label}</span>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {IDENTITY_DOC_CONFIG.map(cfg => (
+              <button key={cfg.label} type="button" onClick={() => { setChosenLabel(cfg.label); setFiles({}); }}
+                className={cn('rounded-lg border px-3 py-2.5 text-sm font-medium text-left transition-colors',
+                  chosenLabel === cfg.label ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 bg-white text-foreground/70 hover:border-primary/30')}>
+                {cfg.label}
+              </button>
+            ))}
+          </div>
+
+          {chosenConfig && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {chosenConfig.parts.map(part => (
+                <div key={part}>
+                  <label className="text-xs font-medium text-foreground/60 block mb-1">{part}</label>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={e => setFiles(prev => ({ ...prev, [part]: e.target.files?.[0] ?? null }))}
+                    className="w-full h-9 text-sm border rounded-xl bg-white px-2 py-1.5 focus:outline-none file:mr-2 file:text-xs file:font-medium file:border-0 file:bg-primary/10 file:text-primary file:rounded-lg file:px-2 file:py-1" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {chosenConfig && (
+            <button onClick={handleSubmit} disabled={!allPartsSelected || uploading}
+              className={cn('flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-colors',
+                allPartsSelected && !uploading ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-200 text-gray-400 cursor-not-allowed')}>
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {uploading ? 'Uploading…' : `Upload ${chosenConfig.label}`}
+            </button>
+          )}
+        </>
       )}
     </div>
   );
 }
-
-// ── Offboarding panel ──────────────────────────────────────────────────────────
-
-const SECTION_LABELS: Record<string, string> = {
-  before_last_day: 'Before Last Day',
-  last_day:        'Last Day',
-  after_departure: 'After Departure',
-};
-
-function OffboardingPanel({ tasks, onComplete }: { tasks: OffboardingTask[]; onComplete: () => void }) {
-  const [marking, setMarking] = useState<string | null>(null);
-
-  if (tasks.length === 0) {
-    return (
-      <EmptyState icon={ClipboardList} text="No offboarding tasks assigned."
-        sub="Tasks will appear here when HR starts your offboarding process." />
-    );
-  }
-
-  const sections = ['before_last_day', 'last_day', 'after_departure'] as const;
-  const done  = tasks.filter(t => t.status === 'completed').length;
-  const pct   = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
-  const allDone = tasks.length > 0 && done === tasks.length;
-
-  const completeTask = async (taskId: string) => {
-    setMarking(taskId);
-    try {
-      const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
-      const res = await fetch(`${API_BASE_URL}/me/offboarding/tasks/${taskId}/complete`, {
-        method: 'PATCH',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) onComplete();
-    } finally { setMarking(null); }
-  };
-
-  if (allDone) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-        <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center">
-          <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-foreground">Successfully Offboarded</h3>
-          <p className="text-sm text-foreground/50 mt-1">All {tasks.length} offboarding tasks have been completed. Wishing you all the best!</p>
-        </div>
-        <div className="w-full max-w-xs bg-gray-50 rounded-xl border p-4">
-          <div className="flex justify-between text-xs mb-1"><span className="text-foreground/40">Exit Checklist</span><span className="text-emerald-600 font-bold">100%</span></div>
-          <div className="h-2 rounded-full bg-gray-200"><div className="h-full bg-emerald-500 rounded-full w-full" /></div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      {/* Progress */}
-      <div className="rounded-xl border p-4 bg-gray-50">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold">Exit Checklist Progress</span>
-          <span className={cn('text-sm font-bold', pct === 100 ? 'text-emerald-600' : 'text-orange-500')}>{pct}%</span>
-        </div>
-        <div className="h-2.5 rounded-full bg-gray-200 overflow-hidden">
-          <div className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-emerald-500' : 'bg-orange-500')} style={{ width: `${pct}%` }} />
-        </div>
-        <p className="text-xs text-foreground/40 mt-2">{done} of {tasks.length} tasks completed</p>
-      </div>
-
-      {/* Task sections */}
-      {sections.map(section => {
-        const sectionTasks = tasks.filter(t => t.taskSection === section);
-        if (!sectionTasks.length) return null;
-        return (
-          <div key={section}>
-            <h4 className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">
-              {SECTION_LABELS[section]}
-            </h4>
-            <div className="space-y-2">
-              {sectionTasks.map(task => {
-                const isDone    = task.status === 'completed';
-                const isMarking = marking === task._id;
-                const overdue   = !isDone && new Date(task.dueDate) < new Date();
-                return (
-                  <div key={task._id} className={cn(
-                    'flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors',
-                    isDone ? 'bg-emerald-50/50 border-emerald-100' : overdue ? 'bg-red-50/30 border-red-200' : 'bg-white hover:bg-gray-50'
-                  )}>
-                    {isDone
-                      ? <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                      : <Circle className="h-5 w-5 text-foreground/20 shrink-0 mt-0.5" />}
-                    <div className="flex-1 min-w-0">
-                      <p className={cn('text-sm font-medium', isDone && 'line-through text-foreground/40')}>{task.taskTitle}</p>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-xs text-foreground/40">{task.assignedDepartment}</span>
-                        <span className={cn('text-xs', overdue && !isDone ? 'text-red-600 font-semibold' : 'text-foreground/40')}>
-                          {overdue && !isDone && <AlertTriangle className="inline h-3 w-3 mr-0.5" />}
-                          Due {new Date(task.dueDate).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
-                        </span>
-                        {isDone && task.completedAt && (
-                          <span className="text-xs text-emerald-600 font-medium">
-                            · Done {new Date(task.completedAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {!isDone && (
-                      <button onClick={() => completeTask(task._id)} disabled={!!isMarking}
-                        className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors shrink-0">
-                        {isMarking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                        {isMarking ? '…' : 'Mark Done'}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Documents panel ────────────────────────────────────────────────────────────
-const DOC_TYPES = ['National ID', 'Passport', 'Driving License', 'Degree Certificate', 'Diploma Certificate', 'Professional Certificate', 'Tax ID / PIN', 'NHIF Card', 'NSSF Card', 'Other'];
 
 function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }: {
   docs: MyDocument[]; onDeleted: (id: string) => void; onUploaded: () => void; employeeId: string;
@@ -1114,6 +1114,8 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
 
   return (
     <div className="space-y-6">
+      <IdentityDocumentSection docs={docs} onUploaded={onUploaded} onDeleted={onDeleted} />
+
       {/* Upload card */}
       <div className="rounded-xl border bg-gray-50 p-5 space-y-4">
         <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Upload a Document</p>
@@ -1212,17 +1214,17 @@ const RATING_COLOR = ['', 'text-red-600 bg-red-50 border-red-200', 'text-orange-
 function StarRow({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
-      {[1,2,3,4,5].map(s => <Star key={s} className={cn('h-4 w-4', s <= rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-100 text-gray-200')} />)}
+      {[1,2,3,4,5].map(s => <Star key={s} className={cn('h-4 w-4', s <= rating ? 'fill-amber-400 text-status-warning-text' : 'fill-gray-100 text-gray-200')} />)}
     </div>
   );
 }
 
 // ── My Projects panel ──────────────────────────────────────────────────────────
-const PROJECT_STATUS_STYLE: Record<string, { label: string; cls: string }> = {
-  active:    { label: 'Active',    cls: 'bg-emerald-100 text-emerald-700' },
-  on_hold:   { label: 'On Hold',   cls: 'bg-amber-100 text-amber-700' },
-  completed: { label: 'Completed', cls: 'bg-blue-100 text-blue-700' },
-  cancelled: { label: 'Cancelled', cls: 'bg-gray-100 text-gray-500' },
+const PROJECT_STATUS_MAP: Record<string, { status: Status; label: string }> = {
+  active:    { status: 'active',    label: 'Active' },
+  on_hold:   { status: 'pending',   label: 'On Hold' },
+  completed: { status: 'completed', label: 'Completed' },
+  cancelled: { status: 'cancelled', label: 'Cancelled' },
 };
 
 const ROLE_STYLE: Record<string, string> = {
@@ -1281,7 +1283,7 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
     <div className="space-y-4">
       <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
       {projects.map(p => {
-        const st = PROJECT_STATUS_STYLE[p.status] ?? PROJECT_STATUS_STYLE.active;
+        const st = PROJECT_STATUS_MAP[p.status] ?? PROJECT_STATUS_MAP.active;
         const roleStyle = ROLE_STYLE[p.myRole] ?? ROLE_STYLE.member;
         const isOpen = expanded === p._id;
         const myEntries = entries(p._id);
@@ -1303,7 +1305,7 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
                 </div>
                 {p.clientName && <p className="text-xs text-foreground/50 mt-0.5">Client: {p.clientName}</p>}
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full', st.cls)}>{st.label}</span>
+                  <StatusBadge status={st.status} label={st.label} className="text-[11px]" />
                   <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', roleStyle)}>{p.myRole}</span>
                   <span className="text-[11px] text-foreground/40 flex items-center gap-1">
                     <Clock className="h-3 w-3" /> {fmtHours(p.myHours)} logged
@@ -1418,117 +1420,17 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
   );
 }
 
-const GOAL_STATUS_STYLE: Record<string, { label: string; cls: string }> = {
-  not_started: { label: 'Not Started', cls: 'bg-gray-100 text-gray-500' },
-  in_progress: { label: 'In Progress', cls: 'bg-blue-100 text-blue-700' },
-  at_risk:     { label: 'At Risk',     cls: 'bg-amber-100 text-amber-700' },
-  completed:   { label: 'Completed',   cls: 'bg-emerald-100 text-emerald-700' },
-};
-
-function AddGoalModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ title: '', description: '', category: 'Professional', period: 'annual', startDate: '', endDate: '' });
-  const [saving, setSaving] = useState(false);
-  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
-  const save = () => {
-    if (!form.title.trim()) return;
-    setSaving(true);
-    apiCallFunction({
-      url: `${API_BASE_URL}/performance/goals`,
-      method: 'POST',
-      data: form,
-      thenFn: () => { onSaved(); onClose(); },
-      finallyFn: () => setSaving(false),
-    });
-  };
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold text-gray-900">Set a New Goal</h3>
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Title *</label>
-          <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. Complete leadership training"
-            className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary" />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Description</label>
-          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Optional details…"
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary resize-none" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
-            <select value={form.category} onChange={e => set('category', e.target.value)}
-              className="w-full h-9 px-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary">
-              {['Professional', 'Skills', 'Leadership', 'Teamwork', 'Personal'].map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Period</label>
-            <select value={form.period} onChange={e => set('period', e.target.value)}
-              className="w-full h-9 px-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary">
-              <option value="q1">Q1</option><option value="q2">Q2</option>
-              <option value="q3">Q3</option><option value="q4">Q4</option>
-              <option value="annual">Annual</option>
-            </select>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Start Date</label>
-            <input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)}
-              className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">End Date</label>
-            <input type="date" value={form.endDate} onChange={e => set('endDate', e.target.value)}
-              className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary" />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 pt-1">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-          <button onClick={save} disabled={saving || !form.title.trim()}
-            className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-50 transition-colors">
-            {saving ? 'Saving…' : 'Set Goal'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PerformancePanel({ appraisals, goals: initialGoals, reviewResults }: {
+function PerformancePanel({ appraisals, reviewResults }: {
   appraisals: AppraisalRecord[];
-  goals: MyGoal[];
   reviewResults: ReviewResult[];
 }) {
-  const [goals, setGoals] = useState<MyGoal[]>(initialGoals);
-  const [showAddGoal, setShowAddGoal] = useState(false);
-
-  const refreshGoals = () => {
-    apiCallFunction<any>({
-      url: `${API_BASE_URL}/performance/goals`,
-      showToast: false,
-      thenFn: r => setGoals(r.data ?? []),
-    });
-  };
-
   const avg = appraisals.length > 0 ? appraisals.reduce((s, r) => s + r.rating, 0) / appraisals.length : null;
   const trend = appraisals.length >= 2 ? appraisals[0].rating - appraisals[1].rating : null;
 
   return (
-    <>
-    {showAddGoal && <AddGoalModal onClose={() => setShowAddGoal(false)} onSaved={refreshGoals} />}
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button onClick={() => setShowAddGoal(true)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-primary border border-primary/30 px-4 py-2 rounded-xl hover:bg-primary/5 transition-colors">
-          <Plus className="h-4 w-4" /> Set Goal
-        </button>
-      </div>
-
-      {appraisals.length === 0 && goals.length === 0 && reviewResults.length === 0 && (
-        <EmptyState icon={BarChart3} text="No performance data yet." sub="Set your first goal above or wait for HR to run appraisals." />
+      {appraisals.length === 0 && reviewResults.length === 0 && (
+        <EmptyState icon={BarChart3} text="No performance data yet." sub="Set your first goal below or wait for HR to run appraisals." />
       )}
 
       {/* ── Summary bar (only when appraisals exist) ── */}
@@ -1553,40 +1455,11 @@ function PerformancePanel({ appraisals, goals: initialGoals, reviewResults }: {
         </div>
       )}
 
-      {/* ── Goals ── */}
-      {goals.length > 0 && (
-        <div>
-          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">My Goals ({goals.length})</p>
-          <div className="space-y-3">
-            {goals.map(g => {
-              const s = GOAL_STATUS_STYLE[g.status] ?? GOAL_STATUS_STYLE.not_started;
-              return (
-                <div key={g._id} className="rounded-xl border bg-white p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground text-sm">{g.title}</p>
-                      <p className="text-xs text-foreground/40 mt-0.5">{g.category} · {g.period.replace('_', ' ').toUpperCase()}</p>
-                    </div>
-                    <span className={cn('text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0', s.cls)}>{s.label}</span>
-                  </div>
-                  {g.description && <p className="text-xs text-foreground/60">{g.description}</p>}
-                  <div>
-                    <div className="flex justify-between text-[11px] text-foreground/40 mb-1">
-                      <span>Progress</span><span>{g.progress}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                      <div
-                        className={cn('h-full rounded-full', g.status === 'completed' ? 'bg-emerald-500' : g.status === 'at_risk' ? 'bg-amber-400' : 'bg-primary')}
-                        style={{ width: `${Math.min(g.progress, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* ── Goals — canonical implementation shared with the HR Performance page, instead
+           of the staff portal's own separate create-goal modal + read-only list ── */}
+      <div className="rounded-2xl overflow-hidden bg-white p-5">
+        <GoalsTab />
+      </div>
 
       {/* ── Formal review results ── */}
       {reviewResults.length > 0 && (
@@ -1673,7 +1546,6 @@ function PerformancePanel({ appraisals, goals: initialGoals, reviewResults }: {
         </div>
       )}
     </div>
-    </>
   );
 }
 
@@ -1695,6 +1567,191 @@ function JobDescriptionPanel({ jd }: { jd?: string }) {
   );
 }
 
+// ── Skills & Qualifications panel (self-service) ──────────────────────────────
+interface MyCertification { id: string; name: string; issuingOrganization: string; issueDate: string; expiryDate?: string | null; }
+interface MyEducation { id: string; institution: string; degree: string; fieldOfStudy: string; startYear: number; endYear?: number | null; }
+
+const fmtMonthYear = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-KE', { month: 'short', year: 'numeric' }) : '—';
+
+function SkillsPanel({ initialSkills, initialCertifications, initialEducation }: {
+  initialSkills?: string[]; initialCertifications?: MyCertification[]; initialEducation?: MyEducation[];
+}) {
+  const [skills, setSkills] = useState<string[]>(initialSkills ?? []);
+  const [certifications, setCertifications] = useState<MyCertification[]>(initialCertifications ?? []);
+  const [education, setEducation] = useState<MyEducation[]>(initialEducation ?? []);
+  const [skillInput, setSkillInput] = useState('');
+  const [savingSkill, setSavingSkill] = useState(false);
+
+  const [showCertForm, setShowCertForm] = useState(false);
+  const [certForm, setCertForm] = useState({ name: '', issuingOrganization: '', issueDate: '', expiryDate: '' });
+  const [savingCert, setSavingCert] = useState(false);
+
+  const [showEduForm, setShowEduForm] = useState(false);
+  const [eduForm, setEduForm] = useState({ institution: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '' });
+  const [savingEdu, setSavingEdu] = useState(false);
+
+  const saveSkills = (next: string[]) => {
+    setSavingSkill(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/me/skills`, method: 'PATCH', data: { skills: next }, showToast: false,
+      thenFn: () => setSkills(next), finallyFn: () => setSavingSkill(false),
+    });
+  };
+  const addSkill = () => {
+    const v = skillInput.trim();
+    if (!v || skills.includes(v)) return;
+    setSkillInput('');
+    saveSkills([...skills, v]);
+  };
+  const removeSkill = (s: string) => saveSkills(skills.filter(x => x !== s));
+
+  const addCert = () => {
+    if (!certForm.name.trim() || !certForm.issuingOrganization.trim() || !certForm.issueDate) return;
+    setSavingCert(true);
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/me/certifications`, method: 'POST', data: certForm, showToast: false,
+      thenFn: (r) => { setCertifications(c => [...c, r.data]); setCertForm({ name: '', issuingOrganization: '', issueDate: '', expiryDate: '' }); setShowCertForm(false); },
+      finallyFn: () => setSavingCert(false),
+    });
+  };
+  const removeCert = (id: string) => {
+    if (!confirm('Remove this certification?')) return;
+    apiCallFunction({ url: `${API_BASE_URL}/me/certifications/${id}`, method: 'DELETE', showToast: false,
+      thenFn: () => setCertifications(c => c.filter(x => x.id !== id)) });
+  };
+
+  const addEdu = () => {
+    if (!eduForm.institution.trim() || !eduForm.degree.trim() || !eduForm.fieldOfStudy.trim() || !eduForm.startYear) return;
+    setSavingEdu(true);
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/me/education`, method: 'POST', data: eduForm, showToast: false,
+      thenFn: (r) => { setEducation(e => [...e, r.data]); setEduForm({ institution: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '' }); setShowEduForm(false); },
+      finallyFn: () => setSavingEdu(false),
+    });
+  };
+  const removeEdu = (id: string) => {
+    if (!confirm('Remove this education entry?')) return;
+    apiCallFunction({ url: `${API_BASE_URL}/me/education/${id}`, method: 'DELETE', showToast: false,
+      thenFn: () => setEducation(e => e.filter(x => x.id !== id)) });
+  };
+
+  const inp = 'h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30';
+
+  return (
+    <div className="space-y-4">
+      {/* Skills */}
+      <div className="rounded-xl border bg-white p-5">
+        <h3 className="font-semibold text-sm text-foreground flex items-center gap-1.5 mb-3"><Sparkles className="h-4 w-4 text-brand-primary" /> Skills</h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {skills.length === 0 && <p className="text-sm text-foreground/40">No skills added yet.</p>}
+          {skills.map(s => (
+            <span key={s} className="flex items-center gap-1.5 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+              {s}
+              <button onClick={() => removeSkill(s)} disabled={savingSkill} className="hover:text-red-600"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
+            placeholder="Add a skill…" className={cn(inp, 'flex-1')} />
+          <button onClick={addSkill} disabled={savingSkill || !skillInput.trim()} className="flex items-center gap-1 h-9 px-3 bg-primary text-white text-xs font-semibold rounded-lg disabled:opacity-50">
+            {savingSkill ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add
+          </button>
+        </div>
+      </div>
+
+      {/* Certifications */}
+      <div className="rounded-xl border bg-white p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-sm text-foreground flex items-center gap-1.5"><Award className="h-4 w-4 text-amber-500" /> Certifications</h3>
+          <button onClick={() => setShowCertForm(v => !v)} className="flex items-center gap-1 h-7 px-2.5 text-xs bg-primary text-white font-semibold rounded-lg">
+            <Plus className="h-3.5 w-3.5" /> Add
+          </button>
+        </div>
+        {showCertForm && (
+          <div className="rounded-lg border bg-gray-50 p-3 space-y-2 mb-3">
+            <div className="grid grid-cols-2 gap-2">
+              <input value={certForm.name} onChange={e => setCertForm(f => ({ ...f, name: e.target.value }))} placeholder="Certification name *" className={inp} />
+              <input value={certForm.issuingOrganization} onChange={e => setCertForm(f => ({ ...f, issuingOrganization: e.target.value }))} placeholder="Issuing organization *" className={inp} />
+              <input type="date" value={certForm.issueDate} onChange={e => setCertForm(f => ({ ...f, issueDate: e.target.value }))} className={inp} />
+              <input type="date" value={certForm.expiryDate} onChange={e => setCertForm(f => ({ ...f, expiryDate: e.target.value }))} placeholder="Expiry (optional)" className={inp} />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={addCert} disabled={savingCert} className="flex items-center gap-1.5 h-8 px-3 bg-primary text-white text-xs font-semibold rounded-lg disabled:opacity-50">
+                {savingCert && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save
+              </button>
+              <button onClick={() => setShowCertForm(false)} className="text-xs text-foreground/50 hover:text-foreground px-2">Cancel</button>
+            </div>
+          </div>
+        )}
+        {certifications.length === 0 ? (
+          <p className="text-sm text-foreground/40">No certifications added yet.</p>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {certifications.map(c => (
+              <div key={c.id} className="flex items-center justify-between py-2.5">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{c.name}</p>
+                  <p className="text-xs text-foreground/40">{c.issuingOrganization} · {fmtMonthYear(c.issueDate)}{c.expiryDate ? ` – ${fmtMonthYear(c.expiryDate)}` : ''}</p>
+                </div>
+                <button onClick={() => removeCert(c.id)} className="h-7 w-7 rounded-lg flex items-center justify-center text-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Education */}
+      <div className="rounded-xl border bg-white p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-sm text-foreground flex items-center gap-1.5"><GraduationCap className="h-4 w-4 text-emerald-500" /> Education</h3>
+          <button onClick={() => setShowEduForm(v => !v)} className="flex items-center gap-1 h-7 px-2.5 text-xs bg-primary text-white font-semibold rounded-lg">
+            <Plus className="h-3.5 w-3.5" /> Add
+          </button>
+        </div>
+        {showEduForm && (
+          <div className="rounded-lg border bg-gray-50 p-3 space-y-2 mb-3">
+            <div className="grid grid-cols-2 gap-2">
+              <input value={eduForm.institution} onChange={e => setEduForm(f => ({ ...f, institution: e.target.value }))} placeholder="Institution *" className={inp} />
+              <input value={eduForm.degree} onChange={e => setEduForm(f => ({ ...f, degree: e.target.value }))} placeholder="Degree *" className={inp} />
+              <input value={eduForm.fieldOfStudy} onChange={e => setEduForm(f => ({ ...f, fieldOfStudy: e.target.value }))} placeholder="Field of study *" className={inp} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" value={eduForm.startYear} onChange={e => setEduForm(f => ({ ...f, startYear: e.target.value }))} placeholder="Start year *" className={inp} />
+                <input type="number" value={eduForm.endYear} onChange={e => setEduForm(f => ({ ...f, endYear: e.target.value }))} placeholder="End year" className={inp} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={addEdu} disabled={savingEdu} className="flex items-center gap-1.5 h-8 px-3 bg-primary text-white text-xs font-semibold rounded-lg disabled:opacity-50">
+                {savingEdu && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save
+              </button>
+              <button onClick={() => setShowEduForm(false)} className="text-xs text-foreground/50 hover:text-foreground px-2">Cancel</button>
+            </div>
+          </div>
+        )}
+        {education.length === 0 ? (
+          <p className="text-sm text-foreground/40">No education history added yet.</p>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {education.map(e => (
+              <div key={e.id} className="flex items-center justify-between py-2.5">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{e.degree} in {e.fieldOfStudy}</p>
+                  <p className="text-xs text-foreground/40">{e.institution} · {e.startYear}{e.endYear ? ` – ${e.endYear}` : ' – present'}</p>
+                </div>
+                <button onClick={() => removeEdu(e.id)} className="h-7 w-7 rounded-lg flex items-center justify-center text-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Terms & Conditions panel ───────────────────────────────────────────────────
 const DEFAULT_TERMS = [
   { title: '1. Employment Agreement', body: "By accessing this portal, you acknowledge that you are employed under the terms outlined in your signed employment contract. All activities on this portal are subject to the organisation's HR policies." },
@@ -1709,9 +1766,9 @@ const DEFAULT_TERMS = [
 
 // ── My Tasks panel ─────────────────────────────────────────────────────────────
 const TASK_PRIORITY_STYLE: Record<string, string> = {
-  low:    'bg-slate-700 text-slate-300',
-  medium: 'bg-amber-900/40 text-amber-400',
-  high:   'bg-red-900/40 text-red-400',
+  low:    'bg-brand-bg-muted text-brand-text-secondary',
+  medium: 'bg-status-warning-bg text-status-warning-text',
+  high:   'bg-status-danger-bg text-status-danger-text',
 };
 
 function MyTasksPanel({ tasks }: { tasks: EmployeeTask[] }) {
@@ -1753,41 +1810,41 @@ function MyTasksPanel({ tasks }: { tasks: EmployeeTask[] }) {
     return (
       <div className={cn(
         'rounded-xl border p-4 space-y-3 transition-colors',
-        isDone     ? 'bg-emerald-900/20 border-emerald-700/30' :
-        isTaskOverdue ? 'bg-red-900/20 border-red-700/40' :
-        isBlocked  ? 'bg-slate-800/60 border-slate-700' :
-        'bg-[#0f172a] border-slate-700/60 hover:border-slate-600'
+        isDone     ? 'bg-status-success-bg border-status-success-text/20' :
+        isTaskOverdue ? 'bg-status-danger-bg border-status-danger-text/20' :
+        isBlocked  ? 'bg-brand-bg-soft/60 border-brand-border' :
+        'bg-white border-brand-border/60 hover:border-brand-border-strong'
       )}>
         <div className="flex items-start gap-3">
           <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
-            isDone ? 'bg-emerald-900/40' : isTaskOverdue ? 'bg-red-900/30' : isBlocked ? 'bg-slate-700' : 'bg-indigo-900/30')}>
+            isDone ? 'bg-status-success-bg' : isTaskOverdue ? 'bg-status-danger-bg' : isBlocked ? 'bg-brand-bg-muted' : 'bg-brand-primary/10')}>
             {isDone
-              ? <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              ? <CheckCircle2 className="h-4 w-4 text-status-success-text" />
               : task.status === 'in_progress'
-                ? <Clock className="h-4 w-4 text-indigo-400" />
+                ? <Clock className="h-4 w-4 text-brand-primary" />
                 : isTaskOverdue
-                  ? <AlertTriangle className="h-4 w-4 text-red-400" />
-                  : <Circle className="h-4 w-4 text-slate-500" />}
+                  ? <AlertTriangle className="h-4 w-4 text-status-danger-text" />
+                  : <Circle className="h-4 w-4 text-brand-text-muted" />}
           </div>
           <div className="flex-1 min-w-0">
-            <p className={cn('font-semibold text-sm', isDone ? 'line-through text-slate-500' : 'text-slate-200')}>{task.title}</p>
-            {task.description && <p className="text-xs text-slate-400 mt-0.5 leading-snug">{task.description}</p>}
+            <p className={cn('font-semibold text-sm', isDone ? 'line-through text-brand-text-muted' : 'text-brand-text')}>{task.title}</p>
+            {task.description && <p className="text-xs text-brand-text-secondary mt-0.5 leading-snug">{task.description}</p>}
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize', TASK_PRIORITY_STYLE[task.priority] ?? TASK_PRIORITY_STYLE.medium)}>
                 {task.priority}
               </span>
               {task.dueDate && (
-                <span className={cn('text-xs flex items-center gap-0.5', isTaskOverdue && !isDone ? 'text-red-400 font-semibold' : 'text-slate-500')}>
+                <span className={cn('text-xs flex items-center gap-0.5', isTaskOverdue && !isDone ? 'text-status-danger-text font-semibold' : 'text-brand-text-muted')}>
                   {isTaskOverdue && !isDone && <AlertTriangle className="h-3 w-3" />}
                   Due {new Date(task.dueDate).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
                 </span>
               )}
-              {task.module && <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded capitalize">{task.module}</span>}
+              {task.module && <span className="text-[10px] text-brand-text-muted bg-brand-bg-soft px-2 py-0.5 rounded capitalize">{task.module}</span>}
             </div>
           </div>
         </div>
         {isBlocked && (
-          <div className="flex items-center gap-1.5 pt-1 text-xs text-slate-500 font-medium">
+          <div className="flex items-center gap-1.5 pt-1 text-xs text-brand-text-muted font-medium">
             <span className="inline-block w-2 h-2 rounded-full bg-slate-500" />
             Blocked — waiting on prerequisite tasks
           </div>
@@ -1796,12 +1853,12 @@ function MyTasksPanel({ tasks }: { tasks: EmployeeTask[] }) {
           <div className="flex gap-2 pt-1">
             {isStartable && (
               <button disabled={updating === task._id} onClick={() => updateStatus(task._id, 'in_progress')}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-900/40 text-indigo-400 hover:bg-indigo-900/60 disabled:opacity-50 flex items-center gap-1 border border-indigo-700/40">
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/10 disabled:opacity-50 flex items-center gap-1 border border-brand-primary/20">
                 <Clock className="h-3 w-3" /> Start
               </button>
             )}
             <button disabled={updating === task._id} onClick={() => updateStatus(task._id, 'completed')}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50 disabled:opacity-50 flex items-center gap-1 border border-emerald-700/30">
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-status-success-bg text-status-success-text hover:bg-status-success-bg disabled:opacity-50 flex items-center gap-1 border border-status-success-text/20">
               <CheckCircle2 className="h-3 w-3" />
               {updating === task._id ? '…' : 'Mark Done'}
             </button>
@@ -1815,31 +1872,31 @@ function MyTasksPanel({ tasks }: { tasks: EmployeeTask[] }) {
     <div className="space-y-5">
       {overdue.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Overdue ({overdue.length})</p>
+          <p className="text-xs font-bold text-status-danger-text uppercase tracking-widest flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Overdue ({overdue.length})</p>
           {overdue.map(t => <TaskCard key={t._id} task={t} />)}
         </div>
       )}
       {pending.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending ({pending.length})</p>
+          <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Pending ({pending.length})</p>
           {pending.map(t => <TaskCard key={t._id} task={t} />)}
         </div>
       )}
       {inProg.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> In Progress ({inProg.length})</p>
+          <p className="text-xs font-bold text-brand-primary uppercase tracking-widest flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> In Progress ({inProg.length})</p>
           {inProg.map(t => <TaskCard key={t._id} task={t} />)}
         </div>
       )}
       {blocked.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Blocked ({blocked.length})</p>
+          <p className="text-xs font-bold text-brand-text-muted uppercase tracking-widest">Blocked ({blocked.length})</p>
           {blocked.map(t => <TaskCard key={t._id} task={t} />)}
         </div>
       )}
       {completed.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Completed ({completed.length})</p>
+          <p className="text-xs font-bold text-status-success-text uppercase tracking-widest">Completed ({completed.length})</p>
           {completed.map(t => <TaskCard key={t._id} task={t} />)}
         </div>
       )}
@@ -1956,7 +2013,7 @@ function MyEventsPanel({ events }: { events: ScheduledEvent[] }) {
       {teamBuilding.length > 0 && (
         <div>
           <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <Dumbbell className="h-3.5 w-3.5 text-emerald-400" /> Team Building ({teamBuilding.length})
+            <Dumbbell className="h-3.5 w-3.5 text-status-success-text" /> Team Building ({teamBuilding.length})
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {teamBuilding.map(e => <EventCard key={e._id} e={e} />)}
@@ -2093,12 +2150,6 @@ function TermsPanel() {
 }
 
 // ── Expenses Panel ─────────────────────────────────────────────────────────────
-const CLAIM_STATUS_STYLE: Record<string, string> = {
-  submitted: 'bg-amber-100 text-amber-700',
-  approved:  'bg-emerald-100 text-emerald-700',
-  rejected:  'bg-red-100 text-red-700',
-  draft:     'bg-gray-100 text-gray-500',
-};
 
 const EXPENSE_CATEGORIES = ['Meals', 'Transport', 'Accommodation', 'Office Supplies', 'Communication', 'Training', 'Other'];
 
@@ -2385,9 +2436,7 @@ function ExpensesPanel() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-bold text-foreground">KES {(c.amount || 0).toLocaleString()}</span>
-                  <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', CLAIM_STATUS_STYLE[c.status] ?? CLAIM_STATUS_STYLE.draft)}>
-                    {c.status}
-                  </span>
+                  <StatusBadge status={(['submitted', 'approved', 'rejected', 'draft'].includes(c.status) ? c.status : 'draft') as Status} className="text-[11px]" />
                 </div>
               </div>
               {c.approvalChain?.length > 0 && (
@@ -2409,11 +2458,8 @@ function ExpensesPanel() {
 }
 
 // ── My Requests Panel (procurement self-service) ───────────────────────────────
-const REQUEST_STATUS_STYLE: Record<string, string> = {
-  pending:   'bg-amber-100 text-amber-700',
-  approved:  'bg-emerald-100 text-emerald-700',
-  rejected:  'bg-red-100 text-red-700',
-  converted: 'bg-violet-100 text-violet-700',
+const REQUEST_STATUS_MAP: Record<string, Status> = {
+  pending: 'pending', approved: 'approved', rejected: 'rejected', converted: 'info',
 };
 
 function RequestsPanel() {
@@ -2554,9 +2600,7 @@ function RequestsPanel() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-bold text-foreground">KES {(r.estimatedCost || 0).toLocaleString()}</span>
-                  <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize', REQUEST_STATUS_STYLE[r.status] ?? REQUEST_STATUS_STYLE.pending)}>
-                    {r.status}
-                  </span>
+                  <StatusBadge status={REQUEST_STATUS_MAP[r.status] ?? 'pending'} label={r.status} className="text-[11px]" />
                 </div>
               </div>
               {r.approvalChain?.length > 0 && (
@@ -2599,11 +2643,11 @@ interface MyApplication {
   createdAt: string;
 }
 
-const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  active:    { label: 'In Progress',    cls: 'bg-blue-50 text-blue-700'    },
-  hired:     { label: 'Hired',          cls: 'bg-emerald-50 text-emerald-700 font-semibold' },
-  rejected:  { label: 'Not Proceeding', cls: 'bg-red-50 text-red-600'      },
-  withdrawn: { label: 'Withdrawn',      cls: 'bg-gray-100 text-gray-600'   },
+const APP_STATUS_MAP: Record<string, { status: Status; label: string }> = {
+  active:    { status: 'info',      label: 'In Progress' },
+  hired:     { status: 'completed', label: 'Hired' },
+  rejected:  { status: 'rejected',  label: 'Not Proceeding' },
+  withdrawn: { status: 'cancelled', label: 'Withdrawn' },
 };
 
 function InternalJobsPanel() {
@@ -2677,7 +2721,7 @@ function InternalJobsPanel() {
                       <div className="space-y-1 min-w-0">
                         <p className="font-semibold text-foreground text-sm truncate">{pos.title}</p>
                         <div className="flex flex-wrap gap-1.5">
-                          <span className="text-[11px] px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full font-medium">{pos.department}</span>
+                          <span className="text-[11px] px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-full font-medium">{pos.department}</span>
                           <span className="text-[11px] px-2 py-0.5 bg-muted text-foreground/60 rounded-full">{pos.location}</span>
                           {pos.headcount > 0 && <span className="text-[11px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full">{pos.headcount} opening{pos.headcount > 1 ? 's' : ''}</span>}
                         </div>
@@ -2718,7 +2762,7 @@ function InternalJobsPanel() {
           ? <p className="text-sm text-foreground/40 text-center py-10">You haven't applied to any positions yet.</p>
           : <div className="space-y-2">
               {myApps.map(app => {
-                const statusCfg = APP_STATUS_CFG[app.status] ?? { label: app.status, cls: 'bg-gray-100 text-gray-600' };
+                const statusCfg = APP_STATUS_MAP[app.status] ?? { status: 'inactive' as Status, label: app.status };
                 return (
                   <div key={app._id} className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-card">
                     <div className="min-w-0">
@@ -2727,7 +2771,7 @@ function InternalJobsPanel() {
                         {app.stageName ? `${app.stageName} · ` : ''}{new Date(app.createdAt).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
                       </p>
                     </div>
-                    <span className={cn('text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0', statusCfg.cls)}>{statusCfg.label}</span>
+                    <StatusBadge status={statusCfg.status} label={statusCfg.label} className="text-[11px] px-2.5 py-1 shrink-0" />
                   </div>
                 );
               })}

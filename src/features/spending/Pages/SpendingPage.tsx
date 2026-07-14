@@ -6,8 +6,10 @@ import { API_BASE_URL } from '@/configs/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   CreditCard, FileText, ShoppingCart, Landmark, Building2, PackageCheck, ReceiptText,
-  Plus, X, CheckCircle2, AlertCircle, Search, Send, Truck, Ban, ArrowRightLeft, Pencil, Trash2,
+  Plus, X, Check, CheckCircle2, AlertCircle, Search, Send, Truck, Ban, ArrowRightLeft, Pencil, Trash2,
 } from 'lucide-react';
+import { statusClasses, statusLabel, type Status } from '@/components/ui/StatusBadge';
+import { cn } from '@/lib/utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Card {
@@ -69,7 +71,7 @@ interface PurchaseRequest {
 
 interface Vendor {
   _id: string; name: string; contactName?: string; email?: string; phone?: string;
-  address?: string; category: string; taxId?: string; paymentTerms?: string;
+  address?: string; category: string; type?: 'company' | 'individual'; taxId?: string; paymentTerms?: string;
   status: string; notes?: string;
 }
 
@@ -101,21 +103,23 @@ const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-KE', { da
 
 const STATUS_BADGE: Record<string, string> = {
   active:    'bg-emerald-500/20 text-emerald-400',
-  inactive:  'bg-slate-600/40 text-slate-400',
+  inactive:  'bg-slate-600/40 text-brand-text-secondary',
   blocked:   'bg-red-500/20 text-red-400',
+  blacklisted: 'bg-red-500/20 text-red-400',
   pending:   'bg-amber-500/20 text-amber-400',
+  pending_approval: 'bg-amber-500/20 text-amber-400',
   approved:  'bg-emerald-500/20 text-emerald-400',
   rejected:  'bg-red-500/20 text-red-400',
   paid:      'bg-blue-500/20 text-blue-400',
-  draft:     'bg-slate-600/40 text-slate-300',
+  draft:     'bg-slate-600/40 text-brand-text-secondary',
   sent:      'bg-cyan-500/20 text-cyan-400',
-  acknowledged: 'bg-indigo-500/20 text-indigo-400',
+  acknowledged: 'bg-brand-primary/20 text-indigo-400',
   partiallyReceived: 'bg-amber-500/20 text-amber-400',
   fullyReceived: 'bg-emerald-500/20 text-emerald-400',
   invoiced:  'bg-violet-500/20 text-violet-400',
   cancelled: 'bg-red-500/20 text-red-400',
   converted: 'bg-violet-500/20 text-violet-400',
-  received:  'bg-slate-600/40 text-slate-300',
+  received:  'bg-slate-600/40 text-brand-text-secondary',
   underReview: 'bg-amber-500/20 text-amber-400',
   matched:   'bg-emerald-500/20 text-emerald-400',
   mismatched: 'bg-red-500/20 text-red-400',
@@ -127,15 +131,12 @@ const STATUS_BADGE: Record<string, string> = {
 const PRIORITY_BADGE: Record<string, string> = {
   urgent: 'bg-red-500/20 text-red-400',
   high:   'bg-amber-500/20 text-amber-400',
-  normal: 'bg-slate-600/40 text-slate-300',
-  low:    'bg-slate-700/40 text-slate-500',
+  normal: 'bg-slate-600/40 text-brand-text-secondary',
+  low:    'bg-brand-bg-muted/40 text-brand-text-muted',
 };
 
-const APPROVAL_STATUS_CFG: Record<ApprovalChainEntry['status'], { label: string; bg: string; text: string }> = {
-  pending:  { label: 'Pending',  bg: 'bg-amber-500/10',  text: 'text-amber-400'  },
-  approved: { label: 'Approved', bg: 'bg-emerald-500/10',text: 'text-emerald-400'},
-  rejected: { label: 'Rejected', bg: 'bg-red-500/10',    text: 'text-red-400'    },
-  skipped:  { label: 'Skipped',  bg: 'bg-slate-700',     text: 'text-slate-500'  },
+const APPROVAL_STATUS_MAP: Record<ApprovalChainEntry['status'], Status> = {
+  pending: 'pending', approved: 'approved', rejected: 'rejected', skipped: 'inactive',
 };
 
 const TABS = [
@@ -152,10 +153,10 @@ const TABS = [
 function CardChip({ card }: { card: Card }) {
   const utilPct = card.creditLimit ? (card.totalSpent / card.creditLimit) * 100 : 0;
   return (
-    <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-5 space-y-4">
+    <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-brand-border rounded-2xl p-5 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{card.network.toUpperCase()}</p>
+          <p className="text-xs text-brand-text-muted font-medium uppercase tracking-wide">{card.network.toUpperCase()}</p>
           <p className="font-bold text-white text-lg tracking-widest mt-0.5">•••• •••• •••• {card.last4}</p>
         </div>
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[card.status]}`}>
@@ -163,25 +164,25 @@ function CardChip({ card }: { card: Card }) {
         </span>
       </div>
       <div>
-        <p className="text-sm text-slate-400">{card.cardHolder}</p>
-        {card.employee && <p className="text-xs text-slate-500">{card.employee.department}</p>}
+        <p className="text-sm text-brand-text-secondary">{card.cardHolder}</p>
+        {card.employee && <p className="text-xs text-brand-text-muted">{card.employee.department}</p>}
       </div>
       {card.creditLimit ? (
         <div>
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-slate-400">Spent: {fmt(card.totalSpent, card.currency)}</span>
-            <span className="text-slate-400">Limit: {fmt(card.creditLimit, card.currency)}</span>
+            <span className="text-brand-text-secondary">Spent: {fmt(card.totalSpent, card.currency)}</span>
+            <span className="text-brand-text-secondary">Limit: {fmt(card.creditLimit, card.currency)}</span>
           </div>
-          <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full ${utilPct >= 90 ? 'bg-red-500' : utilPct >= 70 ? 'bg-amber-500' : 'bg-indigo-500'}`}
+          <div className="h-1.5 bg-brand-bg-muted rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${utilPct >= 90 ? 'bg-red-500' : utilPct >= 70 ? 'bg-amber-500' : 'bg-brand-primary'}`}
               style={{ width: `${Math.min(utilPct, 100)}%` }} />
           </div>
         </div>
       ) : (
-        <p className="text-xs text-slate-500">Total spent: {fmt(card.totalSpent, card.currency)}</p>
+        <p className="text-xs text-brand-text-muted">Total spent: {fmt(card.totalSpent, card.currency)}</p>
       )}
       {card.expiryDate && (
-        <p className="text-xs text-slate-500">Expires {fmtDate(card.expiryDate)}</p>
+        <p className="text-xs text-brand-text-muted">Expires {fmtDate(card.expiryDate)}</p>
       )}
     </div>
   );
@@ -208,10 +209,10 @@ function CreateCardModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+      <div className="relative z-10 w-full max-w-md bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
           <h2 className="font-bold text-white">Add Corporate Card</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-3">
           {[
@@ -220,31 +221,31 @@ function CreateCardModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             { label: 'Credit Limit', key: 'creditLimit', placeholder: 'Optional' },
           ].map(({ label, key, placeholder, maxLength }) => (
             <div key={key}>
-              <label className="block text-xs text-slate-400 mb-1">{label}</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">{label}</label>
               <input value={(form as any)[key]} onChange={e => set(key, e.target.value)}
                 placeholder={placeholder} maxLength={maxLength}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
           ))}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Network</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Network</label>
               <select value={form.network} onChange={e => set('network', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
                 {['visa', 'mastercard', 'amex', 'other'].map(n => <option key={n} value={n}>{n.charAt(0).toUpperCase() + n.slice(1)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Expiry Date</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Expiry Date</label>
               <input type="date" value={form.expiryDate} onChange={e => set('expiryDate', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-5">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={save} disabled={saving || !form.last4 || !form.cardHolder}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Adding…' : 'Add Card'}
           </button>
         </div>
@@ -274,45 +275,45 @@ function CreateInvoiceModal({ onClose, onSaved }: { onClose: () => void; onSaved
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+      <div className="relative z-10 w-full max-w-md bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
           <h2 className="font-bold text-white">New Invoice</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Vendor <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Vendor <span className="text-red-400">*</span></label>
               <input value={form.vendor} onChange={e => set('vendor', e.target.value)} placeholder="Vendor name"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Invoice No.</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Invoice No.</label>
               <input value={form.invoiceNumber} onChange={e => set('invoiceNumber', e.target.value)} placeholder="INV-001"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Amount <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Amount <span className="text-red-400">*</span></label>
               <input type="number" min="0" value={form.amount} onChange={e => set('amount', e.target.value)} placeholder="0.00"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Due Date <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Due Date <span className="text-red-400">*</span></label>
               <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Description</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Description</label>
             <input value={form.description} onChange={e => set('description', e.target.value)} placeholder="Invoice description"
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Type</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Type</label>
             <select value={form.type} onChange={e => set('type', e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
               <option value="accounts_payable">Accounts Payable</option>
               <option value="accounts_receivable">Accounts Receivable</option>
               <option value="project">Project Invoice</option>
@@ -320,9 +321,9 @@ function CreateInvoiceModal({ onClose, onSaved }: { onClose: () => void; onSaved
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-5">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={save} disabled={saving || !form.vendor || !form.amount || !form.dueDate}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Saving…' : 'Create Invoice'}
           </button>
         </div>
@@ -369,64 +370,64 @@ function CreatePRModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+      <div className="relative z-10 w-full max-w-lg flex flex-col bg-white border border-brand-border rounded-2xl shadow-2xl max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border shrink-0">
           <h2 className="font-bold text-white">New Purchase Request</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Title <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Title <span className="text-red-400">*</span></label>
             <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="What do you need?"
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Description</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Description</label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
               placeholder="What this is for"
-              className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none" />
+              className="w-full px-3 py-2 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary resize-none" />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Justification</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Justification</label>
             <textarea value={form.justification} onChange={e => set('justification', e.target.value)} rows={2}
               placeholder="Why is this needed / business case"
-              className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 resize-none" />
+              className="w-full px-3 py-2 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Vendor</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Vendor</label>
               <select value={form.vendorId} onChange={e => set('vendorId', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
                 <option value="">No preferred vendor</option>
                 {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Priority</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Priority</label>
               <select value={form.priority} onChange={e => set('priority', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
                 {['urgent', 'high', 'normal', 'low'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Needed By</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Needed By</label>
             <input type="date" value={form.neededBy} onChange={e => set('neededBy', e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
           </div>
 
           <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between">
-              <label className="text-xs text-slate-400">Line Items (optional — leave blank to enter a lump sum)</label>
+              <label className="text-xs text-brand-text-secondary">Line Items (optional — leave blank to enter a lump sum)</label>
             </div>
             {items.map((it, i) => (
               <div key={i} className="grid grid-cols-[1fr_60px_90px_auto] gap-2 items-center">
                 <input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Item description"
-                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                  className="h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
                 <input type="number" min="1" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} placeholder="Qty"
-                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                  className="h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white focus:outline-none focus:border-brand-primary" />
                 <input type="number" min="0" value={it.estimatedUnitPrice || ''} onChange={e => updateItem(i, 'estimatedUnitPrice', e.target.value)} placeholder="Unit price"
-                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                  className="h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white focus:outline-none focus:border-brand-primary" />
                 <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
                   className="h-9 w-9 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-30 flex items-center justify-center transition-colors">
                   <Trash2 className="h-3.5 w-3.5" />
@@ -440,21 +441,21 @@ function CreatePRModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
 
           {validItems.length === 0 && (
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Estimated Cost <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Estimated Cost <span className="text-red-400">*</span></label>
               <input type="number" min="0" value={manualCost} onChange={e => setManualCost(e.target.value)} placeholder="0.00"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
           )}
           {estimatedCost > 0 && (
-            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-4 py-3 text-sm text-indigo-300 font-semibold">
+            <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl px-4 py-3 text-sm text-indigo-300 font-semibold">
               Total: <span className="text-lg font-black">{fmt(estimatedCost, form.currency)}</span>
             </div>
           )}
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-brand-border shrink-0">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={save} disabled={saving || !form.title || !estimatedCost}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Submitting…' : 'Submit Request'}
           </button>
         </div>
@@ -470,19 +471,19 @@ function RejectModal({ title, onClose, onConfirm }: { title: string; onClose: ()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+      <div className="relative z-10 w-full max-w-sm bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
           <h2 className="font-bold text-white">Reject — {title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="px-6 py-5">
-          <label className="block text-xs text-slate-400 mb-1">Reason <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-brand-text-secondary mb-1">Reason <span className="text-red-400">*</span></label>
           <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3}
             placeholder="Explain why this is being rejected…"
-            className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-red-500 resize-none" />
+            className="w-full px-3 py-2 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-red-500 resize-none" />
         </div>
         <div className="flex gap-3 px-6 pb-5">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button disabled={!reason.trim() || saving} onClick={() => { setSaving(true); onConfirm(reason.trim()); }}
             className="flex-1 h-10 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-colors disabled:opacity-50">
             {saving ? 'Rejecting…' : 'Confirm Reject'}
@@ -510,25 +511,25 @@ function MarkPaidModal({ invoice, onClose, onPaid }: { invoice: Invoice; onClose
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+      <div className="relative z-10 w-full max-w-sm bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
           <h2 className="font-bold text-white">Mark as Paid</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-3">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-brand-text-secondary">
             <span className="font-semibold text-white">{invoice.vendor}</span>
-            {invoice.invoiceNumber && <span className="text-slate-400"> · #{invoice.invoiceNumber}</span>}
-            <span className="block text-slate-400 text-xs mt-0.5">{fmt(invoice.amount, invoice.currency)}</span>
+            {invoice.invoiceNumber && <span className="text-brand-text-secondary"> · #{invoice.invoiceNumber}</span>}
+            <span className="block text-brand-text-secondary text-xs mt-0.5">{fmt(invoice.amount, invoice.currency)}</span>
           </p>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Payment Reference <span className="text-slate-500">(optional)</span></label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Payment Reference <span className="text-brand-text-muted">(optional)</span></label>
             <input value={ref} onChange={e => setRef(e.target.value)} placeholder="Bank ref, cheque no., M-Pesa code…"
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-5">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={confirm} disabled={saving}
             className="flex-1 h-10 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-colors disabled:opacity-50">
             {saving ? 'Saving…' : 'Confirm Payment'}
@@ -560,21 +561,21 @@ function CardsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-400">{cards.length} cards</p>
+        <p className="text-sm text-brand-text-secondary">{cards.length} cards</p>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors">
+          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-primary-hover transition-colors">
           <Plus className="h-4 w-4" /> Add Card
         </button>
       </div>
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {cards.map(c => <CardChip key={c._id} card={c} />)}
           {cards.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-slate-500">
+            <div className="col-span-3 text-center py-12 text-brand-text-muted">
               <CreditCard className="h-10 w-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No corporate cards yet.</p>
             </div>
@@ -627,10 +628,10 @@ function InvoicesTab() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {stats.map(s => (
-          <div key={s._id} className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <p className="text-xs text-slate-400 capitalize mb-1">{s._id}</p>
+          <div key={s._id} className="bg-brand-bg-soft rounded-xl p-3 border border-brand-border">
+            <p className="text-xs text-brand-text-secondary capitalize mb-1">{s._id}</p>
             <p className="font-bold text-white">{fmt(s.total)}</p>
-            <p className="text-xs text-slate-500">{s.count} invoices</p>
+            <p className="text-xs text-brand-text-muted">{s.count} invoices</p>
           </div>
         ))}
       </div>
@@ -638,30 +639,30 @@ function InvoicesTab() {
       {/* Filters */}
       <div className="flex gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search vendor or invoice #…"
-            className="w-full pl-9 pr-3 h-9 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+            className="w-full pl-9 pr-3 h-9 text-sm bg-brand-bg-soft border border-brand-border rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
         </div>
         <select value={statusFilter} onChange={e => setStatus(e.target.value)}
-          className="h-9 px-3 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+          className="h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border rounded-xl text-white focus:outline-none focus:border-brand-primary">
           <option value="">All Statuses</option>
           {['pending', 'approved', 'paid', 'rejected'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors">
+          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-primary-hover transition-colors">
           <Plus className="h-4 w-4" /> New Invoice
         </button>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="bg-brand-bg-soft rounded-xl border border-brand-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700 text-xs text-slate-500 uppercase">
+              <tr className="border-b border-brand-border text-xs text-brand-text-muted uppercase">
                 <th className="text-left px-4 py-3">Invoice</th>
                 <th className="text-left px-4 py-3">Vendor</th>
                 <th className="text-right px-4 py-3">Amount</th>
@@ -670,19 +671,19 @@ function InvoicesTab() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-brand-border">
               {invoices.map(inv => {
                 const isOverdue = inv.status === 'pending' && new Date(inv.dueDate) < overdueDate;
                 return (
-                  <tr key={inv._id} className="hover:bg-slate-750 transition-colors">
+                  <tr key={inv._id} className="hover:bg-brand-bg-soft transition-colors">
                     <td className="px-4 py-3">
-                      <p className="text-slate-300 font-mono text-xs">{inv.invoiceNumber || '—'}</p>
-                      {inv.description && <p className="text-xs text-slate-500 truncate max-w-xs">{inv.description}</p>}
+                      <p className="text-brand-text-secondary font-mono text-xs">{inv.invoiceNumber || '—'}</p>
+                      {inv.description && <p className="text-xs text-brand-text-muted truncate max-w-xs">{inv.description}</p>}
                     </td>
                     <td className="px-4 py-3 text-white">{inv.vendor}</td>
                     <td className="px-4 py-3 text-right font-semibold text-white">{fmt(inv.amount, inv.currency)}</td>
                     <td className="px-4 py-3">
-                      <span className={isOverdue ? 'text-red-400 font-medium' : 'text-slate-400'}>{fmtDate(inv.dueDate)}</span>
+                      <span className={isOverdue ? 'text-red-400 font-medium' : 'text-brand-text-secondary'}>{fmtDate(inv.dueDate)}</span>
                       {isOverdue && <p className="text-xs text-red-400">Overdue</p>}
                     </td>
                     <td className="px-4 py-3">
@@ -717,7 +718,7 @@ function InvoicesTab() {
               })}
               {invoices.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500">No invoices found.</td>
+                  <td colSpan={6} className="px-4 py-10 text-center text-brand-text-muted">No invoices found.</td>
                 </tr>
               )}
             </tbody>
@@ -759,36 +760,36 @@ function ConvertToPOModal({ pr, onClose, onSaved }: { pr: PurchaseRequest; onClo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+      <div className="relative z-10 w-full max-w-md bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
           <h2 className="font-bold text-white">Convert to Purchase Order</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-3">
-          <p className="text-sm text-slate-300">{pr.title} — <span className="font-semibold">{fmt(pr.estimatedCost, pr.currency)}</span></p>
+          <p className="text-sm text-brand-text-secondary">{pr.title} — <span className="font-semibold">{fmt(pr.estimatedCost, pr.currency)}</span></p>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Vendor <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Vendor <span className="text-red-400">*</span></label>
             <select value={vendorId} onChange={e => setVendorId(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
               <option value="">Select vendor…</option>
               {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Expected Delivery Date</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Expected Delivery Date</label>
             <input type="date" value={expectedDeliveryDate} onChange={e => setExpectedDeliveryDate(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Delivery Address</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Delivery Address</label>
             <input value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Optional"
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-5">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={convert} disabled={saving || !vendorId}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Converting…' : 'Convert to PO'}
           </button>
         </div>
@@ -801,11 +802,11 @@ function ApprovalChainStrip({ chain, currentLevel }: { chain: ApprovalChainEntry
   return (
     <div className="flex flex-wrap items-center gap-1.5 mt-2">
       {chain.map(a => {
-        const cfg = APPROVAL_STATUS_CFG[a.status] ?? APPROVAL_STATUS_CFG.pending;
+        const st = APPROVAL_STATUS_MAP[a.status] ?? 'pending';
         const isCurrent = a.level === currentLevel && a.status === 'pending';
         return (
-          <span key={a.level} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text} ${isCurrent ? 'ring-1 ring-indigo-400' : ''}`}>
-            L{a.level} {a.approverName || a.approverRole || '—'} · {cfg.label}
+          <span key={a.level} className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', statusClasses(st), isCurrent && 'ring-1 ring-indigo-400')}>
+            L{a.level} {a.approverName || a.approverRole || '—'} · {statusLabel(st)}
           </span>
         );
       })}
@@ -854,25 +855,25 @@ function ProcurementTab() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <select value={statusFilter} onChange={e => setStatus(e.target.value)}
-          className="h-9 px-3 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+          className="h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border rounded-xl text-white focus:outline-none focus:border-brand-primary">
           <option value="">All Statuses</option>
           {['pending', 'approved', 'rejected', 'converted'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
         <div className="flex-1" />
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors">
+          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-primary-hover transition-colors">
           <Plus className="h-4 w-4" /> New Request
         </button>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
         <div className="space-y-3">
           {requests.map(pr => (
-            <div key={pr._id} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-4">
+            <div key={pr._id} className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -884,11 +885,11 @@ function ProcurementTab() {
                     </span>
                   </div>
                   <p className="font-semibold text-white">{pr.title}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-brand-text-secondary mt-0.5">
                     {pr.requester?.fullName ?? 'Unknown'} · {pr.requester?.department ?? pr.department ?? '—'}
                     {pr.neededBy && ` · Needed by ${fmtDate(pr.neededBy)}`}
                   </p>
-                  {pr.justification && <p className="text-xs text-slate-500 mt-1 italic">"{pr.justification}"</p>}
+                  {pr.justification && <p className="text-xs text-brand-text-muted mt-1 italic">"{pr.justification}"</p>}
                   {pr.approvalChain && pr.approvalChain.length > 0 && (
                     <ApprovalChainStrip chain={pr.approvalChain} currentLevel={pr.currentApprovalLevel} />
                   )}
@@ -909,7 +910,7 @@ function ProcurementTab() {
                   )}
                   {isHR && pr.status === 'approved' && !pr.convertedToPOId && (
                     <button onClick={() => setConvertingPR(pr)}
-                      className="flex items-center gap-1 h-7 px-2.5 text-xs bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors mt-2">
+                      className="flex items-center gap-1 h-7 px-2.5 text-xs bg-brand-primary/20 text-indigo-400 rounded-lg hover:bg-brand-primary-hover/30 transition-colors mt-2">
                       <ArrowRightLeft className="h-3 w-3" /> Convert to PO
                     </button>
                   )}
@@ -921,7 +922,7 @@ function ProcurementTab() {
             </div>
           ))}
           {requests.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-brand-text-muted">
               <ShoppingCart className="h-10 w-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No purchase requests yet.</p>
             </div>
@@ -938,95 +939,139 @@ function ProcurementTab() {
 // ── Vendor Form Modal ─────────────────────────────────────────────────────────
 const VENDOR_CATEGORIES = ['Office Supplies', 'IT & Equipment', 'Professional Services', 'Facilities', 'Travel', 'Logistics', 'Marketing', 'Other'];
 
+const COMPANY_KYC_FIELDS: { key: 'kraPinCertificate' | 'registrationCertificate' | 'businessPermit'; label: string }[] = [
+  { key: 'kraPinCertificate', label: 'KRA PIN Certificate' },
+  { key: 'registrationCertificate', label: 'Certificate of Registration' },
+  { key: 'businessPermit', label: 'Business Permit' },
+];
+
 function VendorFormModal({ vendor, onClose, onSaved }: { vendor: Vendor | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     name: vendor?.name ?? '', contactName: vendor?.contactName ?? '', email: vendor?.email ?? '',
     phone: vendor?.phone ?? '', address: vendor?.address ?? '', category: vendor?.category ?? VENDOR_CATEGORIES[0],
-    taxId: vendor?.taxId ?? '', paymentTerms: vendor?.paymentTerms ?? '', status: vendor?.status ?? 'active', notes: vendor?.notes ?? '',
+    type: vendor?.type ?? 'company', taxId: vendor?.taxId ?? '', paymentTerms: vendor?.paymentTerms ?? '',
+    status: vendor?.status ?? 'active', notes: vendor?.notes ?? '',
   });
+  const [kycFiles, setKycFiles] = useState<Record<string, File | null>>({});
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const save = () => {
     if (!form.name || !form.category) return;
+    if (!vendor && form.type === 'company' && COMPANY_KYC_FIELDS.some(f => !kycFiles[f.key])) return;
     setSaving(true);
+    let payload: FormData | typeof form = form;
+    if (!vendor && form.type === 'company') {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      COMPANY_KYC_FIELDS.forEach(f => { if (kycFiles[f.key]) fd.append(f.key, kycFiles[f.key] as File); });
+      payload = fd;
+    }
     const req = vendor
       ? apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors/${vendor._id}`, method: 'PATCH', data: form, thenFn: () => { onSaved(); onClose(); }, finallyFn: () => setSaving(false) })
-      : apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors`, method: 'POST', data: form, thenFn: () => { onSaved(); onClose(); }, finallyFn: () => setSaving(false) });
+      : apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors`, method: 'POST', data: payload, thenFn: () => { onSaved(); onClose(); }, finallyFn: () => setSaving(false) });
     void req;
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+      <div className="relative z-10 w-full max-w-md flex flex-col bg-white border border-brand-border rounded-2xl shadow-2xl max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border shrink-0">
           <h2 className="font-bold text-white">{vendor ? 'Edit Vendor' : 'New Vendor'}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Vendor Name <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Vendor Name <span className="text-red-400">*</span></label>
               <input value={form.name} onChange={e => set('name', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Category <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Category <span className="text-red-400">*</span></label>
               <select value={form.category} onChange={e => set('category', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
                 {VENDOR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
+          {!vendor && (
+            <div>
+              <label className="block text-xs text-brand-text-secondary mb-1">Vendor Type <span className="text-red-400">*</span></label>
+              <div className="flex gap-2">
+                {(['company', 'individual'] as const).map(t => (
+                  <button key={t} type="button" onClick={() => set('type', t)}
+                    className={`flex-1 h-9 rounded-xl text-sm font-medium border transition-colors capitalize ${
+                      form.type === t ? 'bg-brand-primary border-brand-primary text-white' : 'bg-brand-bg-soft border-brand-border-strong text-brand-text-secondary hover:text-brand-text'
+                    }`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {!vendor && form.type === 'company' && (
+            <div className="rounded-xl border border-brand-primary/30 bg-brand-primary/5 p-3 space-y-2">
+              <p className="text-xs text-indigo-300">Company vendors must provide the following to be verified:</p>
+              {COMPANY_KYC_FIELDS.map(f => (
+                <div key={f.key}>
+                  <label className="block text-xs text-brand-text-secondary mb-1">{f.label} <span className="text-red-400">*</span></label>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={e => setKycFiles(prev => ({ ...prev, [f.key]: e.target.files?.[0] ?? null }))}
+                    className="w-full text-xs text-brand-text-secondary file:mr-2 file:text-xs file:font-medium file:border-0 file:bg-brand-primary file:text-white file:rounded-lg file:px-2 file:py-1.5" />
+                </div>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Contact Name</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Contact Name</label>
               <input value={form.contactName} onChange={e => set('contactName', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Phone</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Phone</label>
               <input value={form.phone} onChange={e => set('phone', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Email</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Email</label>
             <input value={form.email} onChange={e => set('email', e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Address</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Address</label>
             <input value={form.address} onChange={e => set('address', e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Tax ID</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Tax ID</label>
               <input value={form.taxId} onChange={e => set('taxId', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Payment Terms</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Payment Terms</label>
               <input value={form.paymentTerms} onChange={e => set('paymentTerms', e.target.value)} placeholder="e.g. Net 30"
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
           {vendor && (
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Status</label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Status</label>
               <select value={form.status} onChange={e => set('status', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
-                {['active', 'inactive', 'blocked'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
+                {['pending_approval', 'active', 'inactive', 'rejected', 'blacklisted'].map(s => <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</option>)}
               </select>
             </div>
           )}
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-brand-border shrink-0">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={save} disabled={saving || !form.name}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Saving…' : 'Save Vendor'}
           </button>
         </div>
@@ -1037,13 +1082,14 @@ function VendorFormModal({ vendor, onClose, onSaved }: { vendor: Vendor | null; 
 
 // ── Vendors Tab ───────────────────────────────────────────────────────────────
 function VendorsTab() {
-  const { userData } = useAuth();
+  const { userData, isHR } = useAuth();
   const isSuperAdmin = userData?.role === 'super_admin';
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingVendor, setEditingVendor] = useState<Vendor | null | undefined>(undefined);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [decidingId, setDecidingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -1059,41 +1105,65 @@ function VendorsTab() {
     apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors/${id}`, method: 'DELETE', thenFn: load, finallyFn: () => setDeletingId(null) });
   };
 
+  const approve = (id: string) => {
+    setDecidingId(id);
+    apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors/${id}/approve`, method: 'PATCH', thenFn: load, finallyFn: () => setDecidingId(null) });
+  };
+
+  const reject = (id: string) => {
+    const rejectionReason = window.prompt('Reason for rejecting this vendor:');
+    if (!rejectionReason) return;
+    setDecidingId(id);
+    apiCallFunction({ url: `${API_BASE_URL}/spending/procurement/vendors/${id}/reject`, method: 'PATCH', data: { rejectionReason }, thenFn: load, finallyFn: () => setDecidingId(null) });
+  };
+
   const filtered = vendors.filter(v => !search || v.name.toLowerCase().includes(search.toLowerCase()) || v.category.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-4">
       <div className="flex gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search vendors…"
-            className="w-full pl-9 pr-3 h-9 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+            className="w-full pl-9 pr-3 h-9 text-sm bg-brand-bg-soft border border-brand-border rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
         </div>
         <button onClick={() => setEditingVendor(null)}
-          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors">
+          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-primary-hover transition-colors">
           <Plus className="h-4 w-4" /> New Vendor
         </button>
       </div>
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(v => (
-            <div key={v._id} className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-2">
+            <div key={v._id} className="bg-brand-bg-soft border border-brand-border rounded-xl p-4 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-semibold text-white truncate">{v.name}</p>
-                  <p className="text-xs text-slate-400">{v.category}</p>
+                  <p className="text-xs text-brand-text-secondary">{v.category}</p>
                 </div>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[v.status]}`}>{v.status}</span>
               </div>
-              {v.contactName && <p className="text-xs text-slate-500">{v.contactName}{v.phone ? ` · ${v.phone}` : ''}</p>}
-              {v.email && <p className="text-xs text-slate-500 truncate">{v.email}</p>}
-              {v.paymentTerms && <p className="text-xs text-slate-600">Terms: {v.paymentTerms}</p>}
+              {v.contactName && <p className="text-xs text-brand-text-muted">{v.contactName}{v.phone ? ` · ${v.phone}` : ''}</p>}
+              {v.email && <p className="text-xs text-brand-text-muted truncate">{v.email}</p>}
+              {v.paymentTerms && <p className="text-xs text-brand-text-muted">Terms: {v.paymentTerms}</p>}
+              {isHR && v.status === 'pending_approval' && (
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => approve(v._id)} disabled={decidingId === v._id}
+                    className="flex items-center gap-1 h-7 px-2 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 disabled:opacity-50 transition-colors">
+                    <Check className="h-3 w-3" /> Approve
+                  </button>
+                  <button onClick={() => reject(v._id)} disabled={decidingId === v._id}
+                    className="flex items-center gap-1 h-7 px-2 text-xs bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 disabled:opacity-50 transition-colors">
+                    <X className="h-3 w-3" /> Reject
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-1.5 pt-1">
-                <button onClick={() => setEditingVendor(v)} className="flex items-center gap-1 h-7 px-2 text-xs bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors">
+                <button onClick={() => setEditingVendor(v)} className="flex items-center gap-1 h-7 px-2 text-xs bg-brand-bg-muted text-brand-text-secondary rounded-lg hover:bg-brand-border-strong transition-colors">
                   <Pencil className="h-3 w-3" /> Edit
                 </button>
                 {isSuperAdmin && (
@@ -1105,7 +1175,7 @@ function VendorsTab() {
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-slate-500">
+            <div className="col-span-3 text-center py-12 text-brand-text-muted">
               <Building2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No vendors yet.</p>
             </div>
@@ -1137,26 +1207,26 @@ function GoodsReceiptModal({ po, onClose, onSaved }: { po: PurchaseOrder; onClos
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+      <div className="relative z-10 w-full max-w-lg flex flex-col bg-white border border-brand-border rounded-2xl shadow-2xl max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border shrink-0">
           <h2 className="font-bold text-white">Log Goods Receipt — {po.poNumber}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
           {po.items.map((it, i) => (
-            <div key={it.id} className="bg-slate-800/60 border border-slate-700 rounded-xl p-3 space-y-2">
+            <div key={it.id} className="bg-brand-bg-soft/60 border border-brand-border rounded-xl p-3 space-y-2">
               <p className="text-sm text-white">{it.description}</p>
-              <p className="text-xs text-slate-500">Ordered {it.quantity} · Already received {it.receivedQuantity}</p>
+              <p className="text-xs text-brand-text-muted">Ordered {it.quantity} · Already received {it.receivedQuantity}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] text-slate-400 mb-1">Received Qty</label>
+                  <label className="block text-[10px] text-brand-text-secondary mb-1">Received Qty</label>
                   <input type="number" min="0" value={rows[i].receivedQuantity} onChange={e => updateRow(i, 'receivedQuantity', e.target.value)}
-                    className="w-full h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                    className="w-full h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white focus:outline-none focus:border-brand-primary" />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-slate-400 mb-1">Condition</label>
+                  <label className="block text-[10px] text-brand-text-secondary mb-1">Condition</label>
                   <select value={rows[i].condition} onChange={e => updateRow(i, 'condition', e.target.value)}
-                    className="w-full h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500">
+                    className="w-full h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white focus:outline-none focus:border-brand-primary">
                     <option value="good">Good</option>
                     <option value="damaged">Damaged</option>
                     <option value="short">Short-shipped</option>
@@ -1166,15 +1236,15 @@ function GoodsReceiptModal({ po, onClose, onSaved }: { po: PurchaseOrder; onClos
             </div>
           ))}
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Notes</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Notes</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500 resize-none" />
+              className="w-full px-3 py-2 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary resize-none" />
           </div>
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-brand-border shrink-0">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={save} disabled={saving}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Saving…' : 'Log Receipt'}
           </button>
         </div>
@@ -1209,27 +1279,27 @@ function PurchaseOrdersTab() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <select value={statusFilter} onChange={e => setStatus(e.target.value)}
-          className="h-9 px-3 text-sm bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+          className="h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border rounded-xl text-white focus:outline-none focus:border-brand-primary">
           <option value="">All Statuses</option>
           {['draft', 'sent', 'acknowledged', 'partiallyReceived', 'fullyReceived', 'invoiced', 'paid', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
         <div className="space-y-3">
           {orders.map(po => (
-            <div key={po._id} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-4">
+            <div key={po._id} className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs text-slate-400">{po.poNumber}</span>
+                    <span className="font-mono text-xs text-brand-text-secondary">{po.poNumber}</span>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[po.status]}`}>{po.status}</span>
                   </div>
                   <p className="font-semibold text-white">{po.vendor?.name ?? 'Unknown vendor'}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{po.items.length} line item{po.items.length !== 1 ? 's' : ''}
+                  <p className="text-xs text-brand-text-secondary mt-0.5">{po.items.length} line item{po.items.length !== 1 ? 's' : ''}
                     {po.expectedDeliveryDate && ` · Expected ${fmtDate(po.expectedDeliveryDate)}`}</p>
                 </div>
                 <div className="text-right shrink-0 space-y-2">
@@ -1242,7 +1312,7 @@ function PurchaseOrdersTab() {
                         </button>
                       )}
                       {po.status === 'sent' && (
-                        <button onClick={() => acknowledge(po._id)} className="flex items-center gap-1 h-7 px-2 text-xs bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors">
+                        <button onClick={() => acknowledge(po._id)} className="flex items-center gap-1 h-7 px-2 text-xs bg-brand-primary/20 text-indigo-400 rounded-lg hover:bg-brand-primary-hover/30 transition-colors">
                           <CheckCircle2 className="h-3 w-3" /> Acknowledge
                         </button>
                       )}
@@ -1263,7 +1333,7 @@ function PurchaseOrdersTab() {
             </div>
           ))}
           {orders.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-brand-text-muted">
               <PackageCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No purchase orders yet.</p>
             </div>
@@ -1311,47 +1381,47 @@ function CreateVendorInvoiceModal({ onClose, onSaved }: { onClose: () => void; o
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg flex flex-col bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-[92vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+      <div className="relative z-10 w-full max-w-lg flex flex-col bg-white border border-brand-border rounded-2xl shadow-2xl max-h-[92vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border shrink-0">
           <h2 className="font-bold text-white">Record Vendor Invoice</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Purchase Order <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Purchase Order <span className="text-red-400">*</span></label>
             <select value={purchaseOrderId} onChange={e => setPurchaseOrderId(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
               <option value="">Select PO (acknowledged)…</option>
               {orders.map(o => <option key={o._id} value={o._id}>{o.poNumber} — {o.vendor?.name}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Invoice Number <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Invoice Number <span className="text-red-400">*</span></label>
               <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Due Date <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Due Date <span className="text-red-400">*</span></label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Invoice Date</label>
+            <label className="block text-xs text-brand-text-secondary mb-1">Invoice Date</label>
             <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-indigo-500" />
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
           </div>
           <div className="space-y-2">
-            <label className="text-xs text-slate-400">Line Items</label>
+            <label className="text-xs text-brand-text-secondary">Line Items</label>
             {items.map((it, i) => (
               <div key={i} className="grid grid-cols-[1fr_50px_80px_auto] gap-2 items-center">
                 <input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Description"
-                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500" />
+                  className="h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
                 <input type="number" min="1" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)}
-                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                  className="h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white focus:outline-none focus:border-brand-primary" />
                 <input type="number" min="0" value={it.unitPrice || ''} onChange={e => updateItem(i, 'unitPrice', e.target.value)} placeholder="Price"
-                  className="h-9 px-2 text-xs bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500" />
+                  className="h-9 px-2 text-xs bg-brand-bg-soft border border-brand-border-strong rounded-lg text-white focus:outline-none focus:border-brand-primary" />
                 <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
                   className="h-9 w-9 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-30 flex items-center justify-center transition-colors">
                   <Trash2 className="h-3.5 w-3.5" />
@@ -1363,15 +1433,15 @@ function CreateVendorInvoiceModal({ onClose, onSaved }: { onClose: () => void; o
             </button>
           </div>
           {total > 0 && (
-            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-4 py-3 text-sm text-indigo-300 font-semibold">
+            <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl px-4 py-3 text-sm text-indigo-300 font-semibold">
               Total: <span className="text-lg font-black">{fmt(total)}</span>
             </div>
           )}
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-600 text-sm text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-brand-border shrink-0">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
           <button onClick={save} disabled={saving || !purchaseOrderId || !invoiceNumber || !dueDate}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50">
+            className="flex-1 h-10 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50">
             {saving ? 'Saving…' : 'Record Invoice'}
           </button>
         </div>
@@ -1407,19 +1477,19 @@ function VendorInvoicesTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-end">
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors">
+          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-primary-hover transition-colors">
           <Plus className="h-4 w-4" /> Record Invoice
         </button>
       </div>
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="bg-brand-bg-soft rounded-xl border border-brand-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700 text-xs text-slate-500 uppercase">
+              <tr className="border-b border-brand-border text-xs text-brand-text-muted uppercase">
                 <th className="text-left px-4 py-3">Invoice</th>
                 <th className="text-left px-4 py-3">Vendor</th>
                 <th className="text-right px-4 py-3">Amount</th>
@@ -1428,17 +1498,17 @@ function VendorInvoicesTab() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-brand-border">
               {invoices.map(inv => (
-                <tr key={inv._id} className="hover:bg-slate-750 transition-colors">
+                <tr key={inv._id} className="hover:bg-brand-bg-soft transition-colors">
                   <td className="px-4 py-3">
-                    <p className="text-slate-300 font-mono text-xs">{inv.invoiceNumber}</p>
-                    <p className="text-xs text-slate-500">Due {fmtDate(inv.dueDate)}</p>
+                    <p className="text-brand-text-secondary font-mono text-xs">{inv.invoiceNumber}</p>
+                    <p className="text-xs text-brand-text-muted">Due {fmtDate(inv.dueDate)}</p>
                   </td>
                   <td className="px-4 py-3 text-white">{inv.vendor?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-right font-semibold text-white">{fmt(inv.totalAmount, inv.currency)}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[inv.threeWayMatchStatus] ?? 'bg-slate-600/40 text-slate-400'}`}>{inv.threeWayMatchStatus}</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[inv.threeWayMatchStatus] ?? 'bg-slate-600/40 text-brand-text-secondary'}`}>{inv.threeWayMatchStatus}</span>
                     {inv.discrepancyNotes && <p className="text-[10px] text-amber-400 mt-1 max-w-xs truncate">{inv.discrepancyNotes}</p>}
                   </td>
                   <td className="px-4 py-3">
@@ -1465,7 +1535,7 @@ function VendorInvoicesTab() {
                 </tr>
               ))}
               {invoices.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500">No vendor invoices recorded.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-brand-text-muted">No vendor invoices recorded.</td></tr>
               )}
             </tbody>
           </table>
@@ -1498,30 +1568,30 @@ function AccountsPayableTab() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-xs text-slate-400 mb-1">Outstanding</p>
+        <div className="bg-brand-bg-soft rounded-xl p-4 border border-brand-border">
+          <p className="text-xs text-brand-text-secondary mb-1">Outstanding</p>
           <p className="text-xl font-bold text-amber-400">{fmt(totalPending)}</p>
         </div>
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-xs text-slate-400 mb-1">Overdue</p>
+        <div className="bg-brand-bg-soft rounded-xl p-4 border border-brand-border">
+          <p className="text-xs text-brand-text-secondary mb-1">Overdue</p>
           <p className="text-xl font-bold text-red-400">{fmt(totalOverdue)}</p>
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="h-7 w-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-7 w-7 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
         <div className="space-y-2">
           {invoices.filter(i => i.status !== 'paid').map(inv => {
             const isOverdue = new Date(inv.dueDate) < new Date();
             return (
-              <div key={inv._id} className={`bg-slate-800 border rounded-xl px-4 py-3 flex items-center gap-3 ${isOverdue ? 'border-red-500/30' : 'border-slate-700'}`}>
+              <div key={inv._id} className={`bg-brand-bg-soft border rounded-xl px-4 py-3 flex items-center gap-3 ${isOverdue ? 'border-red-500/30' : 'border-brand-border'}`}>
                 {isOverdue && <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white">{inv.vendor}</p>
-                  <p className="text-xs text-slate-400">{inv.invoiceNumber || 'No ref'} · Due {fmtDate(inv.dueDate)}</p>
+                  <p className="text-xs text-brand-text-secondary">{inv.invoiceNumber || 'No ref'} · Due {fmtDate(inv.dueDate)}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-white">{fmt(inv.amount, inv.currency)}</p>
@@ -1531,7 +1601,7 @@ function AccountsPayableTab() {
             );
           })}
           {invoices.filter(i => i.status !== 'paid').length === 0 && (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-brand-text-muted">
               <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500 opacity-50" />
               <p className="text-sm">All invoices paid. Good work!</p>
             </div>
@@ -1554,19 +1624,19 @@ export default function SpendingPage() {
   }, [visibleTabs, tab]);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
+    <div className="min-h-screen bg-white text-white p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Procurement</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Corporate cards, invoices, procurement, and accounts payable</p>
+        <p className="text-sm text-brand-text-secondary mt-0.5">Corporate cards, invoices, procurement, and accounts payable</p>
       </div>
 
-      <div className="flex gap-1 bg-slate-800/50 p-1 rounded-xl w-fit border border-slate-700 flex-wrap">
+      <div className="flex gap-1 bg-brand-bg-soft/50 p-1 rounded-xl w-fit border border-brand-border flex-wrap">
         {visibleTabs.map(t => {
           const Icon = t.icon;
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                tab === t.key ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                tab === t.key ? 'bg-brand-primary text-white shadow-sm' : 'text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-muted'
               }`}>
               <Icon className="h-4 w-4" />
               {t.label}

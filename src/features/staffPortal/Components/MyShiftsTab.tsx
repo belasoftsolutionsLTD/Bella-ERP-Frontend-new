@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, MapPin, CalendarDays, CheckCircle2, XCircle, Loader2, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { API_BASE_URL } from '@/configs/constants';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 
@@ -34,10 +35,8 @@ const LOCATION_COLORS: Record<string, string> = {
   'client site':'text-violet-400',
 };
 
-const APP_STATUS: Record<string, { label: string; cls: string }> = {
-  pending:  { label: 'Pending',  cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20' },
-  approved: { label: 'Approved', cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-  rejected: { label: 'Rejected', cls: 'bg-red-500/10 text-red-400 border border-red-500/20' },
+const APP_STATUS_MAP: Record<string, Status> = {
+  pending: 'pending', approved: 'approved', rejected: 'rejected',
 };
 
 function fmtDate(d: string) {
@@ -173,10 +172,9 @@ export function MyShiftsTab() {
           {applications.length === 0
             ? <Empty label="You haven't applied for any shifts yet" />
             : applications.map(app => {
-                const cfg = APP_STATUS[app.status];
                 return app.shift
                   ? <ShiftCard key={app._id} shift={app.shift}
-                      badge={<span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', cfg.cls)}>{cfg.label}</span>}
+                      badge={<StatusBadge status={APP_STATUS_MAP[app.status] ?? 'pending'} />}
                     />
                   : null;
               })}

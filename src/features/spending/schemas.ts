@@ -7,6 +7,7 @@ export const CreateVendorSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
+  type: z.enum(['company', 'individual']),
   taxId: z.string().optional(),
   paymentTerms: z.string().optional(),
   bankDetails: z.object({

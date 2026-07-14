@@ -1,7 +1,11 @@
 import { setRequestLocale } from 'next-intl/server';
-import OffboardingPage from '@/features/offboarding/Pages/OffboardingPage';
+import OffboardingDashboardPage from '@/features/offboarding/Pages/OffboardingDashboardPage';
 
 export default function Page({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
-  return <OffboardingPage />;
+  return (
+    <div className="p-6">
+      <OffboardingDashboardPage />
+    </div>
+  );
 }

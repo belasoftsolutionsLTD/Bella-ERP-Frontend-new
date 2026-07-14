@@ -1,39 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MapPin, Clock, LogIn, LogOut, Bell, CheckCircle2, Loader2, AlertTriangle, ExternalLink, CalendarDays, Coffee } from 'lucide-react';
-import { toast } from 'sonner';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
-
-interface BreakEntry {
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-}
-
-interface TodayRecord {
-  checkInTime?: string | null;
-  checkOutTime?: string | null;
-  checkInAt?: string | null;
-  mode?: 'onsite' | 'offsite';
-  checkInLocation?: string | null;
-  checkOutLocation?: string | null;
-  checkInLat?: number | null;
-  checkInLng?: number | null;
-  checkOutLat?: number | null;
-  checkOutLng?: number | null;
-  breaks?: BreakEntry[];
-  totalWorkMinutes?: number;
-  totalBreakMinutes?: number;
-}
-
-interface WeekRecord {
-  date: string;
-  checkInTime?: string | null;
-  checkOutTime?: string | null;
-  status?: string;
-}
+import { useClockIn } from '@/contexts/ClockInContext';
 
 const RING_R    = 70;
 const RING_CIRC = 2 * Math.PI * RING_R;
@@ -68,28 +39,6 @@ function nowMinutes() {
   return n.getHours() * 60 + n.getMinutes();
 }
 
-async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { 'Accept-Language': 'en' } });
-    const j = await r.json();
-    const a = j.address ?? {};
-    const parts = [a.road || a.pedestrian, a.suburb || a.neighbourhood, a.city || a.town || a.village || a.county].filter(Boolean);
-    return parts.length ? parts.join(', ') : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-  } catch {
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-  }
-}
-
-function acquireGPS(): Promise<{ latitude: number; longitude: number }> {
-  return new Promise((resolve, reject) =>
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
-      (e) => reject(e),
-      { enableHighAccuracy: true, timeout: 12000 }
-    )
-  );
-}
-
 async function scheduleNotifications(workStartTime: string, workEndTime: string) {
   if (!('Notification' in window)) return;
   let perm = Notification.permission;
@@ -105,15 +54,13 @@ async function scheduleNotifications(workStartTime: string, workEndTime: string)
 }
 
 export function ClockInWidget() {
-  const [record,       setRecord]       = useState<TodayRecord | null>(null);
-  const [weekRecords,  setWeekRecords]  = useState<WeekRecord[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [step,         setStep]         = useState<'idle' | 'locating' | 'geocoding' | 'submitting'>('idle');
-  const [geoError,     setGeoError]     = useState<string | null>(null);
+  const {
+    record, weekRecords, loading, busy, step, geoError,
+    elapsedSeconds: elapsed, breakSeconds: breakSecs,
+    clockIn, clockOut, startBreak, endBreak,
+  } = useClockIn();
   const [workLocation, setWorkLocation] = useState<'office' | 'home' | 'remote' | 'client_site'>('office');
   const [now,          setNow]          = useState(new Date());
-  const [elapsed,      setElapsed]      = useState(0);   // seconds of actual work time
-  const [breakSecs,    setBreakSecs]    = useState(0);   // seconds on current break
   const [confirmPending, setConfirmPending] = useState<'in' | 'out' | 'break_start' | 'break_end' | null>(null);
   const [notifEnabled, setNotifEnabled] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
@@ -133,46 +80,7 @@ export function ClockInWidget() {
   const isOnBreak  = clockedIn && !clockedOut && !!openBreak;
   const isWorking  = clockedIn && !clockedOut && !openBreak;
 
-  // Live elapsed timer
   useEffect(() => {
-    if (!clockedIn || clockedOut) return;
-    const compute = () => {
-      if (!record?.checkInAt) return;
-      const checkInMs = new Date(record.checkInAt).getTime();
-      const pastBreakMs = (record.breaks || []).reduce((sum, b) => {
-        if (b.endTime) return sum + (new Date(b.endTime).getTime() - new Date(b.startTime).getTime());
-        return sum;
-      }, 0);
-      const curBreakMs = openBreak ? Date.now() - new Date(openBreak.startTime).getTime() : 0;
-      setElapsed(Math.max(0, Math.floor((Date.now() - checkInMs - pastBreakMs - curBreakMs) / 1000)));
-      setBreakSecs(Math.max(0, Math.floor(curBreakMs / 1000)));
-    };
-    compute();
-    const t = setInterval(compute, 1000);
-    return () => clearInterval(t);
-  }, [clockedIn, clockedOut, record, openBreak]);
-
-  const fetchWeekRecords = useCallback(() => {
-    apiCallFunction<{ data: WeekRecord[] }>({
-      url: `${API_BASE_URL}/attendance/my-records?days=7`,
-      showToast: false,
-      thenFn: (r) => setWeekRecords(r.data ?? []),
-      catchFn: () => {},
-    });
-  }, []);
-
-  const fetchStatus = useCallback(() => {
-    apiCallFunction<{ data: TodayRecord | null }>({
-      url: `${API_BASE_URL}/attendance/today-status`,
-      showToast: false,
-      thenFn: (r) => setRecord(r.data ?? null),
-      finallyFn: () => setLoading(false),
-    });
-  }, []);
-
-  useEffect(() => {
-    fetchStatus();
-    fetchWeekRecords();
     if (notifScheduled.current) return;
     notifScheduled.current = true;
     apiCallFunction<{ data: { workStartTime?: string; workEndTime?: string } }>({
@@ -180,81 +88,13 @@ export function ClockInWidget() {
       showToast: false,
       thenFn: (r) => { if (notifEnabled) scheduleNotifications(r.data?.workStartTime ?? '08:00', r.data?.workEndTime ?? '17:00'); },
     });
-  }, [fetchStatus, fetchWeekRecords]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const getLocData = async () => {
-    setGeoError(null);
-    if (!navigator.geolocation) { setGeoError('GPS not supported in your browser.'); return null; }
-    setStep('locating');
-    try {
-      const pos = await acquireGPS();
-      setStep('geocoding');
-      const locationName = await reverseGeocode(pos.latitude, pos.longitude);
-      return { latitude: pos.latitude, longitude: pos.longitude, locationName };
-    } catch (e: unknown) {
-      const err = e as GeolocationPositionError;
-      setGeoError(
-        err?.code === 1 ? 'Location access denied. Allow GPS in browser settings and retry.' :
-        err?.code === 2 ? 'Could not determine location. Ensure GPS is enabled.' :
-                          'Location request timed out. Move to an open area and retry.'
-      );
-      setStep('idle');
-      return null;
-    }
-  };
-
-  const doClockIn = async () => {
-    const loc = await getLocData();
-    if (!loc) return;
-    setStep('submitting');
-    apiCallFunction({
-      url: `${API_BASE_URL}/attendance/clock-in`,
-      method: 'POST',
-      data: { ...loc, workLocation },
-      thenFn: () => { toast.success(`Clocked in from ${loc.locationName}.`); fetchStatus(); setStep('idle'); },
-      catchFn: (err: unknown) => {
-        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Clock-in failed.';
-        setGeoError(msg); setStep('idle');
-      },
-    });
-  };
-
-  const doClockOut = async () => {
-    const loc = await getLocData();
-    if (!loc) return;
-    setStep('submitting');
-    apiCallFunction({
-      url: `${API_BASE_URL}/attendance/clock-out`,
-      method: 'POST',
-      data: loc,
-      thenFn: () => { toast.success('Clocked out successfully.'); fetchStatus(); fetchWeekRecords(); setStep('idle'); },
-      catchFn: () => { setStep('idle'); toast.error('Clock-out failed.'); },
-    });
-  };
-
-  const doBreakStart = () => {
-    setStep('submitting');
-    apiCallFunction({
-      url: `${API_BASE_URL}/attendance/break-start`,
-      method: 'POST',
-      data: {},
-      thenFn: () => { toast.success('Break started.'); fetchStatus(); setStep('idle'); },
-      catchFn: () => { setStep('idle'); toast.error('Could not start break.'); },
-    });
-  };
-
-  const doBreakEnd = () => {
-    setStep('submitting');
-    apiCallFunction({
-      url: `${API_BASE_URL}/attendance/break-end`,
-      method: 'POST',
-      data: {},
-      thenFn: () => { toast.success('Break ended.'); fetchStatus(); setStep('idle'); },
-      catchFn: () => { setStep('idle'); toast.error('Could not end break.'); },
-    });
-  };
-
-  const busy = step !== 'idle';
+  const doClockIn     = () => clockIn(workLocation);
+  const doClockOut    = () => clockOut();
+  const doBreakStart  = () => startBreak();
+  const doBreakEnd    = () => endBreak();
 
   // Ring visuals
   const ringWorkPct    = Math.min(1, elapsed / (WORK_TARGET_MINS * 60));
@@ -270,7 +110,7 @@ export function ClockInWidget() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
-        <p className="text-xs text-slate-500">Loading attendance…</p>
+        <p className="text-xs text-brand-text-muted">Loading attendance…</p>
       </div>
     );
   }
@@ -279,24 +119,24 @@ export function ClockInWidget() {
     <div className="space-y-4 max-w-lg mx-auto">
 
       {/* ── Hero clock ── */}
-      <div className="bg-[#1e293b] border border-slate-700 rounded-2xl overflow-hidden">
+      <div className="bg-brand-bg-soft border border-brand-border rounded-2xl overflow-hidden">
         <div className="relative px-6 pt-6 pb-5 text-center bg-gradient-to-br from-[#1e293b] via-[#1e293b] to-indigo-900/40">
-          <div className="absolute -top-6 -right-6 h-32 w-32 rounded-full bg-indigo-500/5 pointer-events-none" />
-          <div className="inline-flex items-center gap-1.5 bg-slate-700/60 rounded-full px-3 py-1 mb-4">
-            <CalendarDays className="h-3 w-3 text-slate-400" />
-            <span className="text-slate-400 text-xs font-medium">{dateStr}</span>
+          <div className="absolute -top-6 -right-6 h-32 w-32 rounded-full bg-brand-primary/5 pointer-events-none" />
+          <div className="inline-flex items-center gap-1.5 bg-brand-bg-muted/60 rounded-full px-3 py-1 mb-4">
+            <CalendarDays className="h-3 w-3 text-brand-text-secondary" />
+            <span className="text-brand-text-secondary text-xs font-medium">{dateStr}</span>
           </div>
           <div className="flex items-center justify-center gap-1 mb-4">
-            <span className="text-5xl font-black text-slate-100 tracking-tight font-mono tabular-nums">{hours}</span>
-            <span className="text-5xl font-black text-slate-500 mb-1">:</span>
-            <span className="text-5xl font-black text-slate-100 tracking-tight font-mono tabular-nums">{minutes}</span>
-            <span className="text-5xl font-black text-slate-500 mb-1">:</span>
-            <span className="text-5xl font-black text-slate-600 tracking-tight font-mono tabular-nums">{seconds}</span>
+            <span className="text-5xl font-black text-brand-text tracking-tight font-mono tabular-nums">{hours}</span>
+            <span className="text-5xl font-black text-brand-text-muted mb-1">:</span>
+            <span className="text-5xl font-black text-brand-text tracking-tight font-mono tabular-nums">{minutes}</span>
+            <span className="text-5xl font-black text-brand-text-muted mb-1">:</span>
+            <span className="text-5xl font-black text-brand-text-muted tracking-tight font-mono tabular-nums">{seconds}</span>
           </div>
 
           {/* Status badge */}
           {!clockedIn && (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-700/50 px-4 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand-text-muted bg-brand-bg-muted/50 px-4 py-1.5 rounded-full">
               <Clock className="h-3.5 w-3.5" /> Not clocked in yet
             </span>
           )}
@@ -311,7 +151,7 @@ export function ClockInWidget() {
             </span>
           )}
           {clockedOut && (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-indigo-400 bg-brand-primary/10 border border-brand-primary/20 px-4 py-1.5 rounded-full">
               <CheckCircle2 className="h-3.5 w-3.5" /> Day complete · {record?.checkInTime} – {record?.checkOutTime}
             </span>
           )}
@@ -328,7 +168,7 @@ export function ClockInWidget() {
 
       {/* ── Action card: Working / On break with SVG ring ── */}
       {clockedIn && !clockedOut && (
-        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 flex flex-col items-center gap-5">
+        <div className="bg-brand-bg-soft border border-brand-border rounded-2xl p-6 flex flex-col items-center gap-5">
           {/* SVG ring */}
           <div className="relative">
             <svg width="160" height="160" className="-rotate-90">
@@ -349,7 +189,7 @@ export function ClockInWidget() {
               ) : (
                 <>
                   <span className="text-xl font-bold text-green-400 font-mono">{fmtSecs(elapsed)}</span>
-                  <span className="text-[11px] text-slate-500 mt-0.5">Working</span>
+                  <span className="text-[11px] text-brand-text-muted mt-0.5">Working</span>
                 </>
               )}
             </div>
@@ -357,27 +197,27 @@ export function ClockInWidget() {
 
           {/* Stats */}
           <div className="w-full grid grid-cols-3 gap-2 text-center">
-            <div className="bg-slate-800 rounded-lg px-2 py-2">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wide">In</p>
-              <p className="text-sm font-bold text-slate-200">{record?.checkInTime ?? '—'}</p>
+            <div className="bg-brand-bg-soft rounded-lg px-2 py-2">
+              <p className="text-[10px] text-brand-text-muted uppercase tracking-wide">In</p>
+              <p className="text-sm font-bold text-brand-text">{record?.checkInTime ?? '—'}</p>
             </div>
-            <div className="bg-slate-800 rounded-lg px-2 py-2">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wide">Breaks</p>
-              <p className="text-sm font-bold text-slate-200">
+            <div className="bg-brand-bg-soft rounded-lg px-2 py-2">
+              <p className="text-[10px] text-brand-text-muted uppercase tracking-wide">Breaks</p>
+              <p className="text-sm font-bold text-brand-text">
                 {(record?.breaks || []).filter(b => b.endTime).length} taken
               </p>
             </div>
-            <div className="bg-slate-800 rounded-lg px-2 py-2">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wide">Break time</p>
-              <p className="text-sm font-bold text-slate-200">
+            <div className="bg-brand-bg-soft rounded-lg px-2 py-2">
+              <p className="text-[10px] text-brand-text-muted uppercase tracking-wide">Break time</p>
+              <p className="text-sm font-bold text-brand-text">
                 {(record?.breaks || []).reduce((s, b) => s + (b.duration || 0), 0)}m
               </p>
             </div>
           </div>
 
           {record?.checkInLocation && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <MapPin className="h-3 w-3 text-slate-600" />
+            <div className="flex items-center gap-1.5 text-xs text-brand-text-muted">
+              <MapPin className="h-3 w-3 text-brand-text-muted" />
               <span className="truncate max-w-xs">{record.checkInLocation}</span>
             </div>
           )}
@@ -400,21 +240,21 @@ export function ClockInWidget() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} Clock Out
             </button>
           </div>
-          {isOnBreak && <p className="text-[11px] text-slate-600">End your break before clocking out.</p>}
+          {isOnBreak && <p className="text-[11px] text-brand-text-muted">End your break before clocking out.</p>}
         </div>
       )}
 
       {/* ── Not clocked in ── */}
       {!clockedIn && (
-        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 space-y-4">
-          <div className="flex items-start gap-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl px-4 py-3">
+        <div className="bg-brand-bg-soft border border-brand-border rounded-2xl p-6 space-y-4">
+          <div className="flex items-start gap-3 bg-brand-primary/5 border border-brand-primary/10 rounded-xl px-4 py-3">
             <MapPin className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
             <p className="text-xs text-indigo-300/70 leading-relaxed">
               Your GPS location is captured automatically. You must be within the allowed radius of the office to clock in.
             </p>
           </div>
           <button onClick={() => setConfirmPending('in')} disabled={busy}
-            className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-3">
+            className="w-full h-12 rounded-xl bg-brand-primary hover:bg-brand-primary-hover disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-3">
             {busy ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -437,8 +277,8 @@ export function ClockInWidget() {
                 onClick={() => setWorkLocation(opt.value as typeof workLocation)}
                 className={`h-9 rounded-lg border text-xs font-semibold transition-colors ${
                   workLocation === opt.value
-                    ? 'bg-indigo-500/15 border-indigo-500/50 text-indigo-300'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                    ? 'bg-brand-primary/15 border-brand-primary/50 text-indigo-300'
+                    : 'bg-brand-bg-soft border-brand-border text-brand-text-secondary hover:text-brand-text hover:border-brand-border-strong'
                 }`}
               >
                 {opt.label}
@@ -455,12 +295,12 @@ export function ClockInWidget() {
         const pct = Math.min(100, Math.round((workedMins / WORK_TARGET_MINS) * 100));
         const barColor = workedMins >= WORK_TARGET_MINS ? 'bg-emerald-500' : workedMins >= WORK_TARGET_MINS * 0.75 ? 'bg-amber-400' : 'bg-red-400';
         return (
-          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 space-y-4">
+          <div className="bg-brand-bg-soft border border-brand-border rounded-2xl p-6 space-y-4">
             <div className="flex flex-col items-center gap-2">
-              <div className="h-14 w-14 rounded-full bg-indigo-500/10 flex items-center justify-center">
+              <div className="h-14 w-14 rounded-full bg-brand-primary/10 flex items-center justify-center">
                 <CheckCircle2 className="h-7 w-7 text-indigo-400" />
               </div>
-              <p className="font-bold text-slate-100 text-base">Day Complete!</p>
+              <p className="font-bold text-brand-text text-base">Day Complete!</p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               {[
@@ -468,25 +308,25 @@ export function ClockInWidget() {
                 { label: 'Hours',     value: workedMins > 0 ? fmtDuration(workedMins) : '—' },
                 { label: 'Clock Out', value: record?.checkOutTime ?? '—' },
               ].map(({ label, value }) => (
-                <div key={label} className="bg-slate-800 rounded-lg px-3 py-3">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-                  <p className="font-bold text-sm text-slate-200">{value}</p>
+                <div key={label} className="bg-brand-bg-soft rounded-lg px-3 py-3">
+                  <p className="text-[10px] text-brand-text-muted uppercase tracking-wider mb-1">{label}</p>
+                  <p className="font-bold text-sm text-brand-text">{value}</p>
                 </div>
               ))}
             </div>
             {workedMins > 0 && (
               <div className="space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">vs 8h standard</span>
-                  <span className="text-[10px] font-semibold text-slate-400">{pct}%</span>
+                  <span className="text-[10px] text-brand-text-muted uppercase tracking-wider">vs 8h standard</span>
+                  <span className="text-[10px] font-semibold text-brand-text-secondary">{pct}%</span>
                 </div>
-                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-2 bg-brand-bg-muted rounded-full overflow-hidden">
                   <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
             )}
             {(record?.totalBreakMinutes ?? 0) > 0 && (
-              <p className="text-xs text-slate-500 text-center">{record?.totalBreakMinutes}m total break time</p>
+              <p className="text-xs text-brand-text-muted text-center">{record?.totalBreakMinutes}m total break time</p>
             )}
           </div>
         );
@@ -494,8 +334,8 @@ export function ClockInWidget() {
 
       {/* ── Location record ── */}
       {clockedIn && (record?.checkInLocation || record?.checkOutLocation) && (
-        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <div className="bg-brand-bg-soft border border-brand-border rounded-2xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-brand-text-muted uppercase tracking-widest flex items-center gap-2">
             <MapPin className="h-3.5 w-3.5 text-indigo-400" /> Location Record
           </p>
           {record?.checkInLocation && (
@@ -504,12 +344,12 @@ export function ClockInWidget() {
                 <LogIn className="h-3.5 w-3.5 text-emerald-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Clock-in</p>
-                <p className="text-xs text-slate-300 truncate">{record.checkInLocation}</p>
+                <p className="text-[10px] font-semibold text-brand-text-muted uppercase tracking-wider">Clock-in</p>
+                <p className="text-xs text-brand-text-secondary truncate">{record.checkInLocation}</p>
               </div>
               {record.checkInLat && record.checkInLng && (
                 <a href={`https://maps.google.com/?q=${record.checkInLat},${record.checkInLng}`} target="_blank" rel="noopener noreferrer"
-                  className="h-7 w-7 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+                  className="h-7 w-7 rounded-lg bg-brand-bg-muted flex items-center justify-center text-brand-text-secondary hover:text-brand-text transition-colors">
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               )}
@@ -521,12 +361,12 @@ export function ClockInWidget() {
                 <LogOut className="h-3.5 w-3.5 text-red-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Clock-out</p>
-                <p className="text-xs text-slate-300 truncate">{record.checkOutLocation}</p>
+                <p className="text-[10px] font-semibold text-brand-text-muted uppercase tracking-wider">Clock-out</p>
+                <p className="text-xs text-brand-text-secondary truncate">{record.checkOutLocation}</p>
               </div>
               {record.checkOutLat && record.checkOutLng && (
                 <a href={`https://maps.google.com/?q=${record.checkOutLat},${record.checkOutLng}`} target="_blank" rel="noopener noreferrer"
-                  className="h-7 w-7 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+                  className="h-7 w-7 rounded-lg bg-brand-bg-muted flex items-center justify-center text-brand-text-secondary hover:text-brand-text transition-colors">
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               )}
@@ -549,30 +389,30 @@ export function ClockInWidget() {
         const totalMins = slots.reduce((s, d) => s + d.mins, 0);
         const workedDays = slots.filter(d => d.mins > 0).length;
         return (
-          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-5 space-y-4">
+          <div className="bg-brand-bg-soft border border-brand-border rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">This Week</p>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
-                <span><strong className="text-slate-200">{fmtDuration(totalMins)}</strong> total</span>
-                <span><strong className="text-slate-200">{workedDays}</strong> days</span>
+              <p className="text-xs font-semibold text-brand-text-secondary uppercase tracking-widest">This Week</p>
+              <div className="flex items-center gap-3 text-xs text-brand-text-muted">
+                <span><strong className="text-brand-text">{fmtDuration(totalMins)}</strong> total</span>
+                <span><strong className="text-brand-text">{workedDays}</strong> days</span>
               </div>
             </div>
             <div className="flex items-end gap-1.5 h-20">
               {slots.map((d, i) => {
-                const barColor = d.mins >= stdMins ? 'bg-emerald-500' : d.mins >= stdMins * 0.75 ? 'bg-amber-400' : d.mins > 0 ? 'bg-red-400' : 'bg-slate-700';
+                const barColor = d.mins >= stdMins ? 'bg-emerald-500' : d.mins >= stdMins * 0.75 ? 'bg-amber-400' : d.mins > 0 ? 'bg-red-400' : 'bg-brand-bg-muted';
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[9px] text-slate-600">{d.mins > 0 ? fmtDuration(d.mins) : ''}</span>
+                    <span className="text-[9px] text-brand-text-muted">{d.mins > 0 ? fmtDuration(d.mins) : ''}</span>
                     <div className="w-full flex flex-col justify-end" style={{ height: '48px' }}>
-                      <div className={`w-full rounded-t transition-all duration-500 ${barColor} ${d.isToday ? 'ring-2 ring-indigo-500/30' : ''}`}
+                      <div className={`w-full rounded-t transition-all duration-500 ${barColor} ${d.isToday ? 'ring-2 ring-brand-primary/30' : ''}`}
                         style={{ height: `${Math.max(d.pct, d.mins > 0 ? 8 : 0)}%`, minHeight: d.mins > 0 ? '4px' : '0' }} />
                     </div>
-                    <span className={`text-[10px] font-medium ${d.isToday ? 'text-indigo-400' : 'text-slate-500'}`}>{d.label}</span>
+                    <span className={`text-[10px] font-medium ${d.isToday ? 'text-indigo-400' : 'text-brand-text-muted'}`}>{d.label}</span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-slate-600">
+            <div className="flex items-center gap-3 text-[10px] text-brand-text-muted">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-emerald-500 inline-block" /> ≥8h</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-amber-400 inline-block" /> ≥6h</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-red-400 inline-block" /> &lt;6h</span>
@@ -583,13 +423,13 @@ export function ClockInWidget() {
       })()}
 
       {/* ── Notification toggle ── */}
-      <div className="flex items-center gap-3 bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-3">
-        <Bell className={`h-4 w-4 shrink-0 ${notifEnabled ? 'text-indigo-400' : 'text-slate-600'}`} />
-        <p className="text-[11px] text-slate-500 leading-relaxed flex-1">
+      <div className="flex items-center gap-3 bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3">
+        <Bell className={`h-4 w-4 shrink-0 ${notifEnabled ? 'text-indigo-400' : 'text-brand-text-muted'}`} />
+        <p className="text-[11px] text-brand-text-muted leading-relaxed flex-1">
           {notifEnabled ? 'Browser reminders on — 15 min before start/end.' : 'Browser reminders are off.'}
         </p>
         <button onClick={() => { const next = !notifEnabled; setNotifEnabled(next); localStorage.setItem('notifications_enabled', String(next)); }}
-          className={`shrink-0 h-5 w-9 rounded-full transition-colors relative ${notifEnabled ? 'bg-indigo-500' : 'bg-slate-700'}`}>
+          className={`shrink-0 h-5 w-9 rounded-full transition-colors relative ${notifEnabled ? 'bg-brand-primary' : 'bg-brand-bg-muted'}`}>
           <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${notifEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
@@ -598,10 +438,10 @@ export function ClockInWidget() {
       {confirmPending && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmPending(null)} />
-          <div className="relative z-10 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-80 space-y-5">
+          <div className="relative z-10 bg-white border border-brand-border rounded-2xl shadow-2xl p-6 w-80 space-y-5">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
-                confirmPending === 'in' ? 'bg-indigo-500/10' :
+                confirmPending === 'in' ? 'bg-brand-primary/10' :
                 confirmPending === 'out' ? 'bg-red-500/10' : 'bg-amber-500/10'
               }`}>
                 {confirmPending === 'in'         && <LogIn   className="h-7 w-7 text-indigo-400" />}
@@ -610,12 +450,12 @@ export function ClockInWidget() {
                 {confirmPending === 'break_end'  && <Coffee  className="h-7 w-7 text-amber-400" />}
               </div>
               <div>
-                <p className="font-bold text-base text-slate-100">
+                <p className="font-bold text-base text-brand-text">
                   {confirmPending === 'in'          ? 'Clock In?' :
                    confirmPending === 'out'         ? 'Clock Out?' :
                    confirmPending === 'break_start' ? 'Start Break?' : 'End Break?'}
                 </p>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                <p className="text-xs text-brand-text-secondary mt-1 leading-relaxed">
                   {confirmPending === 'in'          ? 'This will record your start time and capture your location.' :
                    confirmPending === 'out'         ? 'This will end your working session for today.' :
                    confirmPending === 'break_start' ? 'Your break time will be tracked separately.' :
@@ -625,7 +465,7 @@ export function ClockInWidget() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setConfirmPending(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-700 text-sm font-semibold text-slate-400 hover:bg-slate-800 transition-colors">
+                className="flex-1 py-2.5 rounded-xl border border-brand-border text-sm font-semibold text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">
                 Cancel
               </button>
               <button onClick={() => {
@@ -636,8 +476,8 @@ export function ClockInWidget() {
                 else if (a === 'break_start') doBreakStart();
                 else                    doBreakEnd();
               }} className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-colors ${
-                confirmPending === 'in' ? 'bg-indigo-600 hover:bg-indigo-500' :
-                confirmPending === 'out' ? 'bg-red-600 hover:bg-red-500' : 'bg-amber-500 hover:bg-amber-400'
+                confirmPending === 'in' ? 'bg-brand-primary hover:bg-brand-primary-hover' :
+                confirmPending === 'out' ? 'bg-brand-danger hover:bg-brand-danger/90' : 'bg-amber-500 hover:bg-amber-400'
               }`}>
                 Confirm
               </button>

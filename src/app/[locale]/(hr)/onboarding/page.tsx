@@ -1,7 +1,11 @@
 import { setRequestLocale } from 'next-intl/server';
-import OnboardingPage from '@/features/onboarding/Pages/OnboardingPage';
+import OnboardingDashboardPage from '@/features/onboarding/Pages/OnboardingDashboardPage';
 
 export default function Page({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
-  return <OnboardingPage />;
+  return (
+    <div className="p-6">
+      <OnboardingDashboardPage />
+    </div>
+  );
 }

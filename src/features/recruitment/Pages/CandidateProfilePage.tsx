@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useCandidate } from '../Hooks/useCandidates';
 import { useNurtureCampaigns } from '../Hooks/useNurture';
 import { useRequisitions } from '../Hooks/useRequisitions';
-import { SOURCE_LABELS, APPLICATION_STATUS_STYLES } from '../constants';
+import { SOURCE_LABELS, APPLICATION_STATUS_MAP } from '../constants';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export function CandidateProfilePage({ id, locale }: { id: string; locale: string }) {
   const { candidate, isLoading, updateCandidate, convertCandidate } = useCandidate(id);
@@ -17,7 +18,7 @@ export function CandidateProfilePage({ id, locale }: { id: string; locale: strin
   const [notes, setNotes] = useState('');
   const [convertTo, setConvertTo] = useState('');
 
-  if (isLoading || !candidate) return <div className="p-6 text-sm text-slate-400">Loading...</div>;
+  if (isLoading || !candidate) return <div className="p-6 text-sm text-brand-text-secondary">Loading...</div>;
 
   const touchpoints = campaigns
     .flatMap((c) => (c.touchpoints || []).filter((t) => String(t.candidateId) === id).map((t) => ({ ...t, campaignName: c.name })))
@@ -27,12 +28,12 @@ export function CandidateProfilePage({ id, locale }: { id: string; locale: strin
     <div className="p-6 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">{candidate.firstName} {candidate.lastName}</h1>
-          <p className="text-sm text-slate-400">{SOURCE_LABELS[candidate.source]}{candidate.isPassiveTalent ? ' · Passive Talent' : ''}</p>
+          <h1 className="text-xl font-semibold text-brand-text">{candidate.firstName} {candidate.lastName}</h1>
+          <p className="text-sm text-brand-text-secondary">{SOURCE_LABELS[candidate.source]}{candidate.isPassiveTalent ? ' · Passive Talent' : ''}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap gap-4 text-sm text-slate-600">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap gap-4 text-sm text-brand-text-muted">
         <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> {candidate.email}</span>
         {candidate.phone && <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> {candidate.phone}</span>}
         {candidate.location && <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {candidate.location}</span>}
@@ -43,9 +44,9 @@ export function CandidateProfilePage({ id, locale }: { id: string; locale: strin
         )}
       </div>
 
-      <div className="flex gap-1 border-b border-slate-800">
+      <div className="flex gap-1 border-b border-brand-border">
         {(['overview', 'applications', 'touchpoints', 'notes'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-slate-400'}`}>
+          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-brand-text-secondary'}`}>
             {t}
           </button>
         ))}
@@ -54,7 +55,7 @@ export function CandidateProfilePage({ id, locale }: { id: string; locale: strin
       {tab === 'overview' && (
         <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
           <div className="flex flex-wrap gap-1.5">
-            {candidate.tags.map((t) => <span key={t} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>)}
+            {candidate.tags.map((t) => <span key={t} className="text-xs bg-slate-100 text-brand-text-muted px-2 py-0.5 rounded-full">{t}</span>)}
           </div>
           {candidate.isPassiveTalent && (
             <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
@@ -76,11 +77,11 @@ export function CandidateProfilePage({ id, locale }: { id: string; locale: strin
             <Link key={a._id} href={`/${locale}/recruitment/requisitions/${a.requisitionId}`} className="flex items-center justify-between p-4 hover:bg-slate-50">
               <div>
                 <p className="text-sm font-medium text-slate-800">{a.requisition?.title ?? 'Requisition'}</p>
-                <p className="text-xs text-slate-500">{a.requisition?.department}</p>
+                <p className="text-xs text-brand-text-muted">{a.requisition?.department}</p>
               </div>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${APPLICATION_STATUS_STYLES[a.status]}`}>{a.status}</span>
+              <StatusBadge status={APPLICATION_STATUS_MAP[a.status]} label={a.status} />
             </Link>
-          )) : <p className="p-6 text-sm text-slate-400 text-center">No applications yet.</p>}
+          )) : <p className="p-6 text-sm text-brand-text-secondary text-center">No applications yet.</p>}
         </div>
       )}
 
@@ -90,12 +91,12 @@ export function CandidateProfilePage({ id, locale }: { id: string; locale: strin
             <div key={i} className="p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-800 capitalize">{t.channel}</span>
-                <span className="text-xs text-slate-400">{new Date(t.sentAt).toLocaleDateString()}</span>
+                <span className="text-xs text-brand-text-secondary">{new Date(t.sentAt).toLocaleDateString()}</span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">{t.campaignName}</p>
-              <p className="text-sm text-slate-600 mt-1">{t.note}</p>
+              <p className="text-xs text-brand-text-muted mt-1">{t.campaignName}</p>
+              <p className="text-sm text-brand-text-muted mt-1">{t.note}</p>
             </div>
-          )) : <p className="p-6 text-sm text-slate-400 text-center">No touchpoints logged.</p>}
+          )) : <p className="p-6 text-sm text-brand-text-secondary text-center">No touchpoints logged.</p>}
         </div>
       )}
 

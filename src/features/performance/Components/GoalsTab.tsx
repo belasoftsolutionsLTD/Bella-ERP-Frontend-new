@@ -59,10 +59,10 @@ export function GoalsTab() {
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-slate-100">
+          <h2 className="text-base font-bold text-brand-text">
             {canManageGoals ? 'Goals & Objectives' : 'Department Goals'}
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-brand-text-secondary mt-0.5">
             {canManageGoals
               ? `${total} goal${total !== 1 ? 's' : ''} this period`
               : `${total} goal${total !== 1 ? 's' : ''} set for your department`}
@@ -70,22 +70,22 @@ export function GoalsTab() {
         </div>
         <div className="flex items-center gap-2">
           <select value={period} onChange={e => setPeriod(e.target.value)}
-            className="h-9 bg-slate-800 border border-slate-700 rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:border-indigo-500">
+            className="h-9 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-sm text-brand-text-secondary focus:outline-none focus:border-brand-primary">
             {GOAL_PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
-          <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5">
+          <div className="flex bg-brand-bg-soft border border-brand-border rounded-lg p-0.5">
             <button onClick={() => setView('list')}
-              className={cn('p-1.5 rounded-md transition-colors', view === 'list' ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300')}>
+              className={cn('p-1.5 rounded-md transition-colors', view === 'list' ? 'bg-brand-bg-muted text-brand-text' : 'text-brand-text-muted hover:text-brand-text-secondary')}>
               <LayoutList className="h-4 w-4" />
             </button>
             <button onClick={() => setView('board')}
-              className={cn('p-1.5 rounded-md transition-colors', view === 'board' ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300')}>
+              className={cn('p-1.5 rounded-md transition-colors', view === 'board' ? 'bg-brand-bg-muted text-brand-text' : 'text-brand-text-muted hover:text-brand-text-secondary')}>
               <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
           {canManageGoals && (
             <button onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold transition-colors">
               <Plus className="h-4 w-4" /> Add Goal
             </button>
           )}
@@ -99,11 +99,11 @@ export function GoalsTab() {
             { label: 'On Track',  count: onTrack,  bgCls: 'bg-emerald-950', borderCls: 'border-emerald-800', textCls: 'text-emerald-400' },
             { label: 'At Risk',   count: atRisk,   bgCls: 'bg-amber-950',   borderCls: 'border-amber-800',   textCls: 'text-amber-400'   },
             { label: 'Completed', count: completed, bgCls: 'bg-indigo-950',  borderCls: 'border-indigo-800',  textCls: 'text-indigo-400'  },
-            { label: 'Overall',   count: `${overallPct}%`, bgCls: 'bg-slate-800', borderCls: 'border-slate-700', textCls: 'text-slate-200' },
+            { label: 'Overall',   count: `${overallPct}%`, bgCls: 'bg-brand-bg-soft', borderCls: 'border-brand-border', textCls: 'text-brand-text' },
           ].map(({ label, count, bgCls, borderCls, textCls }) => (
             <div key={label} className={cn('rounded-xl border p-4', bgCls, borderCls)}>
               <p className={cn('text-2xl font-black', textCls)}>{count}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{label === 'Overall' ? 'Completion rate' : `${label} goal${Number(count) !== 1 ? 's' : ''}`}</p>
+              <p className="text-xs text-brand-text-secondary mt-0.5">{label === 'Overall' ? 'Completion rate' : `${label} goal${Number(count) !== 1 ? 's' : ''}`}</p>
             </div>
           ))}
         </div>
@@ -112,17 +112,17 @@ export function GoalsTab() {
       {/* Content */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+          <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
         </div>
       ) : goals.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-600 gap-4">
+        <div className="flex flex-col items-center justify-center py-20 text-brand-text-muted gap-4">
           <Target className="h-12 w-12" />
           <div className="text-center">
-            <p className="font-semibold text-slate-400">No goals for this period</p>
+            <p className="font-semibold text-brand-text-secondary">No goals for this period</p>
             <p className="text-sm mt-1">Set your first goal to start tracking progress</p>
           </div>
           <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold transition-colors">
             <Plus className="h-4 w-4" /> Add Goal
           </button>
         </div>

@@ -3,21 +3,18 @@
 import { useState } from 'react';
 import {
   Search, Mail, Phone, Briefcase, CalendarDays,
-  ChevronRight, Loader2, Users, UserCheck, Clock, Plus,
+  ChevronRight, Loader2, Users, UserCheck, Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStaffPortal, type StaffEmployee } from '../Hooks/useStaffPortal';
-import { LogLeaveModal } from '@/features/leave/Components/LogLeaveModal';
 import { MyPortalView } from '../Components/MyPortalView';
 import { useAuth } from '@/contexts/AuthContext';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 
 type DetailTab = 'profile' | 'leave' | 'attendance';
 
-const STATUS_STYLE: Record<string, string> = {
-  active:     'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
-  on_leave:   'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
-  suspended:  'bg-red-100 text-red-700 ring-1 ring-red-200',
-  terminated: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
+const EMPLOYEE_STATUS_MAP: Record<string, Status> = {
+  active: 'active', on_leave: 'onLeave', suspended: 'suspended', terminated: 'terminated',
 };
 
 const AVATAR_COLORS = [
@@ -56,7 +53,6 @@ export default function StaffPortalPage() {
 function HrStaffPortalView() {
   const { employees, listLoading, search, setSearch, total, hasMore, loadMore, selectedId, selectEmployee, detail } = useStaffPortal();
   const [detailTab, setDetailTab] = useState<DetailTab>('profile');
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   const activeCount = employees.filter(e => e.status === 'active').length;
   const onLeaveCount = employees.filter(e => e.status === 'on_leave').length;
@@ -140,9 +136,7 @@ function HrStaffPortalView() {
                         {emp.fullName}
                       </p>
                       <p className="text-xs text-foreground/50 truncate">{emp.designation}</p>
-                      <span className={cn('inline-block mt-0.5 text-xs px-1.5 py-0.5 rounded-full capitalize font-medium', STATUS_STYLE[emp.status] || STATUS_STYLE.terminated)}>
-                        {emp.status.replace(/_/g, ' ')}
-                      </span>
+                      <StatusBadge status={EMPLOYEE_STATUS_MAP[emp.status] ?? 'inactive'} className="mt-0.5" />
                     </div>
                     <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 transition-transform', isSelected ? 'text-primary translate-x-0.5' : 'text-foreground/20')} />
                   </button>
@@ -191,9 +185,7 @@ function HrStaffPortalView() {
                     <span className="text-xs font-mono bg-white/20 text-white px-2.5 py-1 rounded-lg">
                       {detail.profile.staffNumber}
                     </span>
-                    <span className={cn('text-xs px-2.5 py-1 rounded-lg font-medium capitalize', STATUS_STYLE[detail.profile.status] || STATUS_STYLE.terminated)}>
-                      {detail.profile.status.replace(/_/g, ' ')}
-                    </span>
+                    <StatusBadge status={EMPLOYEE_STATUS_MAP[detail.profile.status] ?? 'inactive'} />
                   </div>
                 </div>
               </div>
@@ -233,7 +225,6 @@ function HrStaffPortalView() {
                       <LeaveView
                         balance={detail.leaveBalance}
                         requests={detail.leaveRequests as any[]}
-                        onApplyLeave={() => setShowLeaveModal(true)}
                       />
                     )}
                     {detailTab === 'attendance' && <AttendanceView records={detail.attendance as any[]} />}
@@ -245,14 +236,6 @@ function HrStaffPortalView() {
         </div>
       </div>
 
-      {showLeaveModal && detail.profile && (
-        <LogLeaveModal
-          employeeId={detail.profile._id}
-          employeeName={detail.profile.fullName}
-          onClose={() => setShowLeaveModal(false)}
-          onSuccess={() => setShowLeaveModal(false)}
-        />
-      )}
     </div>
   );
 }
@@ -280,7 +263,6 @@ function ProfileView({ emp }: { emp: StaffEmployee }) {
       <InfoCard icon={Phone}        label="Phone"           value={emp.phone || '—'}         color="text-green-600" />
       <InfoCard icon={Briefcase}    label="Department"      value={emp.department || '—'}    color="text-violet-600" />
       <InfoCard icon={UserCheck}    label="Employment Type" value={emp.employmentType || '—'} color="text-amber-600" />
-      <InfoCard icon={Users}        label="Staff Category"  value={emp.staffCategory || '—'} color="text-teal-600" />
       <InfoCard icon={CalendarDays} label="Date of Hire"    value={emp.dateOfHire ? new Date(emp.dateOfHire).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : '—'} color="text-rose-600" />
     </div>
   );
@@ -292,27 +274,19 @@ const LEAVE_COLORS = [
   'from-rose-500 to-pink-600', 'from-fuchsia-500 to-violet-600',
 ];
 
-function LeaveView({ balance, requests, onApplyLeave }: { balance: any; requests: any[]; onApplyLeave: () => void }) {
-  const balances: [string, any][] = balance?.balances ? Object.entries(balance.balances) : [];
+function LeaveView({ balance, requests }: { balance: any; requests: any[] }) {
+  const balances: any[] = Array.isArray(balance) ? balance : [];
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button
-          onClick={onApplyLeave}
-          className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 shadow-sm transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" /> Apply for Leave
-        </button>
-      </div>
       {balances.length > 0 && (
         <div>
           <h4 className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Leave Balances</h4>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {balances.map(([type, val], i) => (
-              <div key={type} className={cn('rounded-xl bg-gradient-to-br p-4 text-white shadow-sm', LEAVE_COLORS[i % LEAVE_COLORS.length])}>
-                <p className="text-xs font-semibold text-white/70 capitalize">{type.replace(/_/g, ' ')}</p>
-                <p className="text-3xl font-bold mt-1">{val.remaining ?? '∞'}</p>
-                <p className="text-xs text-white/60 mt-0.5">of {val.allocated ?? '∞'} days remaining</p>
+            {balances.map((b, i) => (
+              <div key={b._id} className={cn('rounded-xl bg-gradient-to-br p-4 text-white shadow-sm', LEAVE_COLORS[i % LEAVE_COLORS.length])}>
+                <p className="text-xs font-semibold text-white/70">{b.leaveType?.name ?? 'Leave'}</p>
+                <p className="text-3xl font-bold mt-1">{b.closingBalance}</p>
+                <p className="text-xs text-white/60 mt-0.5">days remaining</p>
               </div>
             ))}
           </div>
@@ -324,8 +298,8 @@ function LeaveView({ balance, requests, onApplyLeave }: { balance: any; requests
           <div className="space-y-2">
             {requests.slice(0, 10).map((r: any) => (
               <div key={r._id} className="flex items-center justify-between rounded-xl border px-4 py-3 hover:bg-gray-50 transition-colors">
-                <span className="text-sm font-medium capitalize">{r.leaveType?.replace(/_/g, ' ')}</span>
-                <span className="text-xs text-foreground/40">{r.startDate} → {r.endDate}</span>
+                <span className="text-sm font-medium">{r.leaveType?.name ?? 'Leave'}</span>
+                <span className="text-xs text-foreground/40">{new Date(r.startDate).toLocaleDateString()} → {new Date(r.endDate).toLocaleDateString()}</span>
                 <span className={cn('text-xs px-2.5 py-1 rounded-full font-medium capitalize',
                   r.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
                   r.status === 'rejected' ? 'bg-red-100 text-red-700' :

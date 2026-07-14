@@ -56,7 +56,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
             <button
               type="button"
               onClick={() => scrollByColumn(-1)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-slate-800 border border-slate-600 text-slate-200 flex items-center justify-center shadow hover:bg-slate-700"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-brand-bg-soft border border-brand-border-strong text-brand-text flex items-center justify-center shadow hover:bg-brand-bg-muted"
               aria-label="Scroll left"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -76,7 +76,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
             <button
               type="button"
               onClick={() => scrollByColumn(1)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-slate-800 border border-slate-600 text-slate-200 flex items-center justify-center shadow hover:bg-slate-700"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-brand-bg-soft border border-brand-border-strong text-brand-text flex items-center justify-center shadow hover:bg-brand-bg-muted"
               aria-label="Scroll right"
             >
               <ChevronRight className="h-4 w-4" />

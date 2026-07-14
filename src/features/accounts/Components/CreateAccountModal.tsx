@@ -126,14 +126,14 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
 
             {linkedEmp ? (
               <div className="flex items-center gap-3 px-3 py-2.5 bg-indigo-50 border border-indigo-200 rounded-lg">
-                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 shrink-0">
+                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-brand-primary shrink-0">
                   {linkedEmp.fullName.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{linkedEmp.fullName}</p>
                   <p className="text-xs text-slate-500 truncate">{linkedEmp.staffNumber} · {linkedEmp.department}</p>
                 </div>
-                <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-brand-primary shrink-0" />
                 <button type="button" onClick={clearEmployee} className="text-slate-400 hover:text-red-500 transition-colors shrink-0">
                   <X className="h-4 w-4" />
                 </button>
@@ -148,7 +148,7 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
                     onChange={e => { setEmpSearch(e.target.value); setShowDrop(true); }}
                     onFocus={() => setShowDrop(true)}
                     placeholder="Search by name, staff number or department…"
-                    className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                   />
                 </div>
                 {showDrop && filtered.length > 0 && (
@@ -237,7 +237,7 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
                     value={r.value}
                     checked={role === r.value}
                     onChange={() => setRole(r.value)}
-                    className="mt-0.5 accent-indigo-600"
+                    className="mt-0.5 accent-brand-primary"
                   />
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{r.label}</p>
@@ -270,7 +270,7 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
 
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" disabled={loading}>
+            <Button type="submit" className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-white" disabled={loading}>
               {loading ? 'Creating…' : 'Create Account'}
             </Button>
           </div>

@@ -172,39 +172,39 @@ export default function JobDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">First Name <span className="text-red-500">*</span></label>
-                  <input required value={form.firstName} onChange={(e) => set('firstName', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <input required value={form.firstName} onChange={(e) => set('firstName', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Name <span className="text-red-500">*</span></label>
-                  <input required value={form.lastName} onChange={(e) => set('lastName', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <input required value={form.lastName} onChange={(e) => set('lastName', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email <span className="text-red-500">*</span></label>
-                  <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</label>
-                  <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</label>
-                  <input value={form.location} onChange={(e) => set('location', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <input value={form.location} onChange={(e) => set('location', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">LinkedIn URL</label>
-                  <input value={form.linkedInUrl} onChange={(e) => set('linkedInUrl', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <input value={form.linkedInUrl} onChange={(e) => set('linkedInUrl', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cover Letter</label>
-                <textarea value={form.coverLetter} onChange={(e) => set('coverLetter', e.target.value)} rows={5} className="border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 leading-relaxed" />
+                <textarea value={form.coverLetter} onChange={(e) => set('coverLetter', e.target.value)} rows={5} className="border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary/20 leading-relaxed" />
               </div>
 
               {(job.screeningQuestions || []).length > 0 && (
@@ -218,7 +218,7 @@ export default function JobDetailPage() {
                         required={q.required}
                         value={answers[q.id] ?? ''}
                         onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                        className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                       />
                     </div>
                   ))}

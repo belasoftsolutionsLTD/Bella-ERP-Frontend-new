@@ -15,8 +15,8 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-interface FormState { name: string; amount: string; description: string; jobGroupIds: string[] }
-const emptyForm = (): FormState => ({ name: '', amount: '', description: '', jobGroupIds: [] });
+interface FormState { name: string; amount: string; description: string; jobGroupIds: string[]; isTaxable: boolean; appearsOnPayslip: boolean }
+const emptyForm = (): FormState => ({ name: '', amount: '', description: '', jobGroupIds: [], isTaxable: true, appearsOnPayslip: true });
 
 export function FixedAllowancesPanel({ items, loading, jobGroups, onCreate, onUpdate, onDelete }: Props) {
   const [showForm, setShowForm] = useState(false);
@@ -34,7 +34,10 @@ export function FixedAllowancesPanel({ items, loading, jobGroups, onCreate, onUp
 
   const handleSubmit = () => {
     if (!form.name.trim() || !form.amount) return;
-    const data = { name: form.name.trim(), amount: Number(form.amount), description: form.description, jobGroupIds: form.jobGroupIds };
+    const data = {
+      name: form.name.trim(), amount: Number(form.amount), description: form.description,
+      jobGroupIds: form.jobGroupIds, isTaxable: form.isTaxable, appearsOnPayslip: form.appearsOnPayslip,
+    };
     editId ? onUpdate(editId, data) : onCreate(data);
     resetForm();
   };
@@ -45,6 +48,8 @@ export function FixedAllowancesPanel({ items, loading, jobGroups, onCreate, onUp
       amount: String(item.amount ?? ''),
       description: item.description ?? '',
       jobGroupIds: item.jobGroupIds ?? [],
+      isTaxable: item.isTaxable !== false,
+      appearsOnPayslip: item.appearsOnPayslip !== false,
     });
     setEditId(item._id);
     setShowForm(true);
@@ -56,7 +61,7 @@ export function FixedAllowancesPanel({ items, loading, jobGroups, onCreate, onUp
     <div className="rounded-xl border bg-white">
       <div className="flex items-center justify-between p-4 border-b">
         <div>
-          <h3 className="font-semibold text-sm">Fixed Allowances</h3>
+          <h3 className="font-semibold text-sm">Allowances</h3>
           <p className="text-xs text-foreground/50 mt-0.5">Assign to specific job groups, or leave blank to apply to all employees</p>
         </div>
         <button onClick={() => { resetForm(); setShowForm(true); }}
@@ -115,6 +120,17 @@ export function FixedAllowancesPanel({ items, loading, jobGroups, onCreate, onUp
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-1.5 text-xs text-foreground/70">
+              <input type="checkbox" checked={form.isTaxable} onChange={e => setForm(f => ({ ...f, isTaxable: e.target.checked }))} />
+              Taxable (counts toward PAYE/NSSF/SHA/AHL)
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-foreground/70">
+              <input type="checkbox" checked={form.appearsOnPayslip} onChange={e => setForm(f => ({ ...f, appearsOnPayslip: e.target.checked }))} />
+              Show on payslip
+            </label>
+          </div>
+
           <div className="flex gap-2">
             <button onClick={handleSubmit}
               className="flex items-center gap-1 text-xs bg-accent text-primary px-3 py-1.5 rounded-lg font-medium">
@@ -138,6 +154,7 @@ export function FixedAllowancesPanel({ items, loading, jobGroups, onCreate, onUp
             <tr>
               <th className="px-4 py-2.5 text-left font-medium">Allowance Name</th>
               <th className="px-4 py-2.5 text-left font-medium">Amount (KES)</th>
+              <th className="px-4 py-2.5 text-left font-medium">Taxable</th>
               <th className="px-4 py-2.5 text-left font-medium">Job Groups</th>
               <th className="px-4 py-2.5 text-left font-medium">Description</th>
               <th className="px-4 py-2.5 text-right font-medium">Actions</th>
@@ -150,6 +167,7 @@ export function FixedAllowancesPanel({ items, loading, jobGroups, onCreate, onUp
                 <tr key={item._id} className="hover:bg-gray-50/50">
                   <td className="px-4 py-3 font-medium">{item.name}</td>
                   <td className="px-4 py-3">{item.amount != null ? fmtNumber(item.amount) : '—'}</td>
+                  <td className="px-4 py-3 text-foreground/50">{item.isTaxable !== false ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3">
                     {groupIds.length > 0
                       ? <div className="flex flex-wrap gap-1">

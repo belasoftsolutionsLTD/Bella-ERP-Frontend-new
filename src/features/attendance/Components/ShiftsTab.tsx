@@ -23,10 +23,10 @@ interface Shift {
 
 const SHIFT_TYPES = [
   { value: 'morning',   label: 'Morning',   start: '06:00', end: '14:00', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20'    },
-  { value: 'afternoon', label: 'Afternoon', start: '14:00', end: '22:00', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'  },
+  { value: 'afternoon', label: 'Afternoon', start: '14:00', end: '22:00', color: 'bg-brand-primary/10 text-indigo-400 border-brand-primary/20'  },
   { value: 'night',     label: 'Night',     start: '22:00', end: '06:00', color: 'bg-violet-500/10 text-violet-400 border-violet-500/20'  },
   { value: 'full_day',  label: 'Full Day',  start: '08:00', end: '17:00', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'},
-  { value: 'custom',    label: 'Custom',    start: '09:00', end: '18:00', color: 'bg-slate-700 text-slate-400'                            },
+  { value: 'custom',    label: 'Custom',    start: '09:00', end: '18:00', color: 'bg-brand-bg-muted text-brand-text-secondary'                            },
 ];
 
 const LOCATION_COLORS: Record<string, string> = {
@@ -48,7 +48,7 @@ function getMondayOffset(offsetWeeks = 0): Date {
 }
 
 function shiftColor(type: string) {
-  return SHIFT_TYPES.find(s => s.value === type)?.color ?? 'bg-slate-700 text-slate-400';
+  return SHIFT_TYPES.find(s => s.value === type)?.color ?? 'bg-brand-bg-muted text-brand-text-secondary';
 }
 
 // ── Bulk Shift Modal ───────────────────────────────────────────────────────────
@@ -162,10 +162,10 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700 shrink-0">
-          <h3 className="text-sm font-bold text-slate-100">{isEdit ? 'Edit Shift' : 'Assign Shift'}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors">
+      <div className="relative z-10 w-full max-w-2xl bg-white border border-brand-border rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border shrink-0">
+          <h3 className="text-sm font-bold text-brand-text">{isEdit ? 'Edit Shift' : 'Assign Shift'}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-brand-text-muted hover:text-brand-text hover:bg-brand-bg-soft transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -176,13 +176,13 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
           {!isEdit && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[11px] text-slate-500 uppercase tracking-wide">Days <span className="text-red-400">*</span></label>
+                <label className="text-[11px] text-brand-text-muted uppercase tracking-wide">Days <span className="text-red-400">*</span></label>
                 <div className="flex gap-2">
                   <button type="button" onClick={selectWeekdays} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold">Weekdays</button>
-                  <span className="text-slate-600">·</span>
+                  <span className="text-brand-text-muted">·</span>
                   <button type="button" onClick={selectAllWeek} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold">All week</button>
-                  <span className="text-slate-600">·</span>
-                  <button type="button" onClick={() => setSelectedDates(new Set())} className="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+                  <span className="text-brand-text-muted">·</span>
+                  <button type="button" onClick={() => setSelectedDates(new Set())} className="text-[10px] text-brand-text-muted hover:text-brand-text-secondary">Clear</button>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -193,7 +193,7 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
                   return (
                     <button key={date} type="button" onClick={() => toggleDate(date)}
                       className={cn('flex-1 flex flex-col items-center py-2 rounded-xl border text-xs font-semibold transition-all',
-                        sel ? 'bg-indigo-500 border-indigo-500 text-white' : isToday ? 'border-indigo-500/40 bg-indigo-500/5 text-indigo-400' : 'border-slate-700 bg-slate-800 text-slate-500 hover:border-slate-600')}>
+                        sel ? 'bg-brand-primary border-brand-primary text-white' : isToday ? 'border-brand-primary/40 bg-brand-primary/5 text-indigo-400' : 'border-brand-border bg-brand-bg-soft text-brand-text-muted hover:border-brand-border-strong')}>
                       <span className="text-[10px] font-bold uppercase">{DAYS[i]}</span>
                       <span className="text-sm font-black">{d.getDate()}</span>
                     </button>
@@ -201,7 +201,7 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
                 })}
               </div>
               {selectedDates.size > 0 && (
-                <p className="text-[11px] text-slate-500 mt-1.5">{selectedDates.size} day{selectedDates.size > 1 ? 's' : ''} selected</p>
+                <p className="text-[11px] text-brand-text-muted mt-1.5">{selectedDates.size} day{selectedDates.size > 1 ? 's' : ''} selected</p>
               )}
             </div>
           )}
@@ -210,12 +210,12 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
           {!isEdit && (
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <div onClick={() => setOpenShift(v => !v)}
-                className={cn('w-9 h-5 rounded-full relative transition-colors', openShift ? 'bg-amber-500' : 'bg-slate-700')}>
+                className={cn('w-9 h-5 rounded-full relative transition-colors', openShift ? 'bg-amber-500' : 'bg-brand-bg-muted')}>
                 <span className={cn('absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', openShift && 'translate-x-4')} />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-200">Post as open shift</p>
-                <p className="text-xs text-slate-500">Staff can see and apply — no employee pre-assigned</p>
+                <p className="text-sm font-medium text-brand-text">Post as open shift</p>
+                <p className="text-xs text-brand-text-muted">Staff can see and apply — no employee pre-assigned</p>
               </div>
             </label>
           )}
@@ -224,42 +224,42 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
           {!isEdit && !openShift && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[11px] text-slate-500 uppercase tracking-wide">Employees <span className="text-red-400">*</span></label>
+                <label className="text-[11px] text-brand-text-muted uppercase tracking-wide">Employees <span className="text-red-400">*</span></label>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setSelectedEmpIds(new Set(allEmployees.map(e => e._id)))} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold">Select all</button>
-                  <span className="text-slate-600">·</span>
-                  <button type="button" onClick={() => setSelectedEmpIds(new Set())} className="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+                  <span className="text-brand-text-muted">·</span>
+                  <button type="button" onClick={() => setSelectedEmpIds(new Set())} className="text-[10px] text-brand-text-muted hover:text-brand-text-secondary">Clear</button>
                 </div>
               </div>
               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-text-muted" />
                 <input value={empSearch} onChange={e => setEmpSearch(e.target.value)} placeholder="Search employees…"
-                  className="w-full h-8 pl-8 pr-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500" />
+                  className="w-full h-8 pl-8 pr-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
               </div>
-              <div className="border border-slate-700 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+              <div className="border border-brand-border rounded-xl overflow-hidden max-h-48 overflow-y-auto">
                 {filtered.length === 0 && (
-                  <p className="text-xs text-slate-500 text-center py-4">No employees found</p>
+                  <p className="text-xs text-brand-text-muted text-center py-4">No employees found</p>
                 )}
                 {filtered.map(emp => {
                   const sel = selectedEmpIds.has(emp._id);
                   return (
                     <button key={emp._id} type="button" onClick={() => toggleEmp(emp._id)}
-                      className={cn('w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-800 transition-colors border-b border-slate-700/50 last:border-0',
-                        sel && 'bg-indigo-500/5')}>
+                      className={cn('w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-brand-bg-soft transition-colors border-b border-brand-border/50 last:border-0',
+                        sel && 'bg-brand-primary/5')}>
                       <div className={cn('h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors',
-                        sel ? 'bg-indigo-500 border-indigo-500' : 'border-slate-600')}>
+                        sel ? 'bg-brand-primary border-brand-primary' : 'border-brand-border-strong')}>
                         {sel && <Check className="h-2.5 w-2.5 text-white" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={cn('text-sm font-medium truncate', sel ? 'text-indigo-300' : 'text-slate-200')}>{emp.fullName}</p>
-                        {emp.department && <p className="text-[11px] text-slate-500 truncate">{emp.department}</p>}
+                        <p className={cn('text-sm font-medium truncate', sel ? 'text-indigo-300' : 'text-brand-text')}>{emp.fullName}</p>
+                        {emp.department && <p className="text-[11px] text-brand-text-muted truncate">{emp.department}</p>}
                       </div>
                     </button>
                   );
                 })}
               </div>
               {selectedEmpIds.size > 0 && (
-                <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1">
+                <p className="text-[11px] text-brand-text-muted mt-1.5 flex items-center gap-1">
                   <Users className="h-3 w-3" /> {selectedEmpIds.size} employee{selectedEmpIds.size > 1 ? 's' : ''} selected
                 </p>
               )}
@@ -268,12 +268,12 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
 
           {/* Shift type */}
           <div>
-            <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-2">Shift Type</label>
+            <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-2">Shift Type</label>
             <div className="flex flex-wrap gap-2">
               {SHIFT_TYPES.map(t => (
                 <button key={t.value} type="button" onClick={() => applyType(t.value)}
                   className={cn('px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all',
-                    type === t.value ? t.color + ' border-current' : 'border-slate-700 bg-slate-800 text-slate-500 hover:border-slate-600')}>
+                    type === t.value ? t.color + ' border-current' : 'border-brand-border bg-brand-bg-soft text-brand-text-muted hover:border-brand-border-strong')}>
                   {t.label}
                 </button>
               ))}
@@ -288,9 +288,9 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
               { label: 'Break (min)', val: brk,   set: setBrk,   type: 'number' },
             ].map(f => (
               <div key={f.label}>
-                <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-1">{f.label}</label>
+                <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">{f.label}</label>
                 <input type={f.type} value={f.val} onChange={e => f.set(e.target.value)} min={0}
-                  className="w-full h-9 bg-slate-800 border border-slate-700 rounded-lg px-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                  className="w-full h-9 bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
               </div>
             ))}
           </div>
@@ -298,18 +298,18 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
           {/* Location + Notes */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-1">Location</label>
+              <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">Location</label>
               <select value={loc} onChange={e => setLoc(e.target.value)}
-                className="w-full h-9 bg-slate-800 border border-slate-700 rounded-lg px-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                className="w-full h-9 bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-sm text-brand-text focus:outline-none focus:border-brand-primary">
                 {['office', 'remote', 'field', 'client site'].map(l => (
                   <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-1">Notes</label>
+              <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">Notes</label>
               <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional"
-                className="w-full h-9 bg-slate-800 border border-slate-700 rounded-lg px-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500" />
+                className="w-full h-9 bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
 
@@ -319,18 +319,18 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
               ? <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3 text-xs text-amber-300">
                   Will post <strong>{selectedDates.size}</strong> open shift{selectedDates.size !== 1 ? 's' : ''} — staff can apply from their portal
                 </div>
-              : <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl px-4 py-3 text-xs text-indigo-300">
+              : <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl px-4 py-3 text-xs text-indigo-300">
                   Will create <strong>{selectedEmpIds.size * selectedDates.size}</strong> shift{selectedEmpIds.size * selectedDates.size !== 1 ? 's' : ''}
                   {' '}({selectedEmpIds.size} employee{selectedEmpIds.size > 1 ? 's' : ''} × {selectedDates.size} day{selectedDates.size > 1 ? 's' : ''})
                 </div>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-slate-700 shrink-0">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-brand-border shrink-0">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-brand-text-secondary hover:text-brand-text transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={saving || !canSave}
             className={cn('px-5 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors',
-              openShift ? 'bg-amber-600 hover:bg-amber-500' : 'bg-indigo-600 hover:bg-indigo-500')}>
+              openShift ? 'bg-amber-600 hover:bg-amber-500' : 'bg-brand-primary hover:bg-brand-primary-hover')}>
             {saving ? 'Saving…' : isEdit ? 'Update Shift' : openShift ? `Post ${selectedDates.size || ''} Open Shift${selectedDates.size !== 1 ? 's' : ''}` : `Assign ${selectedEmpIds.size * selectedDates.size || ''} Shift${selectedEmpIds.size * selectedDates.size !== 1 ? 's' : ''}`}
           </button>
         </div>
@@ -386,18 +386,18 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekOffset(o => o - 1)}
-            className="h-8 w-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+            className="h-8 w-8 rounded-lg bg-brand-bg-soft border border-brand-border flex items-center justify-center text-brand-text-secondary hover:text-brand-text transition-colors">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm font-semibold text-slate-200 min-w-[200px] text-center">{weekLabel}</span>
+          <span className="text-sm font-semibold text-brand-text min-w-[200px] text-center">{weekLabel}</span>
           <button onClick={() => setWeekOffset(o => o + 1)}
-            className="h-8 w-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+            className="h-8 w-8 rounded-lg bg-brand-bg-soft border border-brand-border flex items-center justify-center text-brand-text-secondary hover:text-brand-text transition-colors">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
         {isManager && (
           <button onClick={() => setModal({})}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold transition-colors">
             <Plus className="h-4 w-4" /> Assign Shift
           </button>
         )}
@@ -406,7 +406,7 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
       {/* Schedule grid */}
       {loading ? (
         <div className="py-16 flex justify-center">
-          <div className="h-6 w-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-6 w-6 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-7 gap-2">
@@ -417,15 +417,15 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
             const isWeekend = i >= 5;
             return (
               <div key={date}
-                className={cn('bg-[#1e293b] border rounded-xl overflow-hidden',
-                  isToday ? 'border-indigo-500/50' : 'border-slate-700',
+                className={cn('bg-brand-bg-soft border rounded-xl overflow-hidden',
+                  isToday ? 'border-brand-primary/50' : 'border-brand-border',
                   isWeekend && 'opacity-60')}>
-                <div className={cn('px-2 py-2 text-center border-b border-slate-700',
-                  isToday ? 'bg-indigo-500/10' : 'bg-slate-800/50')}>
-                  <p className={cn('text-[10px] font-semibold uppercase tracking-wide', isToday ? 'text-indigo-400' : 'text-slate-500')}>
+                <div className={cn('px-2 py-2 text-center border-b border-brand-border',
+                  isToday ? 'bg-brand-primary/10' : 'bg-brand-bg-soft/50')}>
+                  <p className={cn('text-[10px] font-semibold uppercase tracking-wide', isToday ? 'text-indigo-400' : 'text-brand-text-muted')}>
                     {DAYS[i]}
                   </p>
-                  <p className={cn('text-sm font-bold', isToday ? 'text-indigo-300' : 'text-slate-300')}>
+                  <p className={cn('text-sm font-bold', isToday ? 'text-indigo-300' : 'text-brand-text-secondary')}>
                     {d.getDate()}
                   </p>
                 </div>
@@ -435,14 +435,14 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
                       className={cn('rounded-lg px-2 py-1.5 border text-[10px] group relative', shiftColor(s.shiftType))}>
                       <p className="font-semibold truncate">{s.employee?.fullName?.split(' ')[0] ?? 'Staff'}</p>
                       <p className="opacity-70">{s.startTime}–{s.endTime}</p>
-                      <p className={cn('flex items-center gap-0.5 mt-0.5', LOCATION_COLORS[s.location] ?? 'text-slate-400')}>
+                      <p className={cn('flex items-center gap-0.5 mt-0.5', LOCATION_COLORS[s.location] ?? 'text-brand-text-secondary')}>
                         <MapPin className="h-2.5 w-2.5 shrink-0" />
                         <span className="capitalize truncate">{s.location}</span>
                       </p>
                       {isManager && (
                         <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
                           <button onClick={() => setModal({ shift: s, defaultDate: s.date })}
-                            className="h-4 w-4 rounded bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200">
+                            className="h-4 w-4 rounded bg-brand-bg-muted flex items-center justify-center text-brand-text-secondary hover:text-brand-text">
                             <Edit2 className="h-2.5 w-2.5" />
                           </button>
                           <button onClick={() => deleteShift(s._id)}
@@ -457,7 +457,7 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
                     <div className="h-full flex items-center justify-center">
                       {isManager ? (
                         <button onClick={() => setModal({ defaultDate: date })}
-                          className="text-[10px] text-slate-600 hover:text-indigo-400 transition-colors">+ add</button>
+                          className="text-[10px] text-brand-text-muted hover:text-indigo-400 transition-colors">+ add</button>
                       ) : (
                         <p className="text-[10px] text-slate-700">—</p>
                       )}

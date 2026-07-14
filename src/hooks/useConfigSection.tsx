@@ -20,6 +20,8 @@ export interface ConfigItem {
   defaultDays?: number;
   isPaid?: boolean;
   isEnabled?: boolean;
+  isTaxable?: boolean;
+  appearsOnPayslip?: boolean;
   createdAt: string;
 }
 

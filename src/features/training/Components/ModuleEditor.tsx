@@ -1,19 +1,59 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { apiCallFunction } from '@/functions/apiCallFunction';
+import { API_BASE_URL } from '@/configs/constants';
 import type { CourseModule, ModuleType, QuizQuestion } from '../types';
 import { MODULE_TYPE_OPTIONS, uid } from '../constants';
+import { resolveVideoEmbed } from '../videoEmbed';
+
+// Uploads a PDF/video file to the app itself (as an alternative to pasting an external
+// link) — stores it under uploads/training and hands back the relative path the rest of
+// the training feature already expects for fileUrl/url.
+function UploadButton({ accept, onUploaded }: { accept: string; onUploaded: (fileUrl: string, fileName: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const inputId = useState(() => uid())[0];
+
+  const handleFile = (file: File) => {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/training/upload`, method: 'POST', data: fd,
+      thenFn: (r) => onUploaded(r.data.fileUrl, r.data.fileName),
+      finallyFn: () => setUploading(false),
+    });
+  };
+
+  return (
+    <label htmlFor={inputId} className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md border border-dashed border-slate-300 text-slate-500 hover:border-primary hover:text-primary cursor-pointer transition-colors">
+      {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+      {uploading ? 'Uploading…' : 'Or upload a file'}
+      <input id={inputId} type="file" accept={accept} className="hidden" disabled={uploading}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
+    </label>
+  );
+}
 
 function ContentFields({ type, content, onChange }: { type: ModuleType; content: Record<string, any>; onChange: (c: Record<string, any>) => void }) {
   const set = (k: string, v: any) => onChange({ ...content, [k]: v });
 
   if (type === 'video') {
+    const embed = content.url ? resolveVideoEmbed(content.url) : null;
     return (
-      <div className="grid grid-cols-2 gap-2">
-        <input placeholder="Video URL" value={content.url || ''} onChange={(e) => set('url', e.target.value)} className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
-        <input type="number" placeholder="Duration (minutes)" value={content.durationMinutes || ''} onChange={(e) => set('durationMinutes', Number(e.target.value))} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <input placeholder="Video URL (YouTube, Vimeo, or direct .mp4)" value={content.url || ''} onChange={(e) => set('url', e.target.value)} className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input type="number" placeholder="Duration (minutes)" value={content.durationMinutes || ''} onChange={(e) => set('durationMinutes', Number(e.target.value))} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <UploadButton accept="video/mp4,video/webm,video/ogg,video/quicktime" onUploaded={(fileUrl) => set('url', fileUrl)} />
+        </div>
+        {embed && (embed.kind === 'youtube' || embed.kind === 'vimeo') && (
+          <div className="rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16 / 9', maxWidth: 360 }}>
+            <iframe src={embed.embedUrl} className="w-full h-full" allowFullScreen />
+          </div>
+        )}
       </div>
     );
   }
@@ -22,6 +62,7 @@ function ContentFields({ type, content, onChange }: { type: ModuleType; content:
       <div className="grid grid-cols-2 gap-2">
         <input placeholder="File URL" value={content.fileUrl || ''} onChange={(e) => set('fileUrl', e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
         <input placeholder="File name" value={content.fileName || ''} onChange={(e) => set('fileName', e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        <UploadButton accept="application/pdf" onUploaded={(fileUrl, fileName) => onChange({ ...content, fileUrl, fileName })} />
       </div>
     );
   }

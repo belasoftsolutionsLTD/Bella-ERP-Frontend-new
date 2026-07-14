@@ -62,12 +62,12 @@ export default function TaskAnalytics() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+      <div className="h-8 w-8 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
     </div>
   );
 
   if (!data) return (
-    <div className="flex items-center justify-center h-64 text-slate-500 text-sm">
+    <div className="flex items-center justify-center h-64 text-brand-text-muted text-sm">
       Unable to load analytics.
     </div>
   );
@@ -85,8 +85,8 @@ export default function TaskAnalytics() {
       {/* Row 1: Trend line + Status donut */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Completion trend */}
-        <div className="lg:col-span-3 bg-slate-800 rounded-2xl p-5 border border-slate-700">
-          <h3 className="text-sm font-semibold text-slate-300 mb-4">30-Day Task Activity</h3>
+        <div className="lg:col-span-3 bg-brand-bg-soft rounded-2xl p-5 border border-brand-border">
+          <h3 className="text-sm font-semibold text-brand-text-secondary mb-4">30-Day Task Activity</h3>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={data.completionTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -104,8 +104,8 @@ export default function TaskAnalytics() {
         </div>
 
         {/* Status donut */}
-        <div className="lg:col-span-2 bg-slate-800 rounded-2xl p-5 border border-slate-700">
-          <h3 className="text-sm font-semibold text-slate-300 mb-4">Status Breakdown</h3>
+        <div className="lg:col-span-2 bg-brand-bg-soft rounded-2xl p-5 border border-brand-border">
+          <h3 className="text-sm font-semibold text-brand-text-secondary mb-4">Status Breakdown</h3>
           <ResponsiveContainer width="100%" height={160}>
             <PieChart>
               <Pie data={data.statusBreakdown} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={65} innerRadius={40}>
@@ -118,9 +118,9 @@ export default function TaskAnalytics() {
           </ResponsiveContainer>
           <div className="grid grid-cols-2 gap-1 mt-2">
             {data.statusBreakdown.map(s => (
-              <div key={s.status} className="flex items-center gap-1.5 text-[10px] text-slate-400">
+              <div key={s.status} className="flex items-center gap-1.5 text-[10px] text-brand-text-secondary">
                 <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[s.status] ?? '#64748b' }} />
-                {STATUS_LABELS[s.status] ?? s.status}: <span className="text-slate-300 font-medium">{s.count}</span>
+                {STATUS_LABELS[s.status] ?? s.status}: <span className="text-brand-text-secondary font-medium">{s.count}</span>
               </div>
             ))}
           </div>
@@ -130,8 +130,8 @@ export default function TaskAnalytics() {
       {/* Row 2: Module bar + Dept overdue bar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Module breakdown */}
-        <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
-          <h3 className="text-sm font-semibold text-slate-300 mb-4">Tasks by Module</h3>
+        <div className="bg-brand-bg-soft rounded-2xl p-5 border border-brand-border">
+          <h3 className="text-sm font-semibold text-brand-text-secondary mb-4">Tasks by Module</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={data.moduleBreakdown} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
@@ -149,13 +149,13 @@ export default function TaskAnalytics() {
         </div>
 
         {/* Department overdue */}
-        <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
-          <h3 className="text-sm font-semibold text-slate-300 mb-4">Overdue by Department</h3>
+        <div className="bg-brand-bg-soft rounded-2xl p-5 border border-brand-border">
+          <h3 className="text-sm font-semibold text-brand-text-secondary mb-4">Overdue by Department</h3>
           {data.deptOverdue.length === 0 ? (
             <div className="h-[220px] flex items-center justify-center">
               <div className="text-center">
                 <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
-                <p className="text-sm text-slate-400">No overdue tasks by department</p>
+                <p className="text-sm text-brand-text-secondary">No overdue tasks by department</p>
               </div>
             </div>
           ) : (
@@ -183,20 +183,20 @@ function SummaryCard({
   color: 'indigo' | 'emerald' | 'red' | 'amber';
 }) {
   const cfg = {
-    indigo:  { bg: 'bg-indigo-900/30',  icon: 'bg-indigo-900/60 text-indigo-400',  value: 'text-indigo-300' },
-    emerald: { bg: 'bg-emerald-900/20', icon: 'bg-emerald-900/60 text-emerald-400',value: 'text-emerald-300' },
-    red:     { bg: 'bg-red-900/20',     icon: 'bg-red-900/60 text-red-400',        value: 'text-red-300' },
-    amber:   { bg: 'bg-amber-900/20',   icon: 'bg-amber-900/60 text-amber-400',    value: 'text-amber-300' },
+    indigo:  { bg: 'bg-brand-primary/10',  icon: 'bg-brand-primary/10 text-brand-primary',  value: 'text-brand-primary' },
+    emerald: { bg: 'bg-status-success-bg', icon: 'bg-status-success-bg text-status-success-text',value: 'text-status-success-text' },
+    red:     { bg: 'bg-status-danger-bg',     icon: 'bg-status-danger-bg text-status-danger-text',        value: 'text-status-danger-text' },
+    amber:   { bg: 'bg-status-warning-bg',   icon: 'bg-status-warning-bg text-status-warning-text',    value: 'text-status-warning-text' },
   }[color];
 
   return (
-    <div className={`${cfg.bg} rounded-2xl p-4 border border-slate-800`}>
+    <div className={`${cfg.bg} rounded-2xl p-4 border border-brand-border`}>
       <div className={`h-9 w-9 rounded-xl flex items-center justify-center mb-3 ${cfg.icon}`}>
         <Icon className="h-4.5 w-4.5" />
       </div>
       <p className={`text-2xl font-bold ${cfg.value}`}>{value}</p>
-      <p className="text-xs font-semibold text-slate-300 mt-0.5">{label}</p>
-      <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>
+      <p className="text-xs font-semibold text-brand-text-secondary mt-0.5">{label}</p>
+      <p className="text-[10px] text-brand-text-muted mt-0.5">{sub}</p>
     </div>
   );
 }

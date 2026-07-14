@@ -5,10 +5,10 @@ import { Circle, Clock, CheckCircle2, Ban, AlertTriangle, GripVertical } from 'l
 import type { Task, TaskStatus } from '../types';
 
 const COLUMNS: { status: TaskStatus; label: string; icon: React.ElementType; color: string; headerBg: string }[] = [
-  { status: 'not_started', label: 'Not Started', icon: Circle,        color: 'text-slate-400',   headerBg: 'border-slate-600' },
-  { status: 'in_progress', label: 'In Progress', icon: Clock,         color: 'text-indigo-400',  headerBg: 'border-indigo-500' },
-  { status: 'completed',   label: 'Completed',   icon: CheckCircle2,  color: 'text-emerald-400', headerBg: 'border-emerald-500' },
-  { status: 'blocked',     label: 'Blocked',     icon: Ban,           color: 'text-slate-500',   headerBg: 'border-slate-700' },
+  { status: 'not_started', label: 'Not Started', icon: Circle,        color: 'text-brand-text-secondary',   headerBg: 'border-brand-border-strong' },
+  { status: 'in_progress', label: 'In Progress', icon: Clock,         color: 'text-brand-primary',  headerBg: 'border-brand-primary' },
+  { status: 'completed',   label: 'Completed',   icon: CheckCircle2,  color: 'text-status-success-text', headerBg: 'border-emerald-500' },
+  { status: 'blocked',     label: 'Blocked',     icon: Ban,           color: 'text-brand-text-muted',   headerBg: 'border-brand-border' },
 ];
 
 const PRIORITY_DOT: Record<string, string> = {
@@ -26,36 +26,36 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen: (t: Task) => void }) {
       draggable
       onDragStart={e => { e.dataTransfer.setData('taskId', task._id); e.dataTransfer.setData('status', task.status); }}
       onClick={() => onOpen(task)}
-      className="bg-slate-900 border border-slate-700 rounded-xl p-3.5 cursor-pointer hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-900/20 transition-all select-none group"
+      className="bg-white border border-brand-border rounded-xl p-3.5 cursor-pointer hover:border-brand-primary/60 hover:shadow-lg hover:shadow-indigo-900/20 transition-all select-none group"
     >
       <div className="flex items-start gap-2">
         <GripVertical className="h-4 w-4 text-slate-700 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 cursor-grab" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-200 leading-snug line-clamp-2 mb-2">{task.title}</p>
+          <p className="text-sm font-medium text-brand-text leading-snug line-clamp-2 mb-2">{task.title}</p>
 
           {task.linkedEmployeeName && (
-            <p className="text-[10px] text-slate-500 mb-1.5 truncate">For: {task.linkedEmployeeName}</p>
+            <p className="text-[10px] text-brand-text-muted mb-1.5 truncate">For: {task.linkedEmployeeName}</p>
           )}
 
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={cn('h-2 w-2 rounded-full shrink-0', PRIORITY_DOT[task.priority] ?? 'bg-slate-500')} />
-            <span className="text-[10px] text-slate-500 capitalize">{task.priority}</span>
+            <span className="text-[10px] text-brand-text-muted capitalize">{task.priority}</span>
 
             {task.type && task.type !== 'action' && (
-              <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded capitalize">{task.type}</span>
+              <span className="text-[10px] text-brand-text-muted bg-brand-bg-soft px-1.5 py-0.5 rounded capitalize">{task.type}</span>
             )}
 
             {task.assignedToName && (
-              <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[80px]">{task.assignedToName}</span>
+              <span className="text-[10px] text-brand-text-muted bg-brand-bg-soft px-1.5 py-0.5 rounded truncate max-w-[80px]">{task.assignedToName}</span>
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800">
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-brand-border">
             {subtasksTotal > 0 && (
-              <span className="text-[10px] text-slate-500">{subtasksDone}/{subtasksTotal} subtasks</span>
+              <span className="text-[10px] text-brand-text-muted">{subtasksDone}/{subtasksTotal} subtasks</span>
             )}
             {task.dueDate && (
-              <span className={cn('text-[10px] ml-auto', isOverdue ? 'text-red-400' : 'text-slate-500')}>
+              <span className={cn('text-[10px] ml-auto', isOverdue ? 'text-status-danger-text' : 'text-brand-text-muted')}>
                 {isOverdue && <AlertTriangle className="inline h-2.5 w-2.5 mr-0.5" />}
                 {fmtDate(task.dueDate)}
               </span>
@@ -108,14 +108,14 @@ export default function TaskBoard({
             onDrop={e => handleDrop(e, col.status)}
             className={cn(
               'flex flex-col w-72 shrink-0 rounded-2xl border-2 transition-all',
-              isTarget ? 'border-indigo-500/60 bg-indigo-900/10' : 'border-slate-800 bg-slate-900/30',
+              isTarget ? 'border-brand-primary/60 bg-brand-primary/10' : 'border-brand-border bg-white/30',
             )}
           >
             {/* Column header */}
             <div className={cn('flex items-center gap-2 px-4 py-3 border-b-2', col.headerBg)}>
               <Icon className={cn('h-4 w-4', col.color)} />
               <span className={cn('text-sm font-semibold', col.color)}>{col.label}</span>
-              <span className="ml-auto h-5 w-5 flex items-center justify-center text-[10px] font-bold bg-slate-800 text-slate-400 rounded-full">
+              <span className="ml-auto h-5 w-5 flex items-center justify-center text-[10px] font-bold bg-brand-bg-soft text-brand-text-secondary rounded-full">
                 {colTasks.length}
               </span>
             </div>
@@ -131,8 +131,8 @@ export default function TaskBoard({
                 </div>
               )}
               {isTarget && (
-                <div className="h-16 border-2 border-dashed border-indigo-500/40 rounded-xl flex items-center justify-center">
-                  <p className="text-xs text-indigo-500">Drop here</p>
+                <div className="h-16 border-2 border-dashed border-brand-primary/40 rounded-xl flex items-center justify-center">
+                  <p className="text-xs text-brand-primary">Drop here</p>
                 </div>
               )}
             </div>

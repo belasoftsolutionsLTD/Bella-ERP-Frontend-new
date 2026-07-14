@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { Clock, Star, ShieldCheck } from 'lucide-react';
 import type { Course } from '../types';
-import { COURSE_STATUS_STYLES } from '../constants';
+import { COURSE_STATUS_MAP } from '../constants';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export function CourseCard({ course, href, showStatus, footer }: {
   course: Course;
@@ -25,7 +26,7 @@ export function CourseCard({ course, href, showStatus, footer }: {
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-slate-900 line-clamp-2">{course.title}</h3>
           {showStatus && (
-            <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border ${COURSE_STATUS_STYLES[course.status]}`}>{course.status}</span>
+            <StatusBadge status={COURSE_STATUS_MAP[course.status]} label={course.status} className="shrink-0" />
           )}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">

@@ -27,7 +27,7 @@ const DOC_TYPES = [
 
 const AVATAR_COLORS = [
   'bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-orange-500',
-  'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-rose-500',
+  'bg-pink-500', 'bg-brand-primary', 'bg-teal-500', 'bg-rose-500',
 ];
 function avatarColor(name: string) {
   let hash = 0;
@@ -111,15 +111,15 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
           <div>
             <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Employee *</label>
             {selectedEmp ? (
-              <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2.5">
+              <div className="flex items-center gap-3 bg-brand-primary/10 border border-brand-primary/20 rounded-lg px-3 py-2.5">
                 <div className={cn('h-7 w-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0', avatarColor(selectedEmp.fullName))}>
                   {selectedEmp.fullName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-indigo-700 truncate">{selectedEmp.fullName}</p>
-                  <p className="text-xs text-indigo-500">{selectedEmp.staffNumber}</p>
+                  <p className="text-sm font-semibold text-brand-primary truncate">{selectedEmp.fullName}</p>
+                  <p className="text-xs text-brand-primary">{selectedEmp.staffNumber}</p>
                 </div>
-                <button onClick={() => setSelectedEmp(null)} className="text-indigo-400 hover:text-indigo-600">
+                <button onClick={() => setSelectedEmp(null)} className="text-brand-primary/60 hover:text-brand-primary-hover">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -131,7 +131,7 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Search employee…"
-                    className="w-full pl-9 pr-3 h-9 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    className="w-full pl-9 pr-3 h-9 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                   />
                 </div>
                 {search && (
@@ -163,7 +163,7 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
             <select
               value={docType}
               onChange={e => setDocType(e.target.value)}
-              className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             >
               {DOC_TYPES.filter(t => t.value).map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -205,7 +205,7 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
           <button
             onClick={handleUpload}
             disabled={!selectedEmp || !file || submitting}
-            className="flex-1 h-9 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <Upload className="h-3.5 w-3.5" />
             {submitting ? 'Uploading…' : 'Upload'}
@@ -247,7 +247,7 @@ export default function DocumentsPage() {
         </div>
         <button
           onClick={() => setShowUpload(true)}
-          className="flex items-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm shadow-indigo-200"
+          className="flex items-center gap-2 h-9 px-4 bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold rounded-lg transition-colors shadow-sm shadow-indigo-200"
         >
           <Upload className="h-4 w-4" />
           Upload Document
@@ -268,13 +268,13 @@ export default function DocumentsPage() {
                   className={cn(
                     'w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors border-l-2',
                     active
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold'
+                      ? 'border-brand-primary bg-brand-primary/10 text-brand-primary font-semibold'
                       : 'border-transparent text-slate-600 hover:bg-gray-50 hover:text-slate-800',
                   )}
                 >
-                  <Icon className={cn('h-3.5 w-3.5 shrink-0', active ? 'text-indigo-500' : 'text-slate-400')} />
+                  <Icon className={cn('h-3.5 w-3.5 shrink-0', active ? 'text-brand-primary' : 'text-slate-400')} />
                   <span className="flex-1 truncate">{label}</span>
-                  <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', active ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-slate-500')}>
+                  <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', active ? 'bg-indigo-100 text-brand-primary' : 'bg-gray-100 text-slate-500')}>
                     {activeFolder === value || value === '' ? total : ''}
                   </span>
                 </button>
@@ -293,7 +293,7 @@ export default function DocumentsPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search by file name or employee…"
-                className="w-full pl-9 pr-4 h-9 border border-gray-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                className="w-full pl-9 pr-4 h-9 border border-gray-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
               />
               {search && (
                 <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -303,7 +303,7 @@ export default function DocumentsPage() {
             </div>
             {departments.length > 0 && (
               <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-                className="h-9 border border-gray-200 bg-white rounded-lg px-3 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all">
+                className="h-9 border border-gray-200 bg-white rounded-lg px-3 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all">
                 <option value="">All Departments</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
@@ -322,7 +322,7 @@ export default function DocumentsPage() {
                 </div>
                 <button
                   onClick={() => setShowUpload(true)}
-                  className="mt-2 flex items-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors"
+                  className="mt-2 flex items-center gap-2 h-9 px-4 bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold rounded-lg transition-colors"
                 >
                   <Upload className="h-4 w-4" />
                   Upload Document
@@ -356,7 +356,7 @@ export default function DocumentsPage() {
                         <div className={cn('h-6 w-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0', avatarColor(doc.employeeName))}>
                           {doc.employeeName.charAt(0)}
                         </div>
-                        <Link href={`/${locale}/employees/${doc.employeeId}`} className="text-xs font-medium text-slate-700 hover:text-indigo-500 truncate transition-colors">
+                        <Link href={`/${locale}/employees/${doc.employeeId}`} className="text-xs font-medium text-slate-700 hover:text-brand-primary truncate transition-colors">
                           {doc.employeeName}
                         </Link>
                       </div>
@@ -382,7 +382,7 @@ export default function DocumentsPage() {
                         </button>
                         <button
                           onClick={() => downloadFile(docDownloadUrl(doc.employeeId, String(doc._id)), doc.fileName ?? 'document').catch(err => alert(err.message))}
-                          className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                          className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
                           title="Download"
                         >
                           <Download className="h-3.5 w-3.5" />

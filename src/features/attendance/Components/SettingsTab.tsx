@@ -162,7 +162,7 @@ export function SettingsTab() {
     setSettings(s => ({ ...s, [k]: v }));
 
   if (loading) {
-    return <div className="py-16 flex justify-center"><div className="h-6 w-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" /></div>;
+    return <div className="py-16 flex justify-center"><div className="h-6 w-6 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" /></div>;
   }
 
   return (
@@ -175,17 +175,17 @@ export function SettingsTab() {
             <button key={m.value} type="button" onClick={() => toggleMethod(m.value)}
               className={cn('flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all',
                 settings.clockInMethods.includes(m.value)
-                  ? 'border-indigo-500 bg-indigo-500/10'
-                  : 'border-slate-700 bg-slate-800/50 hover:border-slate-600')}>
+                  ? 'border-brand-primary bg-brand-primary/10'
+                  : 'border-brand-border bg-brand-bg-soft/50 hover:border-brand-border-strong')}>
               <div className={cn('h-4 w-4 rounded border-2 mt-0.5 shrink-0 flex items-center justify-center',
-                settings.clockInMethods.includes(m.value) ? 'bg-indigo-500 border-indigo-500' : 'border-slate-600')}>
+                settings.clockInMethods.includes(m.value) ? 'bg-brand-primary border-brand-primary' : 'border-brand-border-strong')}>
                 {settings.clockInMethods.includes(m.value) && <div className="h-2 w-2 rounded-sm bg-white" />}
               </div>
               <div>
-                <p className={cn('text-sm font-semibold', settings.clockInMethods.includes(m.value) ? 'text-indigo-300' : 'text-slate-300')}>
+                <p className={cn('text-sm font-semibold', settings.clockInMethods.includes(m.value) ? 'text-indigo-300' : 'text-brand-text-secondary')}>
                   {m.label}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">{m.desc}</p>
+                <p className="text-xs text-brand-text-muted mt-0.5">{m.desc}</p>
               </div>
             </button>
           ))}
@@ -243,7 +243,7 @@ export function SettingsTab() {
         {settings.overtimeEnabled && (
           <div className="mt-3">
             <NumField label="Maximum overtime hours per day" value={settings.maxOvertimeHours} onChange={v => set('maxOvertimeHours', v)} min={1} max={12} />
-            <p className="text-xs text-slate-500 mt-1.5">The system will stop counting overtime after this limit is reached.</p>
+            <p className="text-xs text-brand-text-muted mt-1.5">The system will stop counting overtime after this limit is reached.</p>
           </div>
         )}
         <div className="mt-3">
@@ -258,21 +258,21 @@ export function SettingsTab() {
           {schedules.map(sc => (
             <div key={sc._id}>
               {editingId === sc._id ? (
-                <div className="bg-slate-800 border border-indigo-500/40 rounded-xl p-4 space-y-4">
+                <div className="bg-brand-bg-soft border border-brand-primary/40 rounded-xl p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wide">Edit Schedule</p>
-                    <button onClick={() => setEditingId(null)} className="text-slate-500 hover:text-slate-300">
+                    <button onClick={() => setEditingId(null)} className="text-brand-text-muted hover:text-brand-text-secondary">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                   <Field label="Schedule Name" value={editSched.name} onChange={v => setEditSched(s => ({ ...s, name: v }))} placeholder="e.g. Standard Office Hours" />
                   <div>
-                    <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-2">Work Days</label>
+                    <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-2">Work Days</label>
                     <div className="flex gap-2">
                       {ALL_DAYS.map(d => (
                         <button key={d} type="button" onClick={() => toggleDay(d, 'edit')}
                           className={cn('h-8 w-9 rounded-lg text-xs font-semibold transition-all',
-                            editSched.workDays.includes(d) ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600')}>
+                            editSched.workDays.includes(d) ? 'bg-brand-primary text-white' : 'bg-brand-bg-muted text-brand-text-secondary hover:bg-brand-border-strong')}>
                           {d[0]}
                         </button>
                       ))}
@@ -285,20 +285,20 @@ export function SettingsTab() {
                     <NumField  label="Weekly hours" value={editSched.weeklyHours}  onChange={v => setEditSched(s => ({ ...s, weeklyHours: v }))} min={1} max={84} />
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setEditingId(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-400 text-sm hover:bg-slate-700 transition-colors">Cancel</button>
-                    <button onClick={() => saveEditSchedule(sc._id)} disabled={!editSched.name} className="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">Save Changes</button>
+                    <button onClick={() => setEditingId(null)} className="flex-1 py-2 rounded-lg border border-brand-border-strong text-brand-text-secondary text-sm hover:bg-brand-bg-muted transition-colors">Cancel</button>
+                    <button onClick={() => saveEditSchedule(sc._id)} disabled={!editSched.name} className="flex-1 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold disabled:opacity-50 transition-colors">Save Changes</button>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3 bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3">
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-200">{sc.name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-sm font-semibold text-brand-text">{sc.name}</p>
+                    <p className="text-xs text-brand-text-muted mt-0.5">
                       {sc.workDays.join(', ')} · {sc.startTime}–{sc.endTime} · {sc.breakMinutes}m break · {sc.weeklyHours}h/week
                     </p>
                   </div>
                   <button onClick={() => startEdit(sc)}
-                    className="h-7 w-7 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 hover:text-indigo-300 transition-colors">
+                    className="h-7 w-7 rounded-lg bg-brand-bg-muted flex items-center justify-center text-brand-text-secondary hover:text-indigo-300 transition-colors">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button onClick={() => deleteSchedule(sc._id)}
@@ -311,16 +311,16 @@ export function SettingsTab() {
           ))}
 
           {showNewSched ? (
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-4">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">New Schedule</p>
+            <div className="bg-brand-bg-soft border border-brand-border rounded-xl p-4 space-y-4">
+              <p className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide">New Schedule</p>
               <Field label="Schedule Name" value={newSched.name} onChange={v => setNewSched(s => ({ ...s, name: v }))} placeholder="e.g. Standard Office Hours" />
               <div>
-                <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-2">Work Days</label>
+                <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-2">Work Days</label>
                 <div className="flex gap-2">
                   {ALL_DAYS.map(d => (
                     <button key={d} type="button" onClick={() => toggleDay(d, 'new')}
                       className={cn('h-8 w-9 rounded-lg text-xs font-semibold transition-all',
-                        newSched.workDays.includes(d) ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600')}>
+                        newSched.workDays.includes(d) ? 'bg-brand-primary text-white' : 'bg-brand-bg-muted text-brand-text-secondary hover:bg-brand-border-strong')}>
                       {d[0]}
                     </button>
                   ))}
@@ -333,13 +333,13 @@ export function SettingsTab() {
                 <NumField  label="Weekly hours" value={newSched.weeklyHours}  onChange={v => setNewSched(s => ({ ...s, weeklyHours: v }))} min={1} max={84} />
               </div>
               <div className="flex gap-2">
-                <button onClick={() => { setShowNewSched(false); setNewSched({ ...blankSched }); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-400 text-sm hover:bg-slate-700 transition-colors">Cancel</button>
-                <button onClick={createSchedule} disabled={!newSched.name} className="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">Create Schedule</button>
+                <button onClick={() => { setShowNewSched(false); setNewSched({ ...blankSched }); }} className="flex-1 py-2 rounded-lg border border-brand-border-strong text-brand-text-secondary text-sm hover:bg-brand-bg-muted transition-colors">Cancel</button>
+                <button onClick={createSchedule} disabled={!newSched.name} className="flex-1 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold disabled:opacity-50 transition-colors">Create Schedule</button>
               </div>
             </div>
           ) : (
             <button onClick={() => { setShowNewSched(true); setEditingId(null); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-slate-600 text-slate-500 hover:text-slate-300 hover:border-slate-500 text-sm transition-colors w-full justify-center">
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-brand-border-strong text-brand-text-muted hover:text-brand-text-secondary hover:border-slate-500 text-sm transition-colors w-full justify-center">
               <Plus className="h-4 w-4" /> Add Work Schedule
             </button>
           )}
@@ -349,7 +349,7 @@ export function SettingsTab() {
       {/* Save */}
       <div className="flex justify-end pt-2">
         <button onClick={saveSettings} disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm disabled:opacity-50 transition-colors">
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white font-semibold text-sm disabled:opacity-50 transition-colors">
           <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save Settings'}
         </button>
       </div>
@@ -361,10 +361,10 @@ export function SettingsTab() {
 
 function Section({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-5 space-y-4">
-      <div className="flex items-center gap-2 pb-2 border-b border-slate-700">
+    <div className="bg-brand-bg-soft border border-brand-border rounded-2xl p-5 space-y-4">
+      <div className="flex items-center gap-2 pb-2 border-b border-brand-border">
         <Icon className="h-4 w-4 text-indigo-400" />
-        <h3 className="text-sm font-bold text-slate-100">{title}</h3>
+        <h3 className="text-sm font-bold text-brand-text">{title}</h3>
       </div>
       {children}
     </div>
@@ -375,11 +375,11 @@ function Toggle({ label, desc, on, onToggle }: { label: string; desc: string; on
   return (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-slate-200">{label}</p>
-        <p className="text-xs text-slate-500">{desc}</p>
+        <p className="text-sm font-medium text-brand-text">{label}</p>
+        <p className="text-xs text-brand-text-muted">{desc}</p>
       </div>
       <button onClick={onToggle}
-        className={cn('h-5 w-9 rounded-full relative transition-colors shrink-0', on ? 'bg-indigo-500' : 'bg-slate-700')}>
+        className={cn('h-5 w-9 rounded-full relative transition-colors shrink-0', on ? 'bg-brand-primary' : 'bg-brand-bg-muted')}>
         <span className={cn('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', on ? 'translate-x-4' : 'translate-x-0.5')} />
       </button>
     </div>
@@ -389,9 +389,9 @@ function Toggle({ label, desc, on, onToggle }: { label: string; desc: string; on
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div>
-      <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-1">{label}</label>
+      <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full h-9 bg-slate-900 border border-slate-600 rounded-lg px-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500" />
+        className="w-full h-9 bg-white border border-brand-border-strong rounded-lg px-3 text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
     </div>
   );
 }
@@ -399,9 +399,9 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
 function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
-      <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-1">{label}</label>
+      <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">{label}</label>
       <input type="time" value={value} onChange={e => onChange(e.target.value)}
-        className="w-full h-9 bg-slate-900 border border-slate-600 rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+        className="w-full h-9 bg-white border border-brand-border-strong rounded-lg px-3 text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
     </div>
   );
 }
@@ -409,9 +409,9 @@ function TimeField({ label, value, onChange }: { label: string; value: string; o
 function NumField({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number }) {
   return (
     <div>
-      <label className="block text-[11px] text-slate-500 uppercase tracking-wide mb-1">{label}</label>
+      <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">{label}</label>
       <input type="number" value={value} min={min} max={max} onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-9 bg-slate-900 border border-slate-600 rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+        className="w-full h-9 bg-white border border-brand-border-strong rounded-lg px-3 text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
     </div>
   );
 }

@@ -144,7 +144,7 @@ function Ring({ pct, size = 160, stroke = 10, color = '#22c55e', label, sublabel
         />
       </svg>
       <div className="flex flex-col items-center justify-center z-10">
-        <span className="font-mono font-bold text-[22px] text-slate-100 leading-none">{label}</span>
+        <span className="font-mono font-bold text-[22px] text-brand-text leading-none">{label}</span>
         {sublabel && <span className="text-[11px] mt-0.5" style={{ color }}>{sublabel}</span>}
       </div>
     </div>
@@ -166,7 +166,7 @@ function SmallRing({ pct, size = 80, color = '#6366f1' }: { pct: number; size?: 
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
       </svg>
-      <span className="z-10 font-bold text-[15px] text-slate-100">{pct}%</span>
+      <span className="z-10 font-bold text-[15px] text-brand-text">{pct}%</span>
     </div>
   );
 }
@@ -175,7 +175,7 @@ function SmallRing({ pct, size = 80, color = '#6366f1' }: { pct: number; size?: 
 
 function Card({ children, className = '', style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={`rounded-2xl p-4 border border-slate-700/60 bg-[#1e293b] ${className}`} style={style}>
+    <div className={`rounded-2xl p-4 border border-brand-border/60 bg-brand-bg-soft ${className}`} style={style}>
       {children}
     </div>
   );
@@ -187,7 +187,7 @@ function SectionHeader({ title, action, actionLabel }: { title: string; action?:
   const locale = useLocale();
   return (
     <div className="flex items-center justify-between mb-3">
-      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{title}</span>
+      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text-secondary">{title}</span>
       {action && (
         <Link href={`/${locale}${action}`} className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5">
           {actionLabel || 'View all'} <ChevronRight className="h-3 w-3" />
@@ -221,20 +221,20 @@ function ClockInWidget() {
       {state === 'idle' && (
         <div className="space-y-4">
           <div className="text-center">
-            <div className="font-mono text-[28px] font-bold text-slate-100 leading-none">
+            <div className="font-mono text-[28px] font-bold text-brand-text leading-none">
               {now.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </div>
-            <div className="text-[13px] text-slate-400 mt-1">
+            <div className="text-[13px] text-brand-text-secondary mt-1">
               {now.toLocaleDateString('en-KE', { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
             <div className="flex items-center justify-center gap-1.5 mt-2">
               <span className="h-2 w-2 rounded-full bg-slate-500" />
-              <span className="text-[12px] text-slate-400">Not clocked in</span>
+              <span className="text-[12px] text-brand-text-secondary">Not clocked in</span>
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] text-slate-400 uppercase tracking-wider block mb-1.5">Working from</label>
+            <label className="text-[11px] text-brand-text-secondary uppercase tracking-wider block mb-1.5">Working from</label>
             <div className="grid grid-cols-2 gap-1.5">
               {(['office', 'home', 'remote', 'client_site'] as const).map(loc => {
                 const Icon = LOCATION_ICONS[loc];
@@ -244,8 +244,8 @@ function ClockInWidget() {
                     onClick={() => setSelectedLocation(loc)}
                     className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[12px] transition-colors ${
                       selectedLocation === loc
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
+                        ? 'bg-brand-primary text-white'
+                        : 'bg-brand-bg-muted/50 text-brand-text-secondary hover:bg-brand-bg-muted'
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -290,12 +290,12 @@ function ClockInWidget() {
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 text-[12px]">
               <span className="h-2 w-2 rounded-full" style={{ background: state === 'working' ? '#22c55e' : '#f59e0b' }} />
-              <span className="text-slate-300">
+              <span className="text-brand-text-secondary">
                 {state === 'working' ? `Working from ${LOCATION_LABELS[location]}` : 'On a break'}
               </span>
             </div>
             {clockedInAt && (
-              <div className="text-[12px] text-slate-500">
+              <div className="text-[12px] text-brand-text-muted">
                 Clocked in at {clockedInAt.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}
               </div>
             )}
@@ -352,10 +352,10 @@ function TodayScheduleCard({ schedule }: { schedule: TodaySchedule | null }) {
       )}
       {schedule.type === 'work' && (
         <div className="space-y-1.5 text-[13px]">
-          <div className="font-medium text-slate-200">{schedule.scheduleName}</div>
-          <div className="text-slate-400">Shift: {schedule.shiftStart} → {schedule.shiftEnd}</div>
-          <div className="text-slate-400">Break: {schedule.breakStart} → {schedule.breakEnd}</div>
-          <div className="text-slate-500">Expected: {schedule.expectedHours}h 00m</div>
+          <div className="font-medium text-brand-text">{schedule.scheduleName}</div>
+          <div className="text-brand-text-secondary">Shift: {schedule.shiftStart} → {schedule.shiftEnd}</div>
+          <div className="text-brand-text-secondary">Break: {schedule.breakStart} → {schedule.breakEnd}</div>
+          <div className="text-brand-text-muted">Expected: {schedule.expectedHours}h 00m</div>
         </div>
       )}
     </Card>
@@ -403,8 +403,8 @@ function QuickStatsCard({ summary }: { summary: Summary | null }) {
                 <Icon className="h-3.5 w-3.5" style={{ color }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-slate-500">{label}</div>
-                <div className={`text-[13px] font-semibold truncate ${alert ? 'text-red-400' : 'text-slate-200'}`}>{value}</div>
+                <div className="text-[11px] text-brand-text-muted">{label}</div>
+                <div className={`text-[13px] font-semibold truncate ${alert ? 'text-red-400' : 'text-brand-text'}`}>{value}</div>
               </div>
             </div>
           );
@@ -430,7 +430,7 @@ function PendingActionsBanner({ pending, locale }: { pending: PendingActions | n
           <span className="text-amber-400 font-semibold text-[13px]">⚡ You have {pending.total} action{pending.total !== 1 ? 's' : ''} waiting</span>
           {Object.entries(pending.byType).map(([type, count]) => (
             <Link key={type} href={`/${locale}/inbox?type=${type}`}
-              className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-[11px] hover:bg-slate-600 transition-colors">
+              className="px-2 py-0.5 rounded-full bg-brand-bg-muted text-brand-text-secondary text-[11px] hover:bg-brand-border-strong transition-colors">
               {count} {type}
             </Link>
           ))}
@@ -477,22 +477,22 @@ function InboxPreviewCard({ locale }: { locale: string }) {
     <Card>
       <SectionHeader title="Inbox" action="/inbox" actionLabel="View all" />
       {items.length === 0 ? (
-        <p className="text-[12px] text-slate-500 py-2">No pending items.</p>
+        <p className="text-[12px] text-brand-text-muted py-2">No pending items.</p>
       ) : (
         <div className="space-y-2">
           {items.map(item => (
             <Link key={item._id} href={`/${locale}/inbox`}
-              className={`flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer ${item.status === 'unread' ? 'border-l-2 border-indigo-500 bg-slate-700/30' : ''}`}>
+              className={`flex items-start gap-3 p-2.5 rounded-lg hover:bg-brand-bg-muted/50 transition-colors cursor-pointer ${item.status === 'unread' ? 'border-l-2 border-brand-primary bg-brand-bg-muted/30' : ''}`}>
               <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                 style={{ background: `${TYPE_COLORS[item.type] || '#64748b'}20` }}>
                 <span className="h-2 w-2 rounded-full" style={{ background: TYPE_COLORS[item.type] || '#64748b' }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-semibold text-slate-200 truncate">{item.title}</div>
-                <div className="text-[12px] text-slate-400 truncate">{item.subtitle}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">{timeAgo(item.createdAt)}</div>
+                <div className="text-[13px] font-semibold text-brand-text truncate">{item.title}</div>
+                <div className="text-[12px] text-brand-text-secondary truncate">{item.subtitle}</div>
+                <div className="text-[11px] text-brand-text-muted mt-0.5">{timeAgo(item.createdAt)}</div>
               </div>
-              {item.status === 'unread' && <span className="h-2 w-2 rounded-full bg-indigo-500 shrink-0 mt-2" />}
+              {item.status === 'unread' && <span className="h-2 w-2 rounded-full bg-brand-primary shrink-0 mt-2" />}
             </Link>
           ))}
         </div>
@@ -511,22 +511,22 @@ function FeedPreviewCard({ posts, celebrations, locale }: {
       <SectionHeader title="Company Feed" action="/communications" actionLabel="View all" />
 
       <Link href={`/${locale}/communications`}
-        className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-colors cursor-pointer mb-3">
-        <div className="h-8 w-8 rounded-full bg-indigo-600/30 flex items-center justify-center shrink-0">
+        className="flex items-center gap-2 p-2.5 rounded-lg bg-brand-bg-muted/30 hover:bg-brand-bg-muted/50 transition-colors cursor-pointer mb-3">
+        <div className="h-8 w-8 rounded-full bg-brand-primary/30 flex items-center justify-center shrink-0">
           <span className="text-indigo-400 text-sm">✏️</span>
         </div>
-        <span className="text-[13px] text-slate-400">Share something with your team...</span>
+        <span className="text-[13px] text-brand-text-secondary">Share something with your team...</span>
       </Link>
 
       {celebrations.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none">
           {celebrations.map((c, i) => (
-            <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-xl bg-slate-700/30 min-w-[72px]">
-              <div className="h-9 w-9 rounded-full bg-indigo-600/30 flex items-center justify-center">
+            <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-xl bg-brand-bg-muted/30 min-w-[72px]">
+              <div className="h-9 w-9 rounded-full bg-brand-primary/30 flex items-center justify-center">
                 {c.type === 'birthday' ? <Cake className="h-4 w-4 text-pink-400" /> : <PartyPopper className="h-4 w-4 text-amber-400" />}
               </div>
-              <span className="text-[10px] text-slate-300 text-center font-medium leading-tight truncate w-full text-center">{c.employee.fullName.split(' ')[0]}</span>
-              <span className="text-[10px] text-slate-500">{formatDate(c.date)}</span>
+              <span className="text-[10px] text-brand-text-secondary text-center font-medium leading-tight truncate w-full text-center">{c.employee.fullName.split(' ')[0]}</span>
+              <span className="text-[10px] text-brand-text-muted">{formatDate(c.date)}</span>
             </div>
           ))}
         </div>
@@ -535,15 +535,15 @@ function FeedPreviewCard({ posts, celebrations, locale }: {
       <div className="space-y-2">
         {posts.map(post => (
           <Link key={post._id} href={`/${locale}/communications`}
-            className="block p-2.5 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
+            className="block p-2.5 rounded-lg bg-brand-bg-muted/30 hover:bg-brand-bg-muted/50 transition-colors">
             <div className="flex items-center gap-2 mb-1">
-              <div className="h-6 w-6 rounded-full bg-indigo-600/40 flex items-center justify-center text-[10px] font-bold text-indigo-300">
+              <div className="h-6 w-6 rounded-full bg-brand-primary/40 flex items-center justify-center text-[10px] font-bold text-indigo-300">
                 {post.authorName?.[0] || '?'}
               </div>
-              <span className="text-[12px] font-medium text-slate-300">{post.authorName}</span>
-              <span className="text-[11px] text-slate-500 ml-auto">{timeAgo(post.createdAt)}</span>
+              <span className="text-[12px] font-medium text-brand-text-secondary">{post.authorName}</span>
+              <span className="text-[11px] text-brand-text-muted ml-auto">{timeAgo(post.createdAt)}</span>
             </div>
-            <p className="text-[12px] text-slate-400 line-clamp-2">{post.content}</p>
+            <p className="text-[12px] text-brand-text-secondary line-clamp-2">{post.content}</p>
           </Link>
         ))}
       </div>
@@ -564,8 +564,8 @@ function LiveAttendanceCard({ data, onRefresh, locale }: { data: LiveAttendance 
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Live Attendance · Today</span>
-        <button onClick={onRefresh} className="text-slate-500 hover:text-slate-300 transition-colors">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text-secondary">Live Attendance · Today</span>
+        <button onClick={onRefresh} className="text-brand-text-muted hover:text-brand-text-secondary transition-colors">
           <RefreshCw className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -573,7 +573,7 @@ function LiveAttendanceCard({ data, onRefresh, locale }: { data: LiveAttendance 
         {bubbles.map(b => (
           <div key={b.label} className="rounded-xl p-2.5 text-center" style={{ background: b.bg }}>
             <div className="text-[22px] font-bold" style={{ color: b.color }}>{b.count}</div>
-            <div className="text-[11px] text-slate-400">{b.label}</div>
+            <div className="text-[11px] text-brand-text-secondary">{b.label}</div>
           </div>
         ))}
       </div>
@@ -581,8 +581,8 @@ function LiveAttendanceCard({ data, onRefresh, locale }: { data: LiveAttendance 
         {data.recentClockIns.slice(0, 4).map((r, i) => (
           <div key={i} className="flex items-center gap-2 text-[12px]">
             <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
-            <span className="text-slate-300 truncate">{r.name}</span>
-            <span className="text-slate-500 ml-auto whitespace-nowrap">
+            <span className="text-brand-text-secondary truncate">{r.name}</span>
+            <span className="text-brand-text-muted ml-auto whitespace-nowrap">
               {new Date(r.checkInTime).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -607,7 +607,7 @@ function EventsCard({ events, locale }: { events: Event[]; locale: string }) {
     <Card className="mt-3">
       <SectionHeader title="Upcoming Events" action="/events" actionLabel="View calendar" />
       {events.length === 0 ? (
-        <p className="text-[12px] text-slate-500 py-2">No upcoming events.</p>
+        <p className="text-[12px] text-brand-text-muted py-2">No upcoming events.</p>
       ) : (
         <div className="space-y-2">
           {events.map(ev => {
@@ -622,8 +622,8 @@ function EventsCard({ events, locale }: { events: Event[]; locale: string }) {
                   <div className="text-[16px] font-black" style={{ color }}>{day}</div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold text-slate-200 truncate">{ev.title}</div>
-                  <div className="text-[12px] text-slate-500">
+                  <div className="text-[13px] font-semibold text-brand-text truncate">{ev.title}</div>
+                  <div className="text-[12px] text-brand-text-muted">
                     {ev.startTime ? `${ev.startTime}${ev.endTime ? ` – ${ev.endTime}` : ''}` : 'All day'}
                   </div>
                 </div>
@@ -650,18 +650,18 @@ function GoalsSummaryCard({ goals, locale }: { goals: GoalsSummary | null; local
       <div className="flex items-center gap-4 mb-3">
         <SmallRing pct={goals.overallProgress} />
         <div>
-          <div className="text-[13px] text-slate-300 font-medium">{goals.onTrack} of {goals.total} on track</div>
-          <div className="text-[12px] text-slate-500">{goals.overallProgress}% overall progress</div>
+          <div className="text-[13px] text-brand-text-secondary font-medium">{goals.onTrack} of {goals.total} on track</div>
+          <div className="text-[12px] text-brand-text-muted">{goals.overallProgress}% overall progress</div>
         </div>
       </div>
       <div className="space-y-2">
         {goals.goals.map(g => (
           <div key={g._id}>
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[12px] text-slate-300 truncate max-w-[160px]">{g.title}</span>
+              <span className="text-[12px] text-brand-text-secondary truncate max-w-[160px]">{g.title}</span>
               <span className="h-2 w-2 rounded-full shrink-0" style={{ background: GOAL_STATUS_COLORS[g.status] || '#64748b' }} />
             </div>
-            <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-brand-bg-muted overflow-hidden">
               <div className="h-full rounded-full transition-all" style={{ width: `${g.progress || 0}%`, background: GOAL_STATUS_COLORS[g.status] || '#6366f1' }} />
             </div>
           </div>
@@ -701,18 +701,18 @@ function OpenPositionsCard({ locale }: { locale: string }) {
     <Card className="mt-3">
       <SectionHeader title="Open Positions" action="/recruitment" actionLabel="View recruitment" />
       {positions.length === 0 ? (
-        <p className="text-[12px] text-slate-500 py-2">No open positions.</p>
+        <p className="text-[12px] text-brand-text-muted py-2">No open positions.</p>
       ) : (
         <div className="space-y-2">
           {positions.map(p => (
             <div key={p.location} className="flex items-center justify-between text-[13px]">
-              <div className="flex items-center gap-1.5 text-slate-300">
-                <MapPin className="h-3.5 w-3.5 text-slate-500" /> {p.location}
+              <div className="flex items-center gap-1.5 text-brand-text-secondary">
+                <MapPin className="h-3.5 w-3.5 text-brand-text-muted" /> {p.location}
               </div>
               <span className="font-semibold text-indigo-400">{p.count}</span>
             </div>
           ))}
-          <div className="text-[12px] text-slate-500 pt-1 border-t border-slate-700">
+          <div className="text-[12px] text-brand-text-muted pt-1 border-t border-brand-border">
             {totalApplicants} applicants this month
           </div>
         </div>
@@ -740,18 +740,18 @@ function WelcomeOverlay({ name, locale, onDismiss }: { name: string; locale: str
           }} />
       ))}
       <div className="w-full max-w-[560px] rounded-2xl p-8 text-center space-y-4 relative z-10" style={{ background: '#1e293b' }}>
-        <div className="h-16 w-16 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto text-3xl">
+        <div className="h-16 w-16 rounded-2xl bg-brand-primary flex items-center justify-center mx-auto text-3xl">
           🎉
         </div>
-        <h1 className="text-[28px] font-bold text-slate-100">Welcome to Bela ERP, {name}!</h1>
-        <p className="text-slate-400 text-[14px]">Your account is set up and ready to go. Let&apos;s get started.</p>
+        <h1 className="text-[28px] font-bold text-brand-text">Welcome to Bela ERP, {name}!</h1>
+        <p className="text-brand-text-secondary text-[14px]">Your account is set up and ready to go. Let&apos;s get started.</p>
         <div className="grid grid-cols-2 gap-3 pt-2">
           <Link href={`/${locale}/onboarding`} onClick={onDismiss}
-            className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[14px] flex items-center justify-center gap-2 transition-colors">
+            className="h-12 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white font-semibold text-[14px] flex items-center justify-center gap-2 transition-colors">
             <CheckCircle className="h-4 w-4" /> View Onboarding
           </Link>
           <button onClick={onDismiss}
-            className="h-12 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 font-medium text-[14px] flex items-center justify-center gap-2 transition-colors">
+            className="h-12 rounded-xl border border-brand-border-strong text-brand-text-secondary hover:bg-brand-bg-muted font-medium text-[14px] flex items-center justify-center gap-2 transition-colors">
             <Star className="h-4 w-4" /> Explore Platform
           </button>
         </div>
@@ -828,10 +828,10 @@ export default function DashboardPage() {
 
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-slate-100">
+        <h1 className="text-[22px] font-bold text-brand-text">
           {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}, {firstName} 👋
         </h1>
-        <p className="text-[13px] text-slate-400 mt-0.5">
+        <p className="text-[13px] text-brand-text-secondary mt-0.5">
           {new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>

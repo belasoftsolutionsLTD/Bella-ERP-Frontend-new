@@ -99,8 +99,8 @@ export default function HrLayout({ children }: { children: React.ReactNode }) {
     if (authLoading) return;
     if (!isLoggedIn) {
       router.replace(`/${locale}/login`);
-    } else if (isStaff && !pathname.endsWith('/staff-portal') && !pathname.includes('/my/training')) {
-      // Staff are only allowed on their own portal page, plus their own training pages
+    } else if (isStaff && !pathname.endsWith('/staff-portal') && !pathname.includes('/my/training') && !pathname.includes('/my/onboarding') && !pathname.includes('/my/offboarding') && !pathname.includes('/my/leave')) {
+      // Staff are only allowed on their own portal page, plus their own training/onboarding/offboarding/leave pages
       router.replace(`/${locale}/staff-portal`);
     }
   }, [isLoggedIn, isStaff, authLoading, router, locale, pathname]);
@@ -128,13 +128,13 @@ export default function HrLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ClockInProvider>
-      <div className="flex flex-col h-screen bg-[#0f172a] overflow-hidden">
+      <div className="flex flex-col h-screen bg-brand-bg overflow-hidden">
         {showReset && <PasswordResetPrompt onDone={handleResetDone} />}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <HrSidebar />
           <div className="flex flex-col flex-1 min-h-0">
             <HrTopBar />
-            <main className="flex-1 overflow-y-auto px-8 py-6 md:px-10 md:py-8 bg-[#0f172a]">
+            <main className="flex-1 overflow-y-auto px-8 py-6 md:px-10 md:py-8 bg-brand-bg">
               {children}
             </main>
           </div>

@@ -101,7 +101,7 @@ function ItemRow({
       {bulkMode && (
         <div
           onClick={e => { e.stopPropagation(); onBulkToggle(); }}
-          className={`h-4 w-4 rounded border flex items-center justify-center mt-1 shrink-0 ${bulkSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-600 bg-transparent'}`}
+          className={`h-4 w-4 rounded border flex items-center justify-center mt-1 shrink-0 ${bulkSelected ? 'bg-brand-primary border-brand-primary' : 'border-brand-border-strong bg-transparent'}`}
         >
           {bulkSelected && <Check className="h-2.5 w-2.5 text-white" />}
         </div>
@@ -114,9 +114,9 @@ function ItemRow({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-semibold text-slate-100 truncate">{item.title}</div>
-        <div className="text-[12px] text-slate-400 truncate mt-0.5">{item.subtitle}</div>
-        <div className="text-[11px] text-slate-500 mt-1">{timeAgo(item.createdAt)}</div>
+        <div className="text-[13px] font-semibold text-brand-text truncate">{item.title}</div>
+        <div className="text-[12px] text-brand-text-secondary truncate mt-0.5">{item.subtitle}</div>
+        <div className="text-[11px] text-brand-text-muted mt-1">{timeAgo(item.createdAt)}</div>
       </div>
 
       {/* Right side */}
@@ -140,7 +140,7 @@ function ItemRow({
           </div>
         )}
         {isUnread && !isPending && (
-          <span className="h-2 w-2 rounded-full bg-indigo-500" />
+          <span className="h-2 w-2 rounded-full bg-brand-primary" />
         )}
         {item.status === 'actioned' && (
           <Check className="h-3.5 w-3.5 text-green-400" />
@@ -163,12 +163,12 @@ function LeaveDetail({ item, onAction }: { item: InboxItemDetail; onAction: (act
       {/* Employee card */}
       {emp && (
         <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#0f172a' }}>
-          <div className="h-14 w-14 rounded-full bg-indigo-600/30 flex items-center justify-center text-xl font-bold text-indigo-300">
+          <div className="h-14 w-14 rounded-full bg-brand-primary/30 flex items-center justify-center text-xl font-bold text-indigo-300">
             {String(emp.fullName || '?')[0]}
           </div>
           <div>
-            <div className="text-[15px] font-semibold text-slate-100">{String(emp.fullName || '—')}</div>
-            <div className="text-[12px] text-slate-400">{String(emp.designation || '')} · {String(emp.department || '')}</div>
+            <div className="text-[15px] font-semibold text-brand-text">{String(emp.fullName || '—')}</div>
+            <div className="text-[12px] text-brand-text-secondary">{String(emp.designation || '')} · {String(emp.department || '')}</div>
           </div>
         </div>
       )}
@@ -184,8 +184,8 @@ function LeaveDetail({ item, onAction }: { item: InboxItemDetail; onAction: (act
             { label: 'Reason', value: String(ref.reason || '—') },
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between gap-4 text-[13px]">
-              <span className="text-slate-400">{label}</span>
-              <span className="text-slate-200 font-medium text-right">{value}</span>
+              <span className="text-brand-text-secondary">{label}</span>
+              <span className="text-brand-text font-medium text-right">{value}</span>
             </div>
           ))}
         </div>
@@ -212,15 +212,15 @@ function LeaveDetail({ item, onAction }: { item: InboxItemDetail; onAction: (act
                 onChange={e => setReason(e.target.value)}
                 placeholder="Reason for declining (optional)"
                 rows={3}
-                className="w-full rounded-xl p-3 text-[13px] bg-slate-700 text-slate-200 border border-slate-600 placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-xl p-3 text-[13px] bg-brand-bg-muted text-brand-text border border-brand-border-strong placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-brand-primary"
               />
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setDeclining(false)}
-                  className="h-10 rounded-xl border border-slate-600 text-slate-400 hover:bg-slate-700 text-[13px] transition-colors">
+                  className="h-10 rounded-xl border border-brand-border-strong text-brand-text-secondary hover:bg-brand-bg-muted text-[13px] transition-colors">
                   Cancel
                 </button>
                 <button onClick={() => onAction('declined', reason)}
-                  className="h-10 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold text-[13px] transition-colors">
+                  className="h-10 rounded-xl bg-brand-danger hover:bg-brand-danger/90 text-white font-semibold text-[13px] transition-colors">
                   Confirm Decline
                 </button>
               </div>
@@ -248,15 +248,15 @@ function ExpenseDetail({ item, onAction }: { item: InboxItemDetail; onAction: (a
             {String(emp.fullName || '?')[0]}
           </div>
           <div>
-            <div className="text-[15px] font-semibold text-slate-100">{String(emp.fullName || '—')}</div>
-            <div className="text-[12px] text-slate-400">{String(emp.designation || '')} · {String(emp.department || '')}</div>
+            <div className="text-[15px] font-semibold text-brand-text">{String(emp.fullName || '—')}</div>
+            <div className="text-[12px] text-brand-text-secondary">{String(emp.designation || '')} · {String(emp.department || '')}</div>
           </div>
         </div>
       )}
 
       {ref && (
         <div className="rounded-xl p-4 space-y-2.5" style={{ background: '#0f172a' }}>
-          <div className="text-[28px] font-black text-slate-100">
+          <div className="text-[28px] font-black text-brand-text">
             {String(ref.currency || 'KES')} {Number(ref.amount || 0).toLocaleString('en-KE')}
           </div>
           {[
@@ -265,8 +265,8 @@ function ExpenseDetail({ item, onAction }: { item: InboxItemDetail; onAction: (a
             { label: 'Date', value: ref.date ? formatDate(String(ref.date)) : '—' },
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between gap-4 text-[13px]">
-              <span className="text-slate-400">{label}</span>
-              <span className="text-slate-200 font-medium text-right">{value}</span>
+              <span className="text-brand-text-secondary">{label}</span>
+              <span className="text-brand-text font-medium text-right">{value}</span>
             </div>
           ))}
           {Boolean(ref.isPolicyViolation) && (
@@ -294,12 +294,12 @@ function ExpenseDetail({ item, onAction }: { item: InboxItemDetail; onAction: (a
             <div className="space-y-2">
               <textarea value={reason} onChange={e => setReason(e.target.value)}
                 placeholder="Reason for declining" rows={2}
-                className="w-full rounded-xl p-3 text-[13px] bg-slate-700 text-slate-200 border border-slate-600 placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                className="w-full rounded-xl p-3 text-[13px] bg-brand-bg-muted text-brand-text border border-brand-border-strong placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-brand-primary" />
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setDeclining(false)}
-                  className="h-10 rounded-xl border border-slate-600 text-slate-400 hover:bg-slate-700 text-[13px] transition-colors">Cancel</button>
+                  className="h-10 rounded-xl border border-brand-border-strong text-brand-text-secondary hover:bg-brand-bg-muted text-[13px] transition-colors">Cancel</button>
                 <button onClick={() => onAction('declined', reason)}
-                  className="h-10 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold text-[13px] transition-colors">Confirm Decline</button>
+                  className="h-10 rounded-xl bg-brand-danger hover:bg-brand-danger/90 text-white font-semibold text-[13px] transition-colors">Confirm Decline</button>
               </div>
             </div>
           )}
@@ -326,8 +326,8 @@ function TimesheetDetail({ item, onAction }: { item: InboxItemDetail; onAction: 
             {String(emp.fullName || '?')[0]}
           </div>
           <div>
-            <div className="text-[15px] font-semibold text-slate-100">{String(emp.fullName || '—')}</div>
-            <div className="text-[12px] text-slate-400">{String(emp.designation || '')} · {String(emp.department || '')}</div>
+            <div className="text-[15px] font-semibold text-brand-text">{String(emp.fullName || '—')}</div>
+            <div className="text-[12px] text-brand-text-secondary">{String(emp.designation || '')} · {String(emp.department || '')}</div>
           </div>
         </div>
       )}
@@ -335,18 +335,18 @@ function TimesheetDetail({ item, onAction }: { item: InboxItemDetail; onAction: 
       {ref && (
         <div className="rounded-xl p-4 space-y-3" style={{ background: '#0f172a' }}>
           <div className="flex justify-between text-[13px]">
-            <span className="text-slate-400">Week</span>
-            <span className="text-slate-200 font-medium">{String(ref.weekStart || '—')} – {String(ref.weekEnd || '—')}</span>
+            <span className="text-brand-text-secondary">Week</span>
+            <span className="text-brand-text font-medium">{String(ref.weekStart || '—')} – {String(ref.weekEnd || '—')}</span>
           </div>
           <div className="flex justify-between text-[13px]">
-            <span className="text-slate-400">Total hours</span>
-            <span className="text-[20px] font-black text-slate-100">{Number(ref.totalHours || 0).toFixed(1)}h</span>
+            <span className="text-brand-text-secondary">Total hours</span>
+            <span className="text-[20px] font-black text-brand-text">{Number(ref.totalHours || 0).toFixed(1)}h</span>
           </div>
           {days.length > 0 && (
             <div className="grid grid-cols-5 gap-1 mt-2">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((d, i) => (
                 <div key={d} className="text-center">
-                  <div className="text-[10px] text-slate-500 mb-0.5">{d}</div>
+                  <div className="text-[10px] text-brand-text-muted mb-0.5">{d}</div>
                   <div className="rounded-lg py-1 text-[12px] font-semibold" style={{ background: '#1e293b', color: days[i]?.hours ? '#f1f5f9' : '#475569' }}>
                     {days[i]?.hours ? `${days[i].hours}h` : '—'}
                   </div>
@@ -374,12 +374,12 @@ function TimesheetDetail({ item, onAction }: { item: InboxItemDetail; onAction: 
             <div className="space-y-2">
               <textarea value={reason} onChange={e => setReason(e.target.value)}
                 placeholder="Reason for rejection" rows={2}
-                className="w-full rounded-xl p-3 text-[13px] bg-slate-700 text-slate-200 border border-slate-600 placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                className="w-full rounded-xl p-3 text-[13px] bg-brand-bg-muted text-brand-text border border-brand-border-strong placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-brand-primary" />
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setDeclining(false)}
-                  className="h-10 rounded-xl border border-slate-600 text-slate-400 hover:bg-slate-700 text-[13px] transition-colors">Cancel</button>
+                  className="h-10 rounded-xl border border-brand-border-strong text-brand-text-secondary hover:bg-brand-bg-muted text-[13px] transition-colors">Cancel</button>
                 <button onClick={() => onAction('declined', reason)}
-                  className="h-10 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold text-[13px] transition-colors">Confirm Reject</button>
+                  className="h-10 rounded-xl bg-brand-danger hover:bg-brand-danger/90 text-white font-semibold text-[13px] transition-colors">Confirm Reject</button>
               </div>
             </div>
           )}
@@ -401,11 +401,11 @@ function GenericDetail({ item }: { item: InboxItemDetail }) {
           <Icon className="h-5 w-5" style={{ color: cfg.color }} />
         </div>
         <div>
-          <div className="text-[15px] font-semibold text-slate-100">{item.title}</div>
-          <div className="text-[13px] text-slate-400 mt-0.5">{item.subtitle}</div>
+          <div className="text-[15px] font-semibold text-brand-text">{item.title}</div>
+          <div className="text-[13px] text-brand-text-secondary mt-0.5">{item.subtitle}</div>
         </div>
       </div>
-      <div className="text-[12px] text-slate-500">
+      <div className="text-[12px] text-brand-text-muted">
         {new Date(item.createdAt).toLocaleString('en-KE', { dateStyle: 'full', timeStyle: 'short' })}
       </div>
     </div>
@@ -423,9 +423,9 @@ function DetailPanel({
 }) {
   if (!item) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-[#1e293b]">
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-brand-bg-soft">
         <Inbox className="h-14 w-14 text-slate-700" />
-        <p className="text-slate-500 text-[14px]">Select an item to view details</p>
+        <p className="text-brand-text-muted text-[14px]">Select an item to view details</p>
       </div>
     );
   }
@@ -433,9 +433,9 @@ function DetailPanel({
   const cfg = TYPE_CONFIG[item.type] || TYPE_CONFIG.general;
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-[#1e293b]">
+    <div className="flex-1 flex flex-col overflow-y-auto bg-brand-bg-soft">
       {/* Header */}
-      <div className="p-5 border-b border-slate-800">
+      <div className="p-5 border-b border-brand-border">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
@@ -454,14 +454,14 @@ function DetailPanel({
           </div>
           <button
             onClick={() => onDismiss(item._id)}
-            className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+            className="h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-muted hover:text-brand-text-secondary hover:bg-brand-bg-soft transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
-        <h2 className="text-[16px] font-bold text-slate-100">{item.title}</h2>
-        <p className="text-[13px] text-slate-400 mt-0.5">{item.subtitle}</p>
-        <p className="text-[12px] text-slate-500 mt-1">{new Date(item.createdAt).toLocaleDateString('en-KE', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+        <h2 className="text-[16px] font-bold text-brand-text">{item.title}</h2>
+        <p className="text-[13px] text-brand-text-secondary mt-0.5">{item.subtitle}</p>
+        <p className="text-[12px] text-brand-text-muted mt-1">{new Date(item.createdAt).toLocaleDateString('en-KE', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
       </div>
 
       {/* Body */}
@@ -633,7 +633,7 @@ export default function InboxPage() {
       {/* Page header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-[20px] font-bold text-slate-100">Inbox</h1>
+          <h1 className="text-[20px] font-bold text-brand-text">Inbox</h1>
           {counts.unread > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[11px] font-bold">
               {counts.unread} unread
@@ -642,15 +642,15 @@ export default function InboxPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleMarkAllRead}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-brand-text-secondary hover:bg-brand-bg-soft hover:text-brand-text transition-colors">
             <MailOpen className="h-3.5 w-3.5" /> Mark all read
           </button>
           <button onClick={() => { setBulkMode(v => !v); setBulkSelected(new Set()); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] transition-colors ${bulkMode ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] transition-colors ${bulkMode ? 'bg-brand-primary text-white' : 'text-brand-text-secondary hover:bg-brand-bg-soft hover:text-brand-text'}`}>
             <Filter className="h-3.5 w-3.5" /> {bulkMode ? 'Exit select' : 'Select'}
           </button>
           <button onClick={() => { fetchItems(); fetchCounts(); }}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-brand-text-secondary hover:bg-brand-bg-soft hover:text-brand-text transition-colors">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -658,30 +658,30 @@ export default function InboxPage() {
 
       <div className="flex flex-1 min-h-0 gap-4">
         {/* ── LEFT PANEL ── */}
-        <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden border border-slate-700/60" style={{ width: 340, background: '#1e293b' }}>
+        <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden border border-brand-border/60" style={{ width: 340, background: '#1e293b' }}>
           {/* Tabs */}
-          <div className="flex border-b border-slate-700/60 px-1 pt-1">
+          <div className="flex border-b border-brand-border/60 px-1 pt-1">
             {TABS.map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 text-[12px] font-semibold capitalize transition-colors relative rounded-t-lg ${tab === t ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex-1 py-2.5 text-[12px] font-semibold capitalize transition-colors relative rounded-t-lg ${tab === t ? 'text-indigo-400' : 'text-brand-text-muted hover:text-brand-text-secondary'}`}
               >
                 {t}
                 {tabCounts[t] > 0 && (
-                  <span className="ml-1 text-[10px] text-slate-500">({tabCounts[t]})</span>
+                  <span className="ml-1 text-[10px] text-brand-text-muted">({tabCounts[t]})</span>
                 )}
-                {tab === t && <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-indigo-500 rounded-full" />}
+                {tab === t && <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-brand-primary rounded-full" />}
               </button>
             ))}
           </div>
 
           {/* Type filter */}
-          <div className="px-3 py-2.5 border-b border-slate-700/60">
+          <div className="px-3 py-2.5 border-b border-brand-border/60">
             <select
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
-              className="w-full rounded-xl px-3 py-2 text-[12px] bg-slate-800/60 text-slate-300 border border-slate-700/60 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-xl px-3 py-2 text-[12px] bg-brand-bg-soft/60 text-brand-text-secondary border border-brand-border/60 focus:outline-none focus:ring-1 focus:ring-brand-primary"
             >
               {TYPE_FILTERS.map(t => (
                 <option key={t} value={t}>{t === 'all' ? 'All Types' : TYPE_CONFIG[t]?.label || t}</option>
@@ -693,12 +693,12 @@ export default function InboxPage() {
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {loading && items.length === 0 ? (
               <div className="flex items-center justify-center py-12">
-                <RefreshCw className="h-5 w-5 text-slate-600 animate-spin" />
+                <RefreshCw className="h-5 w-5 text-brand-text-muted animate-spin" />
               </div>
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-2">
                 <Mail className="h-8 w-8 text-slate-700" />
-                <p className="text-[13px] text-slate-500">No items here</p>
+                <p className="text-[13px] text-brand-text-muted">No items here</p>
               </div>
             ) : (
               items.map(item => (
@@ -718,10 +718,10 @@ export default function InboxPage() {
 
           {/* Bulk actions bar */}
           {bulkMode && bulkSelected.size > 0 && (
-            <div className="border-t border-slate-700/60 px-4 py-3 flex items-center gap-2 flex-wrap bg-slate-800/50 rounded-b-2xl">
-              <span className="text-[12px] text-slate-400 mr-1">{bulkSelected.size} selected</span>
+            <div className="border-t border-brand-border/60 px-4 py-3 flex items-center gap-2 flex-wrap bg-brand-bg-soft/50 rounded-b-2xl">
+              <span className="text-[12px] text-brand-text-secondary mr-1">{bulkSelected.size} selected</span>
               <button onClick={() => handleBulkAction('mark_read')}
-                className="px-2.5 py-1 rounded-lg bg-indigo-600/30 text-indigo-400 text-[11px] hover:bg-indigo-600/50 transition-colors">
+                className="px-2.5 py-1 rounded-lg bg-brand-primary/30 text-indigo-400 text-[11px] hover:bg-brand-primary-hover/50 transition-colors">
                 Mark read
               </button>
               <button onClick={() => handleBulkAction('dismiss')}
@@ -729,7 +729,7 @@ export default function InboxPage() {
                 Dismiss
               </button>
               <button onClick={() => { setBulkSelected(new Set()); setBulkMode(false); }}
-                className="px-2.5 py-1 rounded-lg bg-slate-700 text-slate-400 text-[11px] hover:bg-slate-600 transition-colors ml-auto">
+                className="px-2.5 py-1 rounded-lg bg-brand-bg-muted text-brand-text-secondary text-[11px] hover:bg-brand-border-strong transition-colors ml-auto">
                 Clear
               </button>
             </div>
@@ -737,7 +737,7 @@ export default function InboxPage() {
         </div>
 
         {/* ── DETAIL PANEL ── */}
-        <div className="flex-1 rounded-2xl overflow-hidden border border-slate-700/60 min-h-0">
+        <div className="flex-1 rounded-2xl overflow-hidden border border-brand-border/60 min-h-0">
           <DetailPanel
             item={detail}
             onAction={handleAction}

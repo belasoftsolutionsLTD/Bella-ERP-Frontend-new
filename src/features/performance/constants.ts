@@ -1,3 +1,5 @@
+import type { Status } from '@/components/ui/StatusBadge';
+
 export const GOAL_STATUS_CONFIG = {
   not_started: { label: 'Not Started', borderCls: 'border-slate-500', textCls: 'text-slate-400',  bgCls: 'bg-slate-500/10', dotCls: 'bg-slate-400'  },
   in_progress:  { label: 'In Progress', borderCls: 'border-blue-500',  textCls: 'text-blue-400',   bgCls: 'bg-blue-500/10',  dotCls: 'bg-blue-400'   },
@@ -28,12 +30,12 @@ export const GOAL_PERIODS = [
   { value: 'custom', label: 'Custom' },
 ];
 
-export const CYCLE_STATUS_CONFIG = {
-  draft:       { label: 'Draft',       cls: 'bg-slate-700 text-slate-300' },
-  active:      { label: 'Active',      cls: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' },
-  calibration: { label: 'Calibration', cls: 'bg-amber-500/20 text-amber-300' },
-  completed:   { label: 'Completed',   cls: 'bg-emerald-500/20 text-emerald-300' },
-} as const;
+export const CYCLE_STATUS_MAP: Record<string, { status: Status; label: string }> = {
+  draft:       { status: 'draft',      label: 'Draft' },
+  active:      { status: 'active',     label: 'Active' },
+  calibration: { status: 'inProgress', label: 'Calibration' },
+  completed:   { status: 'completed',  label: 'Completed' },
+};
 
 export const FEEDBACK_TYPE_CONFIG = {
   positive:     { label: 'Positive',     cls: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' },
@@ -102,6 +104,8 @@ export interface ReviewCycle {
   _id: string;
   name: string;
   type: string;
+  templateId?: string | null;
+  audience?: { type: 'all' | 'departments' | 'employees'; departments: string[]; employeeIds: string[] };
   status: string;
   phases: {
     selfReview:     { startDate?: string; endDate?: string; isEnabled: boolean };
@@ -118,6 +122,127 @@ export interface ReviewCycle {
   createdAt: string;
   total?: number;
   completed?: number;
+}
+
+export interface TemplateQuestion {
+  id: string;
+  text: string;
+  type: 'rating' | 'text';
+  scaleMax?: number | null;
+}
+
+export interface TemplateSection {
+  id: string;
+  title: string;
+  questions: TemplateQuestion[];
+}
+
+export interface ReviewTemplate {
+  _id: string;
+  name: string;
+  description?: string;
+  cycleTypes: string[];
+  sections: TemplateSection[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewResponse {
+  sectionId: string;
+  questionId: string;
+  value: string | number;
+}
+
+export interface AttendanceSummary {
+  periodDays: number;
+  totalRecords: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendanceRate: number | null;
+}
+
+export interface Review {
+  _id: string;
+  cycleId: string;
+  employeeId: string;
+  reviewerId: string;
+  reviewType: 'self' | 'manager' | 'peer';
+  status: 'draft' | 'submitted';
+  responses: ReviewResponse[];
+  overallRating: number | null;
+  recommendation?: string | null;
+  submittedAt?: string | null;
+  employee?: { fullName: string; designation?: string; department?: string };
+  reviewer?: { name: string };
+  cycle?: { name: string; type: string };
+  template?: ReviewTemplate | null;
+  attendanceSummary?: AttendanceSummary | null;
+}
+
+export interface OneOnOneAgendaItem {
+  id: string;
+  text: string;
+  addedBy: string;
+  isDone: boolean;
+  createdAt: string;
+}
+
+export interface OneOnOne {
+  _id: string;
+  managerId: string;
+  employeeId: string;
+  manager?: { fullName: string; designation?: string } | null;
+  employee?: { fullName: string; designation?: string } | null;
+  scheduledAt: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  agendaItems: OneOnOneAgendaItem[];
+  sharedNotes: string;
+  privateManagerNotes?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface PIPGoal {
+  id: string;
+  description: string;
+  targetDate?: string | null;
+  status: 'pending' | 'met' | 'not_met';
+}
+
+export interface PIPCheckIn {
+  id: string;
+  note: string;
+  addedBy: string;
+  createdAt: string;
+}
+
+export interface PIP {
+  _id: string;
+  employeeId: string;
+  managerId?: string | null;
+  employee?: { fullName: string; designation?: string; department?: string } | null;
+  reason: string;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'completed';
+  outcome: 'passed' | 'failed' | null;
+  goals: PIPGoal[];
+  checkIns: PIPCheckIn[];
+  createdAt: string;
+  closedAt?: string;
+}
+
+export interface MyReviewTask {
+  cycleId: string;
+  cycleName: string;
+  templateId: string | null;
+  employeeId: string;
+  employee: { fullName: string; designation?: string; department?: string } | null;
+  reviewType: 'self' | 'manager' | 'peer';
+  status: string;
+  reviewId: string | null;
 }
 
 export interface FeedbackItem {

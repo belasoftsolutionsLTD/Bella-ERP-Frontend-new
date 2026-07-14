@@ -33,7 +33,16 @@ export function useCycles() {
   const closeCycle = (id: string, onSuccess?: () => void) =>
     apiCallFunction({ url: `${BASE}/${id}/close`, method: 'POST', thenFn: () => { fetch(); onSuccess?.(); } });
 
+  const assignPeers = (cycleId: string, employeeId: string, peerIds: string[], onSuccess?: () => void, onError?: () => void) =>
+    apiCallFunction({
+      url: `${BASE}/${cycleId}/participants/${employeeId}/peers`,
+      method: 'PUT',
+      data: { peerIds },
+      thenFn: () => { fetch(); onSuccess?.(); },
+      catchFn: () => onError?.(),
+    });
+
   useEffect(() => { fetch(); }, [fetch]);
 
-  return { cycles, loading, refetch: fetch, createCycle, updateCycle, launchCycle, closeCycle };
+  return { cycles, loading, refetch: fetch, createCycle, updateCycle, launchCycle, closeCycle, assignPeers };
 }

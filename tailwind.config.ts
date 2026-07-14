@@ -11,7 +11,34 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Bela ERP Dark Theme ────────────────────────────────────────────
+        // ── Unified Design System (single source of truth — see design-system audit) ──
+        'brand-sidebar':       '#1E293B',
+        'brand-primary':       '#4F46E5',
+        'brand-primary-hover': '#4338CA',
+        'brand-success':       '#10B981',
+        'brand-warning':       '#F59E0B',
+        'brand-danger':        '#EF4444',
+        'brand-info':          '#3B82F6',
+
+        'brand-bg':      '#FFFFFF',
+        'brand-bg-soft': '#F8FAFC',
+        'brand-bg-muted':'#F1F5F9',
+
+        'brand-text':           '#0F172A',
+        'brand-text-secondary': '#64748B',
+        'brand-text-muted':     '#94A3B8',
+
+        'brand-border':        '#E2E8F0',
+        'brand-border-strong': '#CBD5E1',
+
+        'status-success-bg': '#D1FAE5', 'status-success-text': '#065F46',
+        'status-warning-bg': '#FEF3C7', 'status-warning-text': '#92400E',
+        'status-danger-bg':  '#FEE2E2', 'status-danger-text':  '#991B1B',
+        'status-neutral-bg': '#F1F5F9', 'status-neutral-text': '#475569',
+        'status-info-bg':    '#DBEAFE', 'status-info-text':    '#1E40AF',
+
+        // ── Legacy Bela ERP Dark Theme (superseded by brand-* above — kept only
+        // until every consumer below is migrated off it) ───────────────────
         'bg-base':     '#0f172a',
         'bg-surface':  '#1e293b',
         'bg-elevated': '#263344',

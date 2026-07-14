@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { X, Mail, Phone, MapPin, ExternalLink, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Application, JobRequisition } from '../types';
-import { APPLICATION_STATUS_STYLES, SOURCE_LABELS } from '../constants';
+import { APPLICATION_STATUS_MAP, SOURCE_LABELS } from '../constants';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useScorecards } from '../Hooks/useScorecards';
 import { useUserAccounts } from '../Hooks/useUserAccounts';
 import { RECOMMENDATION_LABELS } from '../constants';
@@ -55,7 +56,7 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
             </a>
           )}
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${APPLICATION_STATUS_STYLES[application.status]}`}>{application.status}</span>
+            <StatusBadge status={APPLICATION_STATUS_MAP[application.status]} label={application.status} />
             {candidate && <span className="text-xs text-slate-400">{SOURCE_LABELS[candidate.source]}</span>}
           </div>
         </div>

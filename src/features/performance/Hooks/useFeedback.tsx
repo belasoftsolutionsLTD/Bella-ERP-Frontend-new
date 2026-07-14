@@ -7,7 +7,7 @@ import type { FeedbackItem } from '../constants';
 
 const BASE = `${API_BASE_URL}/performance/feedback`;
 
-export function useFeedback(typeFilter?: string) {
+export function useFeedback(typeFilter?: string, employeeId?: string) {
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [loading, setLoading]   = useState(true);
 
@@ -15,12 +15,12 @@ export function useFeedback(typeFilter?: string) {
     setLoading(true);
     apiCallFunction<any>({
       url: BASE,
-      params: typeFilter ? { type: typeFilter } : undefined,
+      params: employeeId ? { employeeId } : (typeFilter ? { type: typeFilter } : undefined),
       showToast: false,
       thenFn: (r) => setFeedback(r.data ?? []),
       finallyFn: () => setLoading(false),
     });
-  }, [typeFilter]);
+  }, [typeFilter, employeeId]);
 
   const giveFeedback = (data: Record<string, unknown>, onSuccess?: () => void) =>
     apiCallFunction({ url: BASE, method: 'POST', data, thenFn: () => { fetch(); onSuccess?.(); } });

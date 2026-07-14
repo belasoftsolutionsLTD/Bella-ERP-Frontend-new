@@ -3,27 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
-import type { LeaveBalance, LeaveRequest } from '@/features/leave/Hooks/useLeave';
 import type { MyPayslip } from '@/features/payroll/Components/MyPayslipsPanel';
 import type { AttendanceGroup } from '@/features/attendance/Hooks/useAttendance';
 import type { StaffEmployee } from './useStaffPortal';
-
-export interface OnboardingTask {
-  _id: string;
-  taskTitle: string;
-  assignedDepartment: string;
-  dueDate: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  completedAt?: string;
-  description?: string;
-}
 
 export interface Notification {
   _id: string;
   title: string;
   body: string;
   subtitle?: string;
-  type: 'payroll' | 'leave' | 'announcement' | 'onboarding' | 'task' | 'general';
+  type: 'payroll' | 'leave' | 'announcement' | 'onboarding' | 'offboarding' | 'task' | 'general';
   link?: string;
   read: boolean;
   createdAt: string;
@@ -55,16 +44,6 @@ export interface AppraisalRecord {
   goalsSet: string[];
   goalsAchieved: string[];
   createdAt: string;
-}
-
-export interface OffboardingTask {
-  _id: string;
-  taskTitle: string;
-  taskSection: 'before_last_day' | 'last_day' | 'after_departure';
-  assignedDepartment: string;
-  dueDate: string;
-  status: 'pending' | 'completed';
-  completedAt?: string;
 }
 
 export interface EmployeeTask {
@@ -152,12 +131,8 @@ export interface ScheduledEvent {
 
 interface MyPortalState {
   profile: StaffEmployee | null;
-  leaveBalance: LeaveBalance | null;
-  leaveRequests: LeaveRequest[];
   payslips: MyPayslip[];
   attendance: AttendanceGroup[];
-  onboardingTasks: OnboardingTask[];
-  offboardingTasks: OffboardingTask[];
   notifications: Notification[];
   announcements: Announcement[];
   documents: MyDocument[];
@@ -175,8 +150,8 @@ interface Envelope { data: any }
 
 export function useMyPortal() {
   const [state, setState] = useState<MyPortalState>({
-    profile: null, leaveBalance: null, leaveRequests: [], payslips: [],
-    attendance: [], onboardingTasks: [], offboardingTasks: [], notifications: [], announcements: [],
+    profile: null, payslips: [],
+    attendance: [], notifications: [], announcements: [],
     documents: [], appraisals: [], goals: [], reviewResults: [], awards: [], events: [], myTasks: [], myProjects: [], loading: true,
   });
 
@@ -187,12 +162,8 @@ export function useMyPortal() {
     set({ loading: true });
     Promise.all([
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/profile`,       showToast: false, thenFn: r => set({ profile: r.data ?? null }),       catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/leave/balance`, showToast: false, thenFn: r => set({ leaveBalance: r.data ?? null }),   catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/leave/requests`,showToast: false, thenFn: r => set({ leaveRequests: r.data ?? [] }),    catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/payslips`,      showToast: false, thenFn: r => set({ payslips: r.data ?? [] }),         catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/attendance`,    showToast: false, thenFn: r => set({ attendance: r.data ?? [] }),       catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/onboarding`,    showToast: false, thenFn: r => set({ onboardingTasks: r.data ?? [] }),   catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/offboarding`,  showToast: false, thenFn: r => set({ offboardingTasks: r.data ?? [] }),  catchFn: () => {} }),
       apiCallFunction<any>({
         url: `${API_BASE_URL}/notifications?limit=10&unread=true`,
         showToast: false,
@@ -214,21 +185,6 @@ export function useMyPortal() {
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/tasks`,         showToast: false, thenFn: r => set({ myTasks: r.data ?? [] }),           catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/projects`,      showToast: false, thenFn: r => set({ myProjects: r.data ?? [] }),        catchFn: () => {} }),
     ]).finally(() => set({ loading: false }));
-  }, []);
-
-  const refreshOnboarding = useCallback(() => {
-    apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/onboarding`, showToast: false, thenFn: r => set({ onboardingTasks: r.data ?? [] }), catchFn: () => {} });
-  }, []);
-
-  const refreshOffboarding = useCallback(() => {
-    apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/offboarding`, showToast: false, thenFn: r => set({ offboardingTasks: r.data ?? [] }), catchFn: () => {} });
-  }, []);
-
-  const refreshLeave = useCallback(() => {
-    Promise.all([
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/leave/balance`,  showToast: false, thenFn: r => set({ leaveBalance: r.data ?? null }), catchFn: () => {} }),
-      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/leave/requests`, showToast: false, thenFn: r => set({ leaveRequests: r.data ?? [] }),  catchFn: () => {} }),
-    ]);
   }, []);
 
   const refreshNotifications = useCallback(() => {
@@ -256,13 +212,9 @@ export function useMyPortal() {
     setState(prev => ({ ...prev, announcements: prev.announcements.map(a => a._id === id ? { ...a, isRead: true } : a) }));
   };
 
-  const updateProfile = (data: Record<string, string>) =>
+  const updateProfile = (data: Record<string, unknown>) =>
     apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/profile`, method: 'PATCH', data,
       thenFn: () => fetchAll() });
-
-  const disputeLeave = (id: string, reason: string) =>
-    apiCallFunction({ url: `${API_BASE_URL}/me/leave/requests/${id}/dispute`, method: 'POST', data: { reason },
-      thenFn: () => refreshLeave() });
 
   const refreshDocuments = useCallback(() => {
     apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/documents`, showToast: false, thenFn: r => set({ documents: r.data ?? [] }), catchFn: () => {} });
@@ -281,5 +233,5 @@ export function useMyPortal() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchAll, refreshNotifications]);
 
-  return { ...state, fetchAll, refreshLeave, refreshNotifications, refreshOnboarding, refreshOffboarding, updateProfile, disputeLeave, markNotifRead, markAllNotifsRead, markAnnouncementRead, refreshDocuments, deleteDocument };
+  return { ...state, fetchAll, refreshNotifications, updateProfile, markNotifRead, markAllNotifsRead, markAnnouncementRead, refreshDocuments, deleteDocument };
 }

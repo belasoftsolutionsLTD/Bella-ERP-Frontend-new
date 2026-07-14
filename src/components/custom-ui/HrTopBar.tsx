@@ -154,9 +154,9 @@ export function HrTopBar() {
 
   return (
     <>
-      <header className="h-14 shrink-0 border-b border-slate-800 bg-[#0f172a] flex items-center justify-between px-6 gap-4">
+      <header className="h-14 shrink-0 border-b border-brand-border bg-brand-bg flex items-center justify-between px-6 gap-4">
         {/* Left: page title */}
-        <h1 className="text-[15px] font-bold text-slate-100 tracking-tight truncate">{pageTitle}</h1>
+        <h1 className="text-[15px] font-bold text-brand-text tracking-tight truncate">{pageTitle}</h1>
 
         {/* Right: actions */}
         <div className="flex items-center gap-2 shrink-0">
@@ -165,20 +165,20 @@ export function HrTopBar() {
           <div ref={langRef} className="relative">
             <button
               onClick={() => setShowLang(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-brand-text-secondary hover:bg-brand-bg-muted hover:text-brand-text transition-colors"
             >
               <Globe className="h-4 w-4" />
               <span className="font-medium">{currentLocale.flag} {currentLocale.code.toUpperCase()}</span>
               <ChevronDown className="h-3 w-3" />
             </button>
             {showLang && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden py-1 max-h-72 overflow-y-auto">
+              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-brand-border rounded-xl shadow-lg z-50 overflow-hidden py-1 max-h-72 overflow-y-auto">
                 {LOCALES.map(l => (
                   <button key={l.code} onClick={() => switchLocale(l.code)}
                     className={cn('w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors',
                       l.code === locale
-                        ? 'bg-indigo-950/60 text-indigo-300 font-semibold'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                        ? 'bg-brand-primary/10 text-brand-primary font-semibold'
+                        : 'text-brand-text-secondary hover:bg-brand-bg-muted hover:text-brand-text'
                     )}>
                     <span className="text-base">{l.flag}</span>
                     <span>{l.label}</span>
@@ -188,7 +188,7 @@ export function HrTopBar() {
             )}
           </div>
 
-          <div className="h-6 w-px bg-slate-800" />
+          <div className="h-6 w-px bg-brand-border" />
 
           {/* Notification bell */}
           <div ref={notifRef} className="relative">
@@ -196,31 +196,31 @@ export function HrTopBar() {
               onClick={() => setShowNotifs(v => !v)}
               className={cn(
                 'relative h-9 w-9 rounded-lg flex items-center justify-center transition-colors',
-                showNotifs ? 'bg-indigo-950/60 text-indigo-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                showNotifs ? 'bg-brand-primary/10 text-brand-primary' : 'text-brand-text-secondary hover:bg-brand-bg-muted hover:text-brand-text'
               )}
             >
               {notifsOn ? <Bell className="h-[18px] w-[18px]" /> : <BellOff className="h-[18px] w-[18px] opacity-40" />}
               {notifsOn && notifs.length > 0 && (
-                <span className="absolute top-1 right-1 h-4 min-w-4 px-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                <span className="absolute top-1 right-1 h-4 min-w-4 px-0.5 bg-brand-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
                   {notifs.length > 9 ? '9+' : notifs.length}
                 </span>
               )}
             </button>
 
             {showNotifs && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-slate-900 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-slate-700 z-50 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 bg-slate-800/60 border-b border-slate-700">
-                  <span className="text-sm font-bold text-slate-200">Notifications</span>
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-lg border border-brand-border z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-brand-bg-soft border-b border-brand-border">
+                  <span className="text-sm font-bold text-brand-text">Notifications</span>
                   {notifs.length > 0 && (
                     <button onClick={dismissAll}
-                      className="text-xs text-indigo-400 font-medium hover:text-indigo-300 flex items-center gap-1">
+                      className="text-xs text-brand-primary font-medium hover:text-brand-primary-hover flex items-center gap-1">
                       <CheckCheck className="h-3.5 w-3.5" /> Mark all read
                     </button>
                   )}
                 </div>
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-800">
+                <div className="max-h-72 overflow-y-auto divide-y divide-brand-border">
                   {notifs.length === 0 ? (
-                    <div className="py-10 text-center text-slate-500 text-sm">No new notifications</div>
+                    <div className="py-10 text-center text-brand-text-muted text-sm">No new notifications</div>
                   ) : notifs.map(n => (
                     <div key={n._id}
                       onClick={() => {
@@ -228,28 +228,28 @@ export function HrTopBar() {
                         setNotifs(prev => prev.filter(x => x._id !== n._id));
                         if (n.navigateTo) { setShowNotifs(false); router.push(`/${locale}${n.navigateTo}`); }
                       }}
-                      className={cn('flex items-start gap-3 px-4 py-3 hover:bg-slate-800/40 transition-colors', n.navigateTo ? 'cursor-pointer' : '')}>
-                      <div className="h-7 w-7 rounded-full bg-indigo-900/60 flex items-center justify-center shrink-0 mt-0.5">
-                        <Bell className="h-3.5 w-3.5 text-indigo-400" />
+                      className={cn('flex items-start gap-3 px-4 py-3 hover:bg-brand-bg-soft transition-colors', n.navigateTo ? 'cursor-pointer' : '')}>
+                      <div className="h-7 w-7 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Bell className="h-3.5 w-3.5 text-brand-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-200 leading-tight">{n.title}</p>
-                        <p className="text-xs text-slate-400 mt-0.5 leading-snug">{n.body}</p>
-                        <p className="text-xs text-slate-600 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
+                        <p className="text-sm font-semibold text-brand-text leading-tight">{n.title}</p>
+                        <p className="text-xs text-brand-text-secondary mt-0.5 leading-snug">{n.body}</p>
+                        <p className="text-xs text-brand-text-muted mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
                       </div>
                       <button onClick={e => { e.stopPropagation(); dismissNotif(n._id); }}
-                        className="text-slate-600 hover:text-slate-400 shrink-0 mt-1 transition-colors">
+                        className="text-brand-text-muted hover:text-brand-text-secondary shrink-0 mt-1 transition-colors">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-700 bg-slate-800/40">
-                  <span className="text-xs text-slate-500">Notifications {notifsOn ? 'on' : 'off'}</span>
+                <div className="flex items-center justify-between px-4 py-2.5 border-t border-brand-border bg-brand-bg-soft">
+                  <span className="text-xs text-brand-text-muted">Notifications {notifsOn ? 'on' : 'off'}</span>
                   <button onClick={toggleNotifPref} disabled={togglingNotif}
                     className={cn(
                       'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none',
-                      notifsOn ? 'bg-indigo-600' : 'bg-slate-700'
+                      notifsOn ? 'bg-brand-primary' : 'bg-brand-border-strong'
                     )}>
                     <span className={cn(
                       'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
@@ -261,20 +261,20 @@ export function HrTopBar() {
             )}
           </div>
 
-          <div className="h-6 w-px bg-slate-800" />
+          <div className="h-6 w-px bg-brand-border" />
 
           {/* User avatar — opens profile modal */}
           {userData && (
             <button
               onClick={() => setShowProfile(true)}
-              className="flex items-center gap-2.5 px-2 py-1 rounded-xl hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-2.5 px-2 py-1 rounded-xl hover:bg-brand-bg-muted transition-colors"
             >
-              <div className="h-8 w-8 rounded-full bg-indigo-700 flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="h-8 w-8 rounded-full bg-brand-primary flex items-center justify-center shrink-0 overflow-hidden">
                 <ProfileAvatar initials={initials} />
               </div>
               <div className="hidden sm:block leading-tight text-left">
-                <p className="text-sm font-semibold text-slate-200">{userData.name}</p>
-                <p className="text-[11px] text-slate-500 capitalize">{roleLabel}</p>
+                <p className="text-sm font-semibold text-brand-text">{userData.name}</p>
+                <p className="text-[11px] text-brand-text-muted capitalize">{roleLabel}</p>
               </div>
             </button>
           )}
@@ -389,7 +389,7 @@ function ProfileModal({ userData, initials, onClose, onSaved }: ProfileModalProp
         <div className="p-6 space-y-5">
           {/* Avatar */}
           <div className="flex flex-col items-center gap-3">
-            <div className="relative h-20 w-20 rounded-full bg-primary shadow-lg overflow-hidden">
+            <div className="relative h-20 w-20 rounded-full bg-brand-primary shadow-lg overflow-hidden">
               <ProfileAvatar key={photoKey} initials={initials} size="lg" />
               {uploading && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -400,7 +400,7 @@ function ProfileModal({ userData, initials, onClose, onSaved }: ProfileModalProp
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-primary hover:underline disabled:opacity-50"
             >
               <Camera className="h-3.5 w-3.5" />
               {uploading ? 'Uploading…' : 'Change Photo'}
@@ -433,7 +433,7 @@ function ProfileModal({ userData, initials, onClose, onSaved }: ProfileModalProp
               <input
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
             <div className="space-y-1">
@@ -442,7 +442,7 @@ function ProfileModal({ userData, initials, onClose, onSaved }: ProfileModalProp
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 placeholder="e.g. +254712345678"
-                className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
           </div>
@@ -456,7 +456,7 @@ function ProfileModal({ userData, initials, onClose, onSaved }: ProfileModalProp
           <button
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-1.5 text-sm font-semibold bg-primary text-white px-5 py-2 rounded-xl disabled:opacity-50 hover:brightness-110"
+            className="flex items-center gap-1.5 text-sm font-semibold bg-brand-primary text-white px-5 py-2 rounded-xl disabled:opacity-50 hover:brightness-110"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {saving ? 'Saving…' : 'Save'}

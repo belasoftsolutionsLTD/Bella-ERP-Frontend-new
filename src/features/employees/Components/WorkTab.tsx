@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { Briefcase, DollarSign, CalendarDays, CreditCard, Pencil, X, Save, Loader2 } from 'lucide-react';
+import { Briefcase, DollarSign, CalendarDays, CreditCard, Pencil, X, Save, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { useConfigSection } from '@/hooks/useConfigSection';
+import { useAuth } from '@/contexts/AuthContext';
+import { KENYA_BANKS, MPESA_NUMBER_REGEX, MPESA_NUMBER_ERROR } from './EmployeeSchema';
 import type { Employee } from '../Hooks/useEmployees';
 
 const Field = ({ label, value }: { label: string; value?: string | number | null }) => (
@@ -21,12 +23,12 @@ function SectionHeader({ icon: Icon, title, onEdit, editing }: {
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
         <div className="h-7 w-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-          <Icon className="h-3.5 w-3.5 text-indigo-600" />
+          <Icon className="h-3.5 w-3.5 text-brand-primary" />
         </div>
         <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
       </div>
       {onEdit && !editing && (
-        <button onClick={onEdit} className="flex items-center gap-1 text-xs text-indigo-600 hover:underline font-medium">
+        <button onClick={onEdit} className="flex items-center gap-1 text-xs text-brand-primary hover:underline font-medium">
           <Pencil className="h-3 w-3" /> Edit
         </button>
       )}
@@ -34,7 +36,7 @@ function SectionHeader({ icon: Icon, title, onEdit, editing }: {
   );
 }
 
-const inp = 'w-full h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-colors';
+const inp = 'w-full h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors';
 const sel = `${inp} appearance-none`;
 
 const PAYMENT_METHODS = [
@@ -46,8 +48,12 @@ const PAYMENT_METHODS = [
 ];
 
 export function WorkTab({ employee }: { employee: Employee }) {
+  const { isHR } = useAuth();
   const hireDate    = employee.dateOfHire      ? new Date(employee.dateOfHire).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
   const contractEnd = employee.contractEndDate ? new Date(employee.contractEndDate).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
+  const probationEnd    = (employee as any).probationEndDate ? new Date((employee as any).probationEndDate).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
+  const confirmationDate = (employee as any).confirmationDate ? new Date((employee as any).confirmationDate).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
+  const terminationDate  = (employee as any).terminationDate ? new Date((employee as any).terminationDate).toLocaleDateString('en-KE', { dateStyle: 'medium' }) : null;
 
   const emp = employee as any;
   const jobGroups = useConfigSection('job-groups');
@@ -79,8 +85,15 @@ export function WorkTab({ employee }: { employee: Employee }) {
   const [paypal,  setPaypal]      = useState(emp.paypalEmail     ?? '');
   const [crypto,  setCrypto]      = useState(emp.cryptoWalletAddress ?? '');
   const [savingPay, setSavingPay] = useState(false);
+  const [bankIsOther, setBankIsOther] = useState(() => !!emp.bankName && !KENYA_BANKS.includes(emp.bankName));
+  const [payError, setPayError]   = useState<string | null>(null);
 
   const savePay = () => {
+    if (method === 'mpesa' && !MPESA_NUMBER_REGEX.test(mpesa.trim())) {
+      setPayError(MPESA_NUMBER_ERROR);
+      return;
+    }
+    setPayError(null);
     setSavingPay(true);
     apiCallFunction({
       url: `${API_BASE_URL}/employees/${emp._id}`,
@@ -100,8 +113,8 @@ export function WorkTab({ employee }: { employee: Employee }) {
           <Field label="Designation"     value={emp.designation} />
           <Field label="Department"      value={emp.department} />
           <Field label="Employment Type" value={emp.employmentType} />
-          <Field label="Staff Category"  value={emp.staffCategory} />
           <Field label="Staff Number"    value={emp.staffNumber} />
+          <Field label="Location"        value={emp.location} />
         </div>
       </div>
 
@@ -111,10 +124,20 @@ export function WorkTab({ employee }: { employee: Employee }) {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Field label="Date of Hire"      value={hireDate} />
           <Field label="Contract End Date" value={contractEnd ?? 'Permanent'} />
+          <Field label="Probation End Date" value={probationEnd} />
+          <Field label="Confirmation Date"  value={confirmationDate} />
+          {terminationDate && <Field label="Termination Date" value={terminationDate} />}
+          {(employee as any).terminationReason && <Field label="Termination Reason" value={(employee as any).terminationReason} />}
         </div>
       </div>
 
-      {/* Compensation */}
+      {/* Compensation — super_admin/hr_manager only; department_head must never see pay/bank/tax info */}
+      {!isHR ? (
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+          <SectionHeader icon={DollarSign} title="Compensation" />
+          <p className="flex items-center gap-1.5 text-sm text-slate-400 italic"><Lock className="h-3.5 w-3.5" /> Restricted to HR.</p>
+        </div>
+      ) : (
       <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
         <SectionHeader icon={DollarSign} title="Compensation" onEdit={() => setEditComp(true)} editing={editComp} />
         {editComp ? (
@@ -143,7 +166,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
               </div>
             </div>
             <div className="flex items-center gap-2 pt-1">
-              <button onClick={saveComp} disabled={savingComp} className="flex items-center gap-1.5 h-8 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+              <button onClick={saveComp} disabled={savingComp} className="flex items-center gap-1.5 h-8 px-3 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold rounded-lg disabled:opacity-60">
                 {savingComp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 {savingComp ? 'Saving…' : 'Save'}
               </button>
@@ -155,13 +178,20 @@ export function WorkTab({ employee }: { employee: Employee }) {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Field label="Gross Monthly Pay" value={emp.grossPay ? `KES ${Number(emp.grossPay).toLocaleString()}` : null} />
-            <Field label="Salary Grade"      value={emp.salaryGrade} />
+            <Field label="Job Group"         value={jobGroups.items.find((g: any) => g._id === emp.jobGroupId)?.name} />
             <Field label="Tax ID / PIN"           value={emp.kraPin} />
           </div>
         )}
       </div>
+      )}
 
-      {/* Payment Method */}
+      {/* Payment Method — super_admin/hr_manager only */}
+      {!isHR ? (
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+          <SectionHeader icon={CreditCard} title="Payment Method" />
+          <p className="flex items-center gap-1.5 text-sm text-slate-400 italic"><Lock className="h-3.5 w-3.5" /> Restricted to HR.</p>
+        </div>
+      ) : (
       <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
         <SectionHeader icon={CreditCard} title="Payment Method" onEdit={() => setEditPay(true)} editing={editPay} />
         {editPay ? (
@@ -176,7 +206,17 @@ export function WorkTab({ employee }: { employee: Employee }) {
               {method === 'bank_transfer' && (<>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Bank Name</label>
-                  <input type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Equity Bank" className={inp} />
+                  <select value={bankIsOther ? 'Other' : bankName}
+                    onChange={e => {
+                      if (e.target.value === 'Other') { setBankIsOther(true); setBankName(''); }
+                      else { setBankIsOther(false); setBankName(e.target.value); }
+                    }} className={sel}>
+                    <option value="" disabled>Select a bank…</option>
+                    {KENYA_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                  {bankIsOther && (
+                    <input type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Type the bank name" className={cn(inp, 'mt-1.5')} />
+                  )}
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Account Number</label>
@@ -186,7 +226,8 @@ export function WorkTab({ employee }: { employee: Employee }) {
               {method === 'mpesa' && (
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">M-Pesa Number</label>
-                  <input type="text" value={mpesa} onChange={e => setMpesa(e.target.value)} placeholder="+254 7XX XXX XXX" className={inp} />
+                  <input type="text" value={mpesa} onChange={e => setMpesa(e.target.value)} placeholder="254712345678" className={inp} />
+                  {payError && <p className="text-xs text-red-500 mt-1">{payError}</p>}
                 </div>
               )}
               {method === 'paypal' && (
@@ -203,7 +244,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
               )}
             </div>
             <div className="flex items-center gap-2 pt-1">
-              <button onClick={savePay} disabled={savingPay} className="flex items-center gap-1.5 h-8 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+              <button onClick={savePay} disabled={savingPay} className="flex items-center gap-1.5 h-8 px-3 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold rounded-lg disabled:opacity-60">
                 {savingPay ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 {savingPay ? 'Saving…' : 'Save'}
               </button>
@@ -229,6 +270,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

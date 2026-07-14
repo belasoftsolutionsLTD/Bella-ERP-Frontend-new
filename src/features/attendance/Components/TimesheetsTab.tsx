@@ -29,8 +29,8 @@ interface Timesheet {
 }
 
 const STATUS_CFG = {
-  draft:     { label: 'Draft',     cls: 'bg-slate-700 text-slate-400',     icon: Clock         },
-  submitted: { label: 'Submitted', cls: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20', icon: Send },
+  draft:     { label: 'Draft',     cls: 'bg-brand-bg-muted text-brand-text-secondary',     icon: Clock         },
+  submitted: { label: 'Submitted', cls: 'bg-brand-primary/10 text-indigo-400 border border-brand-primary/20', icon: Send },
   approved:  { label: 'Approved',  cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', icon: CheckCircle },
   rejected:  { label: 'Rejected',  cls: 'bg-red-500/10 text-red-400 border border-red-500/20', icon: AlertCircle },
 };
@@ -172,12 +172,12 @@ export function TimesheetsTab() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekOffset(o => o - 1)}
-            className="h-8 w-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+            className="h-8 w-8 rounded-lg bg-brand-bg-soft border border-brand-border flex items-center justify-center text-brand-text-secondary hover:text-brand-text transition-colors">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm font-semibold text-slate-200 min-w-[200px] text-center">{weekLabel}</span>
+          <span className="text-sm font-semibold text-brand-text min-w-[200px] text-center">{weekLabel}</span>
           <button onClick={() => setWeekOffset(o => o + 1)} disabled={weekOffset >= 0}
-            className="h-8 w-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 disabled:opacity-30 transition-colors">
+            className="h-8 w-8 rounded-lg bg-brand-bg-soft border border-brand-border flex items-center justify-center text-brand-text-secondary hover:text-brand-text disabled:opacity-30 transition-colors">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -199,12 +199,12 @@ export function TimesheetsTab() {
       {sheet && (
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Total Hours',    value: fmtDuration(totalMins),  color: 'text-slate-100' },
-            { label: 'Standard (40h)', value: fmtDuration(2400),       color: 'text-slate-400' },
-            { label: 'Overtime',       value: fmtDuration(overMins),   color: overMins > 0 ? 'text-amber-400' : 'text-slate-500' },
+            { label: 'Total Hours',    value: fmtDuration(totalMins),  color: 'text-brand-text' },
+            { label: 'Standard (40h)', value: fmtDuration(2400),       color: 'text-brand-text-secondary' },
+            { label: 'Overtime',       value: fmtDuration(overMins),   color: overMins > 0 ? 'text-amber-400' : 'text-brand-text-muted' },
           ].map(({ label, value, color }) => (
-            <div key={label} className="bg-[#1e293b] border border-slate-700 rounded-xl p-3 text-center">
-              <p className="text-[11px] text-slate-500 uppercase tracking-wide mb-0.5">{label}</p>
+            <div key={label} className="bg-brand-bg-soft border border-brand-border rounded-xl p-3 text-center">
+              <p className="text-[11px] text-brand-text-muted uppercase tracking-wide mb-0.5">{label}</p>
               <p className={cn('text-base font-bold', color)}>{value}</p>
             </div>
           ))}
@@ -213,23 +213,23 @@ export function TimesheetsTab() {
 
       {/* Usage hint */}
       {!isLocked && sheet && (
-        <p className="text-xs text-slate-500 flex items-center gap-1.5">
+        <p className="text-xs text-brand-text-muted flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          Click any cell to fill in your hours for the day, then hit <span className="text-slate-300 font-semibold">Save Draft</span>. Submit for approval when the week is complete.
+          Click any cell to fill in your hours for the day, then hit <span className="text-brand-text-secondary font-semibold">Save Draft</span>. Submit for approval when the week is complete.
         </p>
       )}
 
       {/* Grid */}
       {loading ? (
         <div className="py-16 flex justify-center">
-          <div className="h-6 w-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-6 w-6 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
         </div>
       ) : (
-        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl overflow-hidden">
+        <div className="bg-brand-bg-soft border border-brand-border rounded-2xl overflow-hidden">
           {/* Column headers */}
-          <div className="grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-b border-slate-700 bg-slate-800/50">
+          <div className="grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-b border-brand-border bg-brand-bg-soft/50">
             {['Day', 'Project', 'Start', 'End', 'Break', 'Notes'].map(h => (
-              <div key={h} className="px-3 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{h}</div>
+              <div key={h} className="px-3 py-2.5 text-[11px] font-semibold text-brand-text-muted uppercase tracking-wide">{h}</div>
             ))}
           </div>
 
@@ -241,22 +241,22 @@ export function TimesheetsTab() {
             const isToday = date === new Date().toISOString().split('T')[0];
 
             const fieldCls = cn(
-              'h-8 w-full bg-slate-800/60 border border-slate-700 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 hover:border-slate-500 rounded px-2 transition-colors',
+              'h-8 w-full bg-brand-bg-soft/60 border border-brand-border text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:ring-1 focus:ring-brand-primary focus:border-brand-primary hover:border-slate-500 rounded px-2 transition-colors',
               (isLocked || isWeekend) ? 'opacity-40 pointer-events-none cursor-not-allowed' : 'cursor-text'
             );
 
             return (
               <div key={date}
                 className={cn(
-                  'grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-b border-slate-700/60 hover:bg-slate-800/30 transition-colors',
-                  isWeekend && 'bg-slate-800/20',
-                  isToday && 'bg-indigo-500/5',
+                  'grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-b border-brand-border/60 hover:bg-brand-bg-soft/30 transition-colors',
+                  isWeekend && 'bg-brand-bg-soft/20',
+                  isToday && 'bg-brand-primary/5',
                 )}>
                 <div className="px-3 py-2 flex flex-col justify-center">
-                  <p className={cn('text-xs font-semibold', isToday ? 'text-indigo-400' : isWeekend ? 'text-slate-600' : 'text-slate-300')}>
+                  <p className={cn('text-xs font-semibold', isToday ? 'text-indigo-400' : isWeekend ? 'text-brand-text-muted' : 'text-brand-text-secondary')}>
                     {DAYS[dayIdx]}
                   </p>
-                  <p className="text-[10px] text-slate-600">{d.getDate()}</p>
+                  <p className="text-[10px] text-brand-text-muted">{d.getDate()}</p>
                 </div>
 
                 {/* Editable cells */}
@@ -287,7 +287,7 @@ export function TimesheetsTab() {
                     onChange={e => upsertEntry(date, 'description', e.target.value)}
                     className={fieldCls} />
                   {entry?.totalMinutes ? (
-                    <span className="text-[11px] text-slate-500 shrink-0 ml-2">{fmtDuration(entry.totalMinutes)}</span>
+                    <span className="text-[11px] text-brand-text-muted shrink-0 ml-2">{fmtDuration(entry.totalMinutes)}</span>
                   ) : null}
                 </div>
               </div>
@@ -296,11 +296,11 @@ export function TimesheetsTab() {
 
           {/* Totals row */}
           {sheet && (
-            <div className="grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-t-2 border-slate-600 bg-slate-800/60">
-              <div className="px-3 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wide">Total</div>
+            <div className="grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-t-2 border-brand-border-strong bg-brand-bg-soft/60">
+              <div className="px-3 py-2.5 text-xs font-bold text-brand-text-secondary uppercase tracking-wide">Total</div>
               <div className="col-span-4" />
               <div className="px-3 py-2.5 flex items-center justify-end">
-                <span className={cn('text-sm font-bold', totalMins > 0 ? 'text-indigo-300' : 'text-slate-600')}>
+                <span className={cn('text-sm font-bold', totalMins > 0 ? 'text-indigo-300' : 'text-brand-text-muted')}>
                   {fmtDuration(totalMins)}
                 </span>
               </div>
@@ -313,11 +313,11 @@ export function TimesheetsTab() {
       {!isLocked && sheet && (
         <div className="flex items-center justify-end gap-3">
           <button onClick={saveSheet} disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-semibold disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-bg-muted hover:bg-brand-border-strong text-brand-text text-sm font-semibold disabled:opacity-50 transition-colors">
             <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save Draft'}
           </button>
           <button onClick={submitSheet} disabled={saving || totalMins === 0}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold disabled:opacity-50 transition-colors">
             <Send className="h-4 w-4" /> Submit for Approval
           </button>
         </div>

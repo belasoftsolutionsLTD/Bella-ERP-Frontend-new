@@ -10,7 +10,9 @@ import type { ApprovalChainEntry } from '../expenses/types';
 export type PRStatus = 'draft' | 'submitted' | 'pending' | 'approved' | 'rejected' | 'converted';
 export type PRPriority = 'low' | 'normal' | 'medium' | 'high' | 'urgent';
 export type POStatus = 'draft' | 'sent' | 'acknowledged' | 'partiallyReceived' | 'fullyReceived' | 'cancelled' | 'invoiced' | 'paid';
-export type VendorStatus = 'active' | 'inactive' | 'blacklisted';
+export type VendorStatus = 'pending_approval' | 'active' | 'inactive' | 'rejected' | 'blacklisted';
+export type VendorType = 'company' | 'individual';
+export interface VendorDocument { docId: string; docType: string; fileName: string; filePath: string; uploadedAt: string; }
 export type ReceiptCondition = 'good' | 'damaged' | 'partial';
 export type ReceiptStatus = 'complete' | 'partial' | 'disputed';
 export type InvoiceStatus = 'received' | 'underReview' | 'matched' | 'disputed' | 'approved' | 'paid';
@@ -60,11 +62,15 @@ export interface Vendor {
   phone?: string;
   address?: string;
   category: string;
+  type: VendorType;
   taxId?: string;
   paymentTerms?: string;
   bankDetails?: { accountName?: string; accountNumber?: string; bankName?: string; sortCode?: string };
+  documents?: VendorDocument[];
   status: VendorStatus;
   notes?: string;
+  approvedBy?: string | null; approvedAt?: string | null;
+  rejectedBy?: string | null; rejectedAt?: string | null; rejectionReason?: string | null;
   createdBy: string;
   createdAt: string; updatedAt: string;
 }

@@ -1,5 +1,17 @@
 'use client';
 
+import { API_BASE_URL } from '@/configs/constants';
+
+/**
+ * Resolves a raw stored upload path (which historically varies — relative
+ * `uploads/x.pdf` from multer's `file.path`, or absolute `/uploads/sub/x.pdf`
+ * from generated documents) into a full, fetchable backend URL.
+ */
+export function resolveUploadUrl(storedPath: string): string {
+  const rest = storedPath.replace(/^\/+/, '').replace(/^uploads\//, '');
+  return `${API_BASE_URL.replace(/\/api$/, '')}/uploads/${rest}`;
+}
+
 /**
  * Download a file from an authenticated API endpoint.
  * Uses the Bearer token from sessionStorage so the browser sends the auth header,

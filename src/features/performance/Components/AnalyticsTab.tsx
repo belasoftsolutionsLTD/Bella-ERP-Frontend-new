@@ -42,12 +42,12 @@ export function AnalyticsTab() {
 
   if (loading) return (
     <div className="flex justify-center py-20">
-      <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+      <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
     </div>
   );
 
   if (!data) return (
-    <div className="text-center py-20 text-slate-600">Failed to load analytics.</div>
+    <div className="text-center py-20 text-brand-text-muted">Failed to load analytics.</div>
   );
 
   const statCards = [
@@ -67,15 +67,15 @@ export function AnalyticsTab() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map(({ icon: Icon, label, value, sub }) => (
-          <div key={label} className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <div key={label} className="bg-brand-bg-soft border border-brand-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
-              <div className="h-8 w-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-brand-primary/20 flex items-center justify-center">
                 <Icon className="h-4 w-4 text-indigo-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-100">{value}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{sub}</p>
-            <p className="text-[11px] text-slate-600 mt-0.5">{label}</p>
+            <p className="text-2xl font-black text-brand-text">{value}</p>
+            <p className="text-xs text-brand-text-muted mt-0.5">{sub}</p>
+            <p className="text-[11px] text-brand-text-muted mt-0.5">{label}</p>
           </div>
         ))}
       </div>
@@ -83,10 +83,10 @@ export function AnalyticsTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
         {/* Goals by status — donut-style */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-sm font-bold text-slate-100 mb-4">Goals by Status</h3>
+        <div className="bg-brand-bg-soft border border-brand-border rounded-xl p-5">
+          <h3 className="text-sm font-bold text-brand-text mb-4">Goals by Status</h3>
           {data.goalsByStatus.length === 0 ? (
-            <p className="text-sm text-slate-600 text-center py-6">No goal data yet.</p>
+            <p className="text-sm text-brand-text-muted text-center py-6">No goal data yet.</p>
           ) : (
             <div className="space-y-3">
               {data.goalsByStatus.map(g => {
@@ -96,10 +96,10 @@ export function AnalyticsTab() {
                 return (
                   <div key={g._id}>
                     <div className="flex justify-between mb-1">
-                      <span className="text-xs font-medium text-slate-300">{label}</span>
-                      <span className="text-xs text-slate-500">{g.count} ({pct}%)</span>
+                      <span className="text-xs font-medium text-brand-text-secondary">{label}</span>
+                      <span className="text-xs text-brand-text-muted">{g.count} ({pct}%)</span>
                     </div>
-                    <div className="h-2.5 rounded-full bg-slate-700 overflow-hidden">
+                    <div className="h-2.5 rounded-full bg-brand-bg-muted overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
                     </div>
                   </div>
@@ -110,10 +110,10 @@ export function AnalyticsTab() {
         </div>
 
         {/* Performance score distribution */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-sm font-bold text-slate-100 mb-4">Performance Score Distribution</h3>
+        <div className="bg-brand-bg-soft border border-brand-border rounded-xl p-5">
+          <h3 className="text-sm font-bold text-brand-text mb-4">Performance Score Distribution</h3>
           {data.ratingDistribution.length === 0 ? (
-            <p className="text-sm text-slate-600 text-center py-6">No appraisal data yet.</p>
+            <p className="text-sm text-brand-text-muted text-center py-6">No appraisal data yet.</p>
           ) : (
             <div className="flex items-end gap-2 h-32">
               {[1, 2, 3, 4, 5].map(rating => {
@@ -123,9 +123,9 @@ export function AnalyticsTab() {
                 const color = rating >= 4 ? '#6366f1' : rating === 3 ? '#3b82f6' : '#f59e0b';
                 return (
                   <div key={rating} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[11px] text-slate-500">{count}</span>
+                    <span className="text-[11px] text-brand-text-muted">{count}</span>
                     <div className="w-full rounded-t flex items-end justify-center transition-all" style={{ height: `${Math.max(4, pct)}%`, backgroundColor: color }} />
-                    <span className="text-[10px] text-slate-500">{rating}</span>
+                    <span className="text-[10px] text-brand-text-muted">{rating}</span>
                     <span className="text-[9px] text-slate-700 text-center leading-none">{RATING_LABELS[rating]}</span>
                   </div>
                 );
@@ -135,10 +135,10 @@ export function AnalyticsTab() {
         </div>
 
         {/* Department performance */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 lg:col-span-2">
-          <h3 className="text-sm font-bold text-slate-100 mb-4">Performance by Department</h3>
+        <div className="bg-brand-bg-soft border border-brand-border rounded-xl p-5 lg:col-span-2">
+          <h3 className="text-sm font-bold text-brand-text mb-4">Performance by Department</h3>
           {data.departmentPerformance.length === 0 ? (
-            <p className="text-sm text-slate-600 text-center py-6">No department data yet.</p>
+            <p className="text-sm text-brand-text-muted text-center py-6">No department data yet.</p>
           ) : (
             <div className="space-y-3">
               {data.departmentPerformance.map(d => {
@@ -146,12 +146,12 @@ export function AnalyticsTab() {
                 const color = d.avgRating >= 4 ? '#6366f1' : d.avgRating >= 3 ? '#3b82f6' : '#f59e0b';
                 return (
                   <div key={d._id} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-400 w-36 shrink-0 truncate">{d._id || 'No Department'}</span>
-                    <div className="flex-1 h-2.5 rounded-full bg-slate-700 overflow-hidden">
+                    <span className="text-xs text-brand-text-secondary w-36 shrink-0 truncate">{d._id || 'No Department'}</span>
+                    <div className="flex-1 h-2.5 rounded-full bg-brand-bg-muted overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
                     </div>
-                    <span className="text-xs font-bold text-slate-300 w-10 text-right">{d.avgRating.toFixed(1)}</span>
-                    <span className="text-[11px] text-slate-600 w-12 text-right">{d.count} review{d.count !== 1 ? 's' : ''}</span>
+                    <span className="text-xs font-bold text-brand-text-secondary w-10 text-right">{d.avgRating.toFixed(1)}</span>
+                    <span className="text-[11px] text-brand-text-muted w-12 text-right">{d.count} review{d.count !== 1 ? 's' : ''}</span>
                   </div>
                 );
               })}

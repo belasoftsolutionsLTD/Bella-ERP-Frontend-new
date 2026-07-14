@@ -22,10 +22,10 @@ function FilterChip({
         onChange={(e) => onChange(e.target.value)}
         className={`
           appearance-none h-9 pl-3 pr-8 rounded-full text-sm font-medium border transition-all duration-150 cursor-pointer
-          focus:outline-none focus:ring-1 focus:ring-indigo-500
+          focus:outline-none focus:ring-1 focus:ring-brand-primary
           ${active
-            ? 'bg-indigo-600 text-white border-indigo-600'
-            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-indigo-500/50 hover:bg-slate-700'
+            ? 'bg-brand-primary text-white border-brand-primary'
+            : 'bg-brand-bg-soft text-brand-text-secondary border-brand-border hover:border-brand-primary/50 hover:bg-brand-bg-muted'
           }
         `}
       >
@@ -34,7 +34,7 @@ function FilterChip({
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none ${active ? 'text-white/80' : 'text-slate-500'}`} />
+      <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none ${active ? 'text-white/80' : 'text-brand-text-muted'}`} />
     </div>
   );
 }
@@ -50,9 +50,9 @@ export function EmployeeFilters({ filters, onChange }: Props) {
     <div className="flex flex-wrap gap-2 items-center">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-text-muted" />
         <input
-          className="h-9 pl-9 pr-4 rounded-full border border-slate-700 bg-slate-800 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 hover:border-indigo-500/50 transition-all w-52"
+          className="h-9 pl-9 pr-4 rounded-full border border-brand-border bg-brand-bg-soft text-brand-text text-sm placeholder:text-brand-text-muted focus:outline-none focus:ring-1 focus:ring-brand-primary focus:border-brand-primary hover:border-brand-primary/50 transition-all w-52"
           placeholder="Search by name or staff no..."
           value={filters.search ?? ''}
           onChange={(e) => set('search', e.target.value)}

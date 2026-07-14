@@ -10,7 +10,7 @@ const fmt = (n: number, cur = 'KES') => `${cur} ${(n || 0).toLocaleString('en-KE
 
 export interface MyPayslipResult {
   earnings: { conceptName: string; amount: number }[];
-  deductions: { conceptName: string; amount: number }[];
+  deductions: { conceptName: string; amount: number; source?: string; balanceAfter?: number }[];
   benefits: { conceptName: string; amount: number }[];
   employerContributions: { conceptName: string; amount: number }[];
   statutoryDeductions?: { paye: number; nssf: number; sha: number; ahl: number; total: number; labels: Record<string, string> };
@@ -120,7 +120,17 @@ export function MyPayslipsPanel({ payslips }: { payslips: MyPayslip[] }) {
                       <div>
                         <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-1.5">Other Deductions</p>
                         {r.deductions.map((d, i) => (
-                          <div key={i} className="flex justify-between py-1 text-slate-600"><span>{d.conceptName}</span><span className="font-medium text-slate-800">{fmt(d.amount)}</span></div>
+                          <div key={i} className="flex justify-between py-1 text-slate-600">
+                            <span>
+                              {d.conceptName}
+                              {d.source === 'loan' && (
+                                <span className="text-slate-400 text-xs ml-1">
+                                  ({(d.balanceAfter ?? 0) > 0 ? `Balance: ${fmt(d.balanceAfter ?? 0)} remaining` : 'Fully repaid'})
+                                </span>
+                              )}
+                            </span>
+                            <span className="font-medium text-slate-800">{fmt(d.amount)}</span>
+                          </div>
                         ))}
                       </div>
                     )}

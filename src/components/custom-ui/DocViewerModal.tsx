@@ -40,7 +40,7 @@ export function DocViewerModal({ url, fileName, downloadUrl, onClose }: Props) {
             download={fileName}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold transition-colors"
           >
             <Download className="h-3.5 w-3.5" /> Download
           </a>
@@ -88,7 +88,7 @@ export function DocViewerModal({ url, fileName, downloadUrl, onClose }: Props) {
               download={fileName}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2 h-9 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
+              className="flex items-center gap-2 h-9 px-5 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold transition-colors"
             >
               <Download className="h-4 w-4" /> Download to view
             </a>

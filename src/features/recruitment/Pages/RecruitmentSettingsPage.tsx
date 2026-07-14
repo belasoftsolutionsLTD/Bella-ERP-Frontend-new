@@ -35,7 +35,7 @@ function EmailTemplatesTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-slate-400">Tokens available: {'{{candidateName}}'}, {'{{jobTitle}}'}, {'{{companyName}}'}</p>
+        <p className="text-sm text-brand-text-secondary">Tokens available: {'{{candidateName}}'}, {'{{jobTitle}}'}, {'{{companyName}}'}</p>
         <Button size="sm" className="bg-primary text-white" onClick={startNew}><Plus className="h-4 w-4 mr-1" /> New Template</Button>
       </div>
 
@@ -59,15 +59,15 @@ function EmailTemplatesTab() {
           <div key={t._id} className="flex items-center justify-between p-3">
             <div>
               <p className="text-sm font-medium text-slate-800">{t.name}</p>
-              <p className="text-xs text-slate-500">{TRIGGER_OPTIONS.find((o) => o.value === t.trigger)?.label} · {t.subject}</p>
+              <p className="text-xs text-brand-text-muted">{TRIGGER_OPTIONS.find((o) => o.value === t.trigger)?.label} · {t.subject}</p>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => startEdit(t)} className="p-1.5 text-slate-400 hover:text-primary"><Pencil className="h-4 w-4" /></button>
-              <button onClick={() => deleteTemplate(t._id)} className="p-1.5 text-slate-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
+              <button onClick={() => startEdit(t)} className="p-1.5 text-brand-text-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button>
+              <button onClick={() => deleteTemplate(t._id)} className="p-1.5 text-brand-text-secondary hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
             </div>
           </div>
         ))}
-        {templates.length === 0 && <p className="p-6 text-sm text-slate-400 text-center">No templates yet.</p>}
+        {templates.length === 0 && <p className="p-6 text-sm text-brand-text-secondary text-center">No templates yet.</p>}
       </div>
     </div>
   );
@@ -137,15 +137,15 @@ function InterviewKitsTab() {
           <div key={k._id} className="flex items-center justify-between p-3">
             <div>
               <p className="text-sm font-medium text-slate-800">{k.name}</p>
-              <p className="text-xs text-slate-500">{k.competencies.length} competenc{k.competencies.length !== 1 ? 'ies' : 'y'}</p>
+              <p className="text-xs text-brand-text-muted">{k.competencies.length} competenc{k.competencies.length !== 1 ? 'ies' : 'y'}</p>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => startEdit(k)} className="p-1.5 text-slate-400 hover:text-primary"><Pencil className="h-4 w-4" /></button>
-              <button onClick={() => deleteKit(k._id)} className="p-1.5 text-slate-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
+              <button onClick={() => startEdit(k)} className="p-1.5 text-brand-text-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button>
+              <button onClick={() => deleteKit(k._id)} className="p-1.5 text-brand-text-secondary hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
             </div>
           </div>
         ))}
-        {kits.length === 0 && <p className="p-6 text-sm text-slate-400 text-center">No interview kits yet.</p>}
+        {kits.length === 0 && <p className="p-6 text-sm text-brand-text-secondary text-center">No interview kits yet.</p>}
       </div>
     </div>
   );
@@ -158,13 +158,13 @@ export function RecruitmentSettingsPage() {
   return (
     <div className="p-6 space-y-4">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Recruitment Settings</h1>
-        <p className="text-sm text-slate-400">Email templates, interview kits, and JD templates</p>
+        <h1 className="text-xl font-semibold text-brand-text">Recruitment Settings</h1>
+        <p className="text-sm text-brand-text-secondary">Email templates, interview kits, and JD templates</p>
       </div>
 
-      <div className="flex gap-1 border-b border-slate-800">
+      <div className="flex gap-1 border-b border-brand-border">
         {(['templates', 'kits', 'jdTemplates'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-slate-400'}`}>
+          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-brand-text-secondary'}`}>
             {t === 'templates' ? 'Email Templates' : t === 'kits' ? 'Interview Kits' : 'JD Templates'}
           </button>
         ))}
