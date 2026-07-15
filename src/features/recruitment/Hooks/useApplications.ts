@@ -44,10 +44,10 @@ export function useApplications(requisitionId?: string) {
     thenFn: () => mutate(),
   });
 
-  const assignInterviewer = (applicationId: string, stageId: string, interviewerId: string) => apiCallFunction({
+  const assignInterviewer = (applicationId: string, stageId: string, interviewerId: string, scheduledAt: string) => apiCallFunction({
     url: `${API_BASE_URL}/recruitment/applications/${applicationId}/interviewers`,
     method: 'POST',
-    data: { stageId, interviewerId },
+    data: { stageId, interviewerId, scheduledAt },
     thenFn: () => mutate(),
   });
 
@@ -55,6 +55,11 @@ export function useApplications(requisitionId?: string) {
     url: `${API_BASE_URL}/recruitment/applications/${applicationId}/interviewers/${stageId}/${interviewerId}`,
     method: 'DELETE',
     thenFn: () => mutate(),
+  });
+
+  const sendInterviewReminder = (applicationId: string, stageId: string) => apiCallFunction({
+    url: `${API_BASE_URL}/recruitment/applications/${applicationId}/interviewers/${stageId}/remind`,
+    method: 'POST',
   });
 
   return {
@@ -69,5 +74,6 @@ export function useApplications(requisitionId?: string) {
     respondToOffer,
     assignInterviewer,
     unassignInterviewer,
+    sendInterviewReminder,
   };
 }

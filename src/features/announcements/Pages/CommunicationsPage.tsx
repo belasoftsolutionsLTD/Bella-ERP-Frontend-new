@@ -8,17 +8,17 @@ import { ChatPanel } from '@/features/staffPortal/Components/ChatPanel';
 
 // ── Type options ──────────────────────────────────────────────────────────────
 const TYPE_OPTS = [
-  { value: 'news',     label: 'News',     icon: Newspaper,  color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/30' },
-  { value: 'alert',    label: 'Alert',    icon: Bell,       color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/30' },
-  { value: 'campaign', label: 'Campaign', icon: Rocket,     color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/30' },
+  { value: 'news',     label: 'News',     icon: Newspaper,  color: 'text-blue-600',   bg: 'bg-blue-500/10 border-blue-500/30' },
+  { value: 'alert',    label: 'Alert',    icon: Bell,       color: 'text-red-600',    bg: 'bg-red-500/10 border-red-500/30' },
+  { value: 'campaign', label: 'Campaign', icon: Rocket,     color: 'text-violet-600', bg: 'bg-violet-500/10 border-violet-500/30' },
 ] as const;
 
 // ── Audience options (multi-select) ───────────────────────────────────────────
 const AUDIENCE_OPTS = [
-  { value: 'all',            label: 'All Staff',      icon: Users,       color: 'text-blue-400',   bg: 'bg-blue-500/10' },
-  { value: 'staff',          label: 'Staff Only',     icon: Users,       color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  { value: 'department_head',label: 'Dept Heads',     icon: Building2,   color: 'text-violet-400', bg: 'bg-violet-500/10' },
-  { value: 'hr_only',        label: 'HR Only',        icon: ShieldCheck, color: 'text-amber-400',  bg: 'bg-amber-500/10' },
+  { value: 'all',            label: 'All Staff',      icon: Users,       color: 'text-blue-600',   bg: 'bg-blue-500/10' },
+  { value: 'staff',          label: 'Staff Only',     icon: Users,       color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+  { value: 'department_head',label: 'Dept Heads',     icon: Building2,   color: 'text-violet-600', bg: 'bg-violet-500/10' },
+  { value: 'hr_only',        label: 'HR Only',        icon: ShieldCheck, color: 'text-amber-600',  bg: 'bg-amber-500/10' },
 ] as const;
 
 type CommType = 'news' | 'alert' | 'campaign';

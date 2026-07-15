@@ -24,7 +24,7 @@ export function CoursesListPage({ locale }: { locale: string }) {
           <h1 className="text-xl font-semibold text-brand-text">Course Management</h1>
           <p className="text-sm text-brand-text-secondary">{courses.length} course{courses.length !== 1 ? 's' : ''}</p>
         </div>
-        <Link href={`/${locale}/training/courses/new`} className="px-3 py-2 rounded-md bg-primary text-white text-sm font-medium flex items-center gap-1">
+        <Link href={`/${locale}/training/courses/new`} className="px-3 py-2 rounded-md bg-brand-primary text-white text-sm font-medium flex items-center gap-1">
           <Plus className="h-4 w-4" /> New Course
         </Link>
       </div>
@@ -62,7 +62,7 @@ export function CoursesListPage({ locale }: { locale: string }) {
             {courses.map((c) => (
               <tr key={c._id} className="border-t border-slate-100 hover:bg-slate-50">
                 <td className="px-4 py-2">
-                  <Link href={`/${locale}/training/courses/${c._id}`} className="text-primary hover:underline font-medium">{c.title}</Link>
+                  <Link href={`/${locale}/training/courses/${c._id}`} className="text-brand-primary hover:underline font-medium">{c.title}</Link>
                   <p className="text-xs text-brand-text-secondary">{c.category}{c.isMandatory ? ' · Mandatory' : ''}</p>
                 </td>
                 <td className="px-4 py-2">

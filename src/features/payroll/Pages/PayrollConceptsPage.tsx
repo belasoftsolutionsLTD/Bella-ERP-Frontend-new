@@ -35,17 +35,17 @@ interface PayrollConcept {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const CATEGORY_CFG: Record<ConceptCategory, { label: string; color: string; bg: string; text: string; border: string }> = {
-  earnings:               { label: 'Earnings',             color: '#10b981', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-l-emerald-500'   },
-  deductions:             { label: 'Deductions',           color: '#ef4444', bg: 'bg-red-500/10',     text: 'text-red-400',     border: 'border-l-red-500'       },
-  benefits:               { label: 'Benefits',             color: '#3b82f6', bg: 'bg-blue-500/10',    text: 'text-blue-400',    border: 'border-l-blue-500'      },
-  employer_contributions: { label: 'Employer Contrib.',    color: '#8b5cf6', bg: 'bg-violet-500/10',  text: 'text-violet-400',  border: 'border-l-violet-500'    },
+  earnings:               { label: 'Earnings',             color: '#10b981', bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-l-emerald-500'   },
+  deductions:             { label: 'Deductions',           color: '#ef4444', bg: 'bg-red-100',     text: 'text-red-600',     border: 'border-l-red-500'       },
+  benefits:               { label: 'Benefits',             color: '#3b82f6', bg: 'bg-blue-100',    text: 'text-blue-600',    border: 'border-l-blue-500'      },
+  employer_contributions: { label: 'Employer Contrib.',    color: '#8b5cf6', bg: 'bg-violet-100',  text: 'text-violet-600',  border: 'border-l-violet-500'    },
 };
 
 const TYPE_CFG: Record<ConceptType, { label: string; bg: string; text: string }> = {
   fixed:      { label: 'Fixed',      bg: 'bg-brand-bg-muted',      text: 'text-brand-text-secondary'  },
-  variable:   { label: 'Variable',   bg: 'bg-amber-500/15',   text: 'text-amber-400'  },
-  percentage: { label: 'Percentage', bg: 'bg-brand-primary/15',  text: 'text-indigo-400' },
-  formula:    { label: 'Formula',    bg: 'bg-cyan-500/15',    text: 'text-cyan-400'   },
+  variable:   { label: 'Variable',   bg: 'bg-amber-100',   text: 'text-amber-600'  },
+  percentage: { label: 'Percentage', bg: 'bg-brand-primary/10',  text: 'text-brand-primary' },
+  formula:    { label: 'Formula',    bg: 'bg-cyan-100',    text: 'text-cyan-600'   },
 };
 
 const TABS: { key: ConceptCategory | 'all'; label: string }[] = [

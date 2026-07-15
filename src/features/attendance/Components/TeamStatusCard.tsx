@@ -62,9 +62,9 @@ export function TeamStatusCard() {
 
   const STAT_TABS: { key: FilterKey; label: string; count: number; color: string }[] = [
     { key: 'all',           label: 'All',        count: total,           color: 'text-brand-text-secondary'  },
-    { key: 'clocked_in',    label: 'Working',    count: stats.clockedIn, color: 'text-emerald-400'},
-    { key: 'on_break',      label: 'Break',      count: stats.onBreak,   color: 'text-amber-400'  },
-    { key: 'completed',     label: 'Done',       count: stats.completed, color: 'text-indigo-400' },
+    { key: 'clocked_in',    label: 'Working',    count: stats.clockedIn, color: 'text-emerald-600'},
+    { key: 'on_break',      label: 'Break',      count: stats.onBreak,   color: 'text-amber-600'  },
+    { key: 'completed',     label: 'Done',       count: stats.completed, color: 'text-emerald-600' },
     { key: 'not_clocked_in',label: 'Absent',     count: stats.notClockedIn, color: 'text-brand-text-muted'},
   ];
 

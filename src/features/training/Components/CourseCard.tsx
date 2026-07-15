@@ -13,13 +13,13 @@ export function CourseCard({ course, href, showStatus, footer }: {
   footer?: React.ReactNode;
 }) {
   return (
-    <Link href={href} className="block bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary/40 hover:shadow-sm transition">
-      <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+    <Link href={href} className="block bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-brand-primary/40 hover:shadow-sm transition">
+      <div className="h-28 bg-gradient-to-br from-brand-primary/20 to-brand-primary/5 flex items-center justify-center">
         {course.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={course.coverImageUrl} alt={course.title} className="h-full w-full object-cover" />
         ) : (
-          <span className="text-xs font-medium text-primary/70">{course.category}</span>
+          <span className="text-xs font-medium text-brand-primary/70">{course.category}</span>
         )}
       </div>
       <div className="p-4">

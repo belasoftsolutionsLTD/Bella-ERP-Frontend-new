@@ -77,7 +77,7 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
                   step="1"
                   value={form[key as string] ?? ''}
                   onChange={(e) => setForm((f) => ({ ...f, [key as string]: e.target.value }))}
-                  className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
+                  className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 w-full"
                 />
               ) : type === 'checkbox' ? (
                 <button
@@ -86,7 +86,7 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
                   className={`h-10 w-20 rounded-xl border text-xs font-semibold transition-colors ${
                     form[key as string] === 'true'
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : 'bg-gray-50 border-gray-200 text-foreground/50'
+                      : 'bg-gray-50 border-brand-border text-foreground/50'
                   }`}
                 >
                   {form[key as string] === 'true' ? 'Enabled' : 'Disabled'}
@@ -96,7 +96,7 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
                   type="text"
                   value={form[key as string] ?? ''}
                   onChange={(e) => setForm((f) => ({ ...f, [key as string]: e.target.value }))}
-                  className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                 />
               )}
             </div>
@@ -147,7 +147,7 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
                       >Yes</button>
                       <button
                         onClick={() => setConfirmDeleteId(null)}
-                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-brand-border hover:bg-gray-50 transition-colors"
                       >No</button>
                     </div>
                   ) : (

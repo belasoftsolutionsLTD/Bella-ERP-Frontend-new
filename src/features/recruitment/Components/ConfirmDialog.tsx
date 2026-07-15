@@ -17,7 +17,7 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Confirm', onConf
         <p className="text-sm text-slate-500 mt-1">{message}</p>
         <div className="flex justify-end gap-2 mt-5">
           <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button className="bg-primary text-white" onClick={onConfirm}>{confirmLabel}</Button>
+          <Button className="bg-brand-primary text-white" onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </div>
     </div>

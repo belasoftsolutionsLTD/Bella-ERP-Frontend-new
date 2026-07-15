@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
@@ -56,7 +56,7 @@ const PAYMENT_METHODS = [
   { label: 'Crypto',        value: 'crypto'        },
 ];
 
-const inp = 'w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors';
+const inp = 'w-full h-9 px-3 border border-brand-border rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors';
 const sel = `${inp} appearance-none`;
 
 function SectionHeader({ icon: Icon, title, color }: { icon: React.ElementType; title: string; color: string }) {
@@ -87,7 +87,17 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
   });
   const paymentMethod = watch('paymentMethod');
   const bankName = watch('bankName');
+  const grossPay = watch('grossPay');
   const [bankIsOther, setBankIsOther] = useState(false);
+
+  // Gross pay drives job group selection automatically — the tier is looked up from
+  // the entered figure rather than left for HR to guess/pick manually.
+  useEffect(() => {
+    const pay = Number(grossPay);
+    if (!pay || jobGroups.items.length === 0) return;
+    const match = jobGroups.items.find((g: any) => pay >= (g.salaryMin ?? 0) && pay <= (g.salaryMax ?? Infinity));
+    if (match) setValue('jobGroupId', match._id, { shouldValidate: true });
+  }, [grossPay, jobGroups.items, setValue]);
   const departmentOptions = (departments.items.length > 0 ? departments.items : DEPARTMENTS.map(name => ({ name })))
     .map((d) => ({ label: d.name, value: d.name }));
   const designationOptions = (designations.items.length > 0 ? designations.items : DESIGNATIONS.map(name => ({ name })))
@@ -171,7 +181,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                   <input {...register('nationalId')} placeholder="e.g. 12345678" className={inp} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Email</label>
+                  <label className="text-xs font-medium text-slate-600">Email *</label>
                   <input {...register('email')} type="email" placeholder="jane@school.ac.ke" className={inp} />
                 </div>
                 <div className="space-y-1">
@@ -286,7 +296,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
               <SectionHeader icon={CalendarDays} title="Contract Details" color="text-emerald-600 border-emerald-100" />
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Date of Hire</label>
+                  <label className="text-xs font-medium text-slate-600">Date of Hire *</label>
                   <input {...register('dateOfHire')} type="date" className={inp} />
                 </div>
                 <div className="space-y-1">
@@ -331,6 +341,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                     {jobGroups.items.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
                   </select>
                   {jobGroups.items.length === 0 && <p className="text-[10px] text-amber-600">No job groups defined yet — create one in People Settings first.</p>}
+                  {jobGroups.items.length > 0 && <p className="text-[10px] text-brand-text-muted">Auto-selected from gross pay — override if needed.</p>}
                   {errors.jobGroupId && <p className="text-xs text-red-500">{errors.jobGroupId.message}</p>}
                 </div>
                 <div className="col-span-2 space-y-1">
@@ -423,7 +434,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                   <input {...register('nokNationalId')} placeholder="e.g. 12345678" className={inp} />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Email</label>
+                  <label className="text-xs font-medium text-slate-600">Email *</label>
                   <input {...register('nokEmail')} type="email" placeholder="nextofkin@example.com" className={inp} />
                 </div>
               </div>
@@ -437,7 +448,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-medium text-slate-600"
+            className="px-4 py-2 text-sm border border-brand-border rounded-xl hover:bg-gray-50 transition-colors font-medium text-slate-600"
           >
             Cancel
           </button>

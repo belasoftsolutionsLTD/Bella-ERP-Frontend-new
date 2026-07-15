@@ -48,7 +48,7 @@ function AssignTab() {
               <option value="">All departments</option>
               {departments.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
-            <button onClick={selectAllFiltered} className="text-xs text-primary hover:underline">Select all</button>
+            <button onClick={selectAllFiltered} className="text-xs text-brand-primary hover:underline">Select all</button>
           </div>
         </div>
         <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
@@ -76,7 +76,7 @@ function AssignTab() {
         <label className="block text-xs text-brand-text-muted">Due date (optional)
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
         </label>
-        <Button className="bg-primary text-white w-full" disabled={!selected.length || !target.id} onClick={submit}>
+        <Button className="bg-brand-primary text-white w-full" disabled={!selected.length || !target.id} onClick={submit}>
           Assign to {selected.length} employee{selected.length !== 1 ? 's' : ''}
         </Button>
       </div>
@@ -119,7 +119,7 @@ function RulesTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button size="sm" className="bg-primary text-white" onClick={() => setShowNew((s) => !s)}><Plus className="h-4 w-4 mr-1" /> New Rule</Button>
+        <Button size="sm" className="bg-brand-primary text-white" onClick={() => setShowNew((s) => !s)}><Plus className="h-4 w-4 mr-1" /> New Rule</Button>
       </div>
       {showNew && (
         <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
@@ -173,7 +173,7 @@ function RulesTab() {
             <label className="flex items-center gap-2 text-xs text-brand-text-muted"><input type="checkbox" checked={form.notifyEmployee} onChange={(e) => setForm((f) => ({ ...f, notifyEmployee: e.target.checked }))} /> Notify employee</label>
             <label className="flex items-center gap-2 text-xs text-brand-text-muted"><input type="checkbox" checked={form.notifyManager} onChange={(e) => setForm((f) => ({ ...f, notifyManager: e.target.checked }))} /> Notify manager</label>
           </div>
-          <Button size="sm" className="bg-primary text-white" onClick={submit} disabled={!form.name || !form.enrollInCourseIds.length}>Create Rule</Button>
+          <Button size="sm" className="bg-brand-primary text-white" onClick={submit} disabled={!form.name || !form.enrollInCourseIds.length}>Create Rule</Button>
         </div>
       )}
       <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
@@ -197,7 +197,7 @@ function RulesTab() {
               <label className="flex items-center gap-1.5 text-xs text-brand-text-muted">
                 <input type="checkbox" checked={r.isActive} onChange={(e) => updateRule(r._id, { isActive: e.target.checked })} /> Active
               </label>
-              <button onClick={() => runRuleNow(r._id)} className="text-xs text-primary hover:underline">Run Now</button>
+              <button onClick={() => runRuleNow(r._id)} className="text-xs text-brand-primary hover:underline">Run Now</button>
             </div>
           </div>
           );
@@ -233,7 +233,7 @@ export function AssignmentCenterPage() {
       </div>
       <div className="flex gap-1 border-b border-brand-border">
         {(['assign', 'rules', 'queue'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-brand-text-secondary'}`}>{t}</button>
+          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-brand-primary border-b-2 border-brand-primary font-medium' : 'text-brand-text-secondary'}`}>{t}</button>
         ))}
       </div>
       {tab === 'assign' && <AssignTab />}

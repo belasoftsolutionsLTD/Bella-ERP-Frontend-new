@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DocViewerModal } from '@/components/custom-ui/DocViewerModal';
 import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
+import { SkillPicker } from '@/components/custom-ui/SkillPicker';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/configs/constants';
 import { downloadFile, openFile } from '@/functions/downloadFile';
@@ -53,40 +54,53 @@ const NOTIF_COLORS: Record<string, string> = {
   general:      'bg-gray-100 text-gray-600',
 };
 
-const NAV: { key: Section | 'my-training' | 'my-onboarding' | 'my-offboarding' | 'my-leave'; label: string; icon: typeof User; description: string; href?: string }[] = [
-  // ── Daily essentials ──
-  { key: 'profile',      label: 'My Profile',          icon: User,          description: 'Personal & contact info' },
-  { key: 'inbox',        label: 'Inbox',                icon: Bell,          description: 'Approvals & action items' },
-  // ── Time & attendance ──
-  { key: 'attendance',   label: 'Attendance',           icon: Clock,         description: 'Daily records & clock-in' },
-  { key: 'timesheets',   label: 'Timesheets',           icon: Clock,         description: 'Weekly timesheets & hours logged' },
-  { key: 'shifts',       label: 'My Shifts',            icon: CalendarDays,  description: 'Upcoming shifts & open shift applications' },
-  { key: 'my-leave',     label: 'Leave',                icon: CalendarDays,  description: 'Balance & requests', href: '/my/leave' },
-  // ── Tasks & work ──
-  { key: 'tasks',        label: 'My Tasks',             icon: CheckCircle2,  description: 'Tasks assigned by HR' },
-  { key: 'projects',     label: 'My Projects',          icon: Briefcase,     description: 'Projects you are a member of' },
-  { key: 'jd',           label: 'Job Description',      icon: FileText,      description: 'Your role & responsibilities' },
-  { key: 'skills',       label: 'Skills & Qualifications', icon: GraduationCap, description: 'Skills, certifications & education' },
+const NAV: { key: Section | 'my-training' | 'my-onboarding' | 'my-offboarding' | 'my-leave'; label: string; icon: typeof User; description: string; href?: string; group: string }[] = [
+  // ── Overview ──
+  { key: 'profile',      label: 'My Profile',          icon: User,          description: 'Personal & contact info', group: 'Overview' },
+  { key: 'inbox',        label: 'Inbox',                icon: Bell,          description: 'Approvals & action items', group: 'Overview' },
+  // ── Time & Attendance ──
+  { key: 'attendance',   label: 'Attendance',           icon: Clock,         description: 'Daily records & clock-in', group: 'Time & Attendance' },
+  { key: 'timesheets',   label: 'Timesheets',           icon: Clock,         description: 'Weekly timesheets & hours logged', group: 'Time & Attendance' },
+  { key: 'shifts',       label: 'My Shifts',            icon: CalendarDays,  description: 'Upcoming shifts & open shift applications', group: 'Time & Attendance' },
+  { key: 'my-leave',     label: 'Leave',                icon: CalendarDays,  description: 'Balance & requests', href: '/my/leave', group: 'Time & Attendance' },
+  { key: 'events',       label: 'Events & Schedule',    icon: CalendarDays,  description: 'Upcoming training & team building', group: 'Time & Attendance' },
+  // ── My Work ──
+  { key: 'tasks',        label: 'My Tasks',             icon: CheckCircle2,  description: 'Tasks assigned by HR', group: 'My Work' },
+  { key: 'projects',     label: 'My Projects',          icon: Briefcase,     description: 'Projects you are a member of', group: 'My Work' },
   // ── Finance ──
-  { key: 'payslips',     label: 'Payslips',             icon: DollarSign,    description: 'Monthly payroll history' },
-  { key: 'expenses',     label: 'My Expenses',          icon: DollarSign,    description: 'Submit & track claims' },
-  { key: 'requests',     label: 'My Requests',          icon: ShoppingCart,  description: 'Purchase requests & approvals' },
-  { key: 'payment',      label: 'Payment Methods',      icon: CreditCard,    description: 'Bank & M-Pesa details' },
+  { key: 'payslips',     label: 'Payslips',             icon: DollarSign,    description: 'Monthly payroll history', group: 'Finance' },
+  { key: 'expenses',     label: 'My Expenses',          icon: DollarSign,    description: 'Submit & track claims', group: 'Finance' },
+  { key: 'requests',     label: 'My Requests',          icon: ShoppingCart,  description: 'Purchase requests & approvals', group: 'Finance' },
+  { key: 'payment',      label: 'Payment Methods',      icon: CreditCard,    description: 'Bank & M-Pesa details', group: 'Finance' },
   // ── Growth ──
-  { key: 'jobs',         label: 'Internal Jobs',        icon: Briefcase,     description: 'Open vacancies & apply internally' },
-  { key: 'my-training',  label: 'My Training',          icon: BookOpen,      description: 'Courses, certificates & learning paths', href: '/my/training' },
-  { key: 'performance',  label: 'My Performance',       icon: BarChart3,     description: 'Goals, reviews & appraisal history' },
-  { key: 'awards',       label: 'Awards & Recognition', icon: Trophy,        description: 'Kudos, leaderboard & certifications' },
+  { key: 'my-training',  label: 'My Training',          icon: BookOpen,      description: 'Courses, certificates & learning paths', href: '/my/training', group: 'Growth' },
+  { key: 'performance',  label: 'My Performance',       icon: BarChart3,     description: 'Goals, reviews & appraisal history', group: 'Growth' },
+  { key: 'skills',       label: 'Skills & Qualifications', icon: GraduationCap, description: 'Skills, certifications & education', group: 'Growth' },
+  { key: 'awards',       label: 'Awards & Recognition', icon: Trophy,        description: 'Kudos, leaderboard & certifications', group: 'Growth' },
+  { key: 'jobs',         label: 'Internal Jobs',        icon: Briefcase,     description: 'Open vacancies & apply internally', group: 'Growth' },
   // ── Communication ──
-  { key: 'messages',     label: 'Communication',        icon: MessageSquare, description: 'Feed, 1:1 meetings & announcements' },
-  { key: 'events',       label: 'Events & Schedule',    icon: CalendarDays,  description: 'Upcoming training & team building' },
-  // ── Documents & onboarding ──
-  { key: 'documents',    label: 'My Documents',         icon: FolderOpen,    description: 'Certificates & files' },
-  { key: 'my-onboarding',  label: 'Onboarding',         icon: ClipboardList, description: 'Tasks & checklist', href: '/my/onboarding' },
-  { key: 'my-offboarding', label: 'Offboarding',        icon: ClipboardList, description: 'Exit checklist', href: '/my/offboarding' },
-  // ── Policies ──
-  { key: 'terms',        label: 'Terms & Conditions',   icon: Shield,        description: 'Policies & agreements' },
+  { key: 'messages',     label: 'Communication',        icon: MessageSquare, description: 'Feed, 1:1 meetings & announcements', group: 'Communication' },
+  // ── My Documents ──
+  { key: 'documents',    label: 'My Documents',         icon: FolderOpen,    description: 'Certificates & files', group: 'My Documents' },
+  { key: 'jd',           label: 'Job Description',      icon: FileText,      description: 'Your role & responsibilities', group: 'My Documents' },
+  { key: 'terms',        label: 'Terms & Conditions',   icon: Shield,        description: 'Policies & agreements', group: 'My Documents' },
+  // ── Employment Lifecycle ──
+  { key: 'my-onboarding',  label: 'Onboarding',         icon: ClipboardList, description: 'Tasks & checklist', href: '/my/onboarding', group: 'Employment Lifecycle' },
+  { key: 'my-offboarding', label: 'Offboarding',        icon: ClipboardList, description: 'Exit checklist', href: '/my/offboarding', group: 'Employment Lifecycle' },
 ];
+
+// Section headers rendered above each group, in this order — derived once from NAV
+// rather than hand-maintained separately, so adding an item to a group's block above
+// is enough; no second place to keep in sync.
+const NAV_GROUPS: { label: string; items: typeof NAV }[] = (() => {
+  const order: string[] = [];
+  const byGroup = new Map<string, typeof NAV>();
+  for (const item of NAV) {
+    if (!byGroup.has(item.group)) { byGroup.set(item.group, []); order.push(item.group); }
+    byGroup.get(item.group)!.push(item);
+  }
+  return order.map((label) => ({ label, items: byGroup.get(label)! }));
+})();
 
 function ProfilePhotoAvatar({ profile }: { profile: { fullName: string; photoPath?: string } }) {
   const token = typeof window !== 'undefined' ? (sessionStorage.getItem('token') ?? '') : '';
@@ -218,7 +232,7 @@ export function MyPortalView() {
             ? 'fixed inset-y-4 left-4 z-50 w-72 max-h-[calc(100vh-2rem)]'
             : 'hidden lg:flex',
         )}>
-          <div className="bg-brand-sidebar p-5 text-white">
+          <div className="bg-brand-primary p-5 text-white">
             <div className="flex items-center gap-3 mb-3">
               <ProfilePhotoAvatar profile={profile} />
 
@@ -242,26 +256,33 @@ export function MyPortalView() {
           </div>
 
           <nav className="flex-1 overflow-y-auto py-2 px-2">
-            {NAV.map(({ key, label, icon: Icon, description, href }) => {
-              const isActive = active === key;
-              const badge = navBadge(key);
-              return (
-                <button key={key} onClick={() => { href ? router.push(`/${locale}${href}`) : setActive(key as Section); setShowSidebar(false); }}
-                  className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all mb-0.5',
-                    isActive ? 'bg-brand-primary text-white shadow-sm' : 'text-brand-text-secondary hover:bg-brand-bg-muted hover:text-brand-text')}>
-                  <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0', isActive ? 'bg-white/20' : 'bg-brand-bg-muted')}>
-                    <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-brand-text-secondary')} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn('text-sm font-medium', isActive ? 'text-white' : 'text-brand-text')}>{label}</p>
-                    <p className={cn('text-xs truncate', isActive ? 'text-white/60' : 'text-brand-text-muted')}>{description}</p>
-                  </div>
-                  {badge
-                    ? <span className={cn('h-5 min-w-5 px-1.5 rounded-full text-xs font-bold flex items-center justify-center shrink-0', isActive ? 'bg-white text-brand-primary' : 'bg-brand-primary text-white')}>{badge}</span>
-                    : <ChevronRight className={cn('h-3.5 w-3.5 shrink-0', isActive ? 'text-white/60' : 'text-brand-text-muted')} />}
-                </button>
-              );
-            })}
+            {NAV_GROUPS.map(({ label: groupLabel, items }) => (
+              <div key={groupLabel}>
+                <p className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-brand-text-muted select-none first:pt-1.5">
+                  {groupLabel}
+                </p>
+                {items.map(({ key, label, icon: Icon, description, href }) => {
+                  const isActive = active === key;
+                  const badge = navBadge(key);
+                  return (
+                    <button key={key} onClick={() => { href ? router.push(`/${locale}${href}`) : setActive(key as Section); setShowSidebar(false); }}
+                      className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all mb-0.5',
+                        isActive ? 'bg-brand-primary text-white shadow-sm' : 'text-brand-text-secondary hover:bg-brand-bg-muted hover:text-brand-text')}>
+                      <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0', isActive ? 'bg-white/20' : 'bg-brand-bg-muted')}>
+                        <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-brand-text-secondary')} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn('text-sm font-medium', isActive ? 'text-white' : 'text-brand-text')}>{label}</p>
+                        <p className={cn('text-xs truncate', isActive ? 'text-white/60' : 'text-brand-text-muted')}>{description}</p>
+                      </div>
+                      {badge
+                        ? <span className={cn('h-5 min-w-5 px-1.5 rounded-full text-xs font-bold flex items-center justify-center shrink-0', isActive ? 'bg-white text-brand-primary' : 'bg-brand-primary text-white')}>{badge}</span>
+                        : <ChevronRight className={cn('h-3.5 w-3.5 shrink-0', isActive ? 'text-white/60' : 'text-brand-text-muted')} />}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </aside>
 
@@ -652,7 +673,7 @@ function ProfilePanel({ profile, onSave, onEditPayment, onContactHR, onNavigate 
               <div className="h-9 w-9 rounded-lg bg-current/10 flex items-center justify-center shrink-0 text-primary"><User className="h-4 w-4" /></div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-foreground/50 font-medium uppercase tracking-wide mb-1">Gender</p>
-                <select value={gender} onChange={e => setGender(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <select value={gender} onChange={e => setGender(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
                   <option value="">Not specified</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -666,7 +687,7 @@ function ProfilePanel({ profile, onSave, onEditPayment, onContactHR, onNavigate 
               <div className="h-9 w-9 rounded-lg bg-current/10 flex items-center justify-center shrink-0 text-primary"><Heart className="h-4 w-4" /></div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-foreground/50 font-medium uppercase tracking-wide mb-1">Marital Status</p>
-                <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
                   <option value="">Not specified</option>
                   <option value="single">Single</option>
                   <option value="married">Married</option>
@@ -685,7 +706,7 @@ function ProfilePanel({ profile, onSave, onEditPayment, onContactHR, onNavigate 
             <div className="h-9 w-9 rounded-lg bg-current/10 flex items-center justify-center shrink-0 text-orange-600"><CalendarDays className="h-4 w-4" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-foreground/50 font-medium uppercase tracking-wide mb-1">Passport Expiry</p>
-              <input type="date" value={passportExpiryDate} onChange={e => setPassportExpiryDate(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <input type="date" value={passportExpiryDate} onChange={e => setPassportExpiryDate(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
             </div>
           </div>
         )}
@@ -728,10 +749,10 @@ function ProfilePanel({ profile, onSave, onEditPayment, onContactHR, onNavigate 
         {showContactForm && (
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2 mb-3">
             <div className="grid grid-cols-2 gap-2">
-              <input value={contactForm.name} onChange={e => setContactForm(f => ({ ...f, name: e.target.value }))} placeholder="Name *" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
-              <input value={contactForm.relationship} onChange={e => setContactForm(f => ({ ...f, relationship: e.target.value }))} placeholder="Relationship" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
-              <input value={contactForm.phone} onChange={e => setContactForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone *" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
-              <input value={contactForm.email} onChange={e => setContactForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={contactForm.name} onChange={e => setContactForm(f => ({ ...f, name: e.target.value }))} placeholder="Name *" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+              <input value={contactForm.relationship} onChange={e => setContactForm(f => ({ ...f, relationship: e.target.value }))} placeholder="Relationship" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+              <input value={contactForm.phone} onChange={e => setContactForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone *" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+              <input value={contactForm.email} onChange={e => setContactForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" className="h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="flex gap-2">
               <button onClick={addEmergencyContact} disabled={savingContact} className="flex items-center gap-1.5 h-8 px-3 bg-primary text-white text-xs font-semibold rounded-lg disabled:opacity-50">
@@ -873,7 +894,7 @@ function PaymentPanel({ profile, onSave }: { profile: any; onSave: (d: Record<st
               {PAYMENT_METHODS.map(m => (
                 <button key={m.value} type="button" onClick={() => setMethod(m.value)}
                   className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors',
-                    method === m.value ? 'bg-primary text-white border-primary' : 'border-gray-200 text-foreground/60 hover:border-primary/40 hover:text-primary')}>
+                    method === m.value ? 'bg-primary text-white border-primary' : 'border-brand-border text-foreground/60 hover:border-primary/40 hover:text-primary')}>
                   {m.label}
                 </button>
               ))}
@@ -971,7 +992,7 @@ function EditField({ icon: Icon, label, value, onChange, color = 'text-primary' 
       <div className={cn('h-9 w-9 rounded-lg bg-current/10 flex items-center justify-center shrink-0', color)}><Icon className="h-4 w-4" /></div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-foreground/50 font-medium uppercase tracking-wide mb-1">{label}</p>
-        <input value={value} onChange={e => onChange(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        <input value={value} onChange={e => onChange(e.target.value)} className="w-full text-sm font-semibold bg-white border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
       </div>
     </div>
   );
@@ -1053,7 +1074,7 @@ function IdentityDocumentSection({ docs, onUploaded, onDeleted }: {
             {IDENTITY_DOC_CONFIG.map(cfg => (
               <button key={cfg.label} type="button" onClick={() => { setChosenLabel(cfg.label); setFiles({}); }}
                 className={cn('rounded-lg border px-3 py-2.5 text-sm font-medium text-left transition-colors',
-                  chosenLabel === cfg.label ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 bg-white text-foreground/70 hover:border-primary/30')}>
+                  chosenLabel === cfg.label ? 'border-primary bg-primary/5 text-primary' : 'border-brand-border bg-white text-foreground/70 hover:border-primary/30')}>
                 {cfg.label}
               </button>
             ))}
@@ -1123,7 +1144,7 @@ function DocumentsPanel({ docs, onDeleted, onUploaded, employeeId: _employeeId }
           <div>
             <label className="text-xs font-medium text-foreground/60 block mb-1">Document Type</label>
             <select value={docType} onChange={e => setDocType(e.target.value)}
-              className="w-full h-9 px-3 text-sm border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
+              className="w-full h-9 px-3 text-sm border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20">
               {DOC_TYPES.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
@@ -1337,7 +1358,7 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
                         value={logForm.hours}
                         onChange={e => setLogForm(f => ({ ...f, hours: e.target.value }))}
                         placeholder="e.g. 2.5"
-                        className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                       />
                     </div>
                     <div>
@@ -1346,7 +1367,7 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
                         type="date"
                         value={logForm.date}
                         onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))}
-                        className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                       />
                     </div>
                   </div>
@@ -1356,7 +1377,7 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
                       value={logForm.task}
                       onChange={e => setLogForm(f => ({ ...f, task: e.target.value }))}
                       placeholder="e.g. Frontend design, Client meeting"
-                      className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                     />
                   </div>
                   <div>
@@ -1366,7 +1387,7 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
                       onChange={e => setLogForm(f => ({ ...f, description: e.target.value }))}
                       rows={2}
                       placeholder="What did you work on?"
-                      className="w-full px-3 py-2 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full px-3 py-2 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -1488,7 +1509,7 @@ function PerformancePanel({ appraisals, reviewResults }: {
                   )}
                 </div>
                 {r.recommendation && (
-                  <p className="text-xs text-foreground/60 border-l-2 border-gray-200 pl-3 italic">{r.recommendation}</p>
+                  <p className="text-xs text-foreground/60 border-l-2 border-brand-border pl-3 italic">{r.recommendation}</p>
                 )}
                 {r.responses?.length > 0 && (
                   <div className="space-y-1.5 pt-1 border-t">
@@ -1525,7 +1546,7 @@ function PerformancePanel({ appraisals, reviewResults }: {
                     </span>
                   </div>
                 </div>
-                {r.comments && <p className="text-sm text-foreground/70 italic border-l-2 border-gray-200 pl-3">"{r.comments}"</p>}
+                {r.comments && <p className="text-sm text-foreground/70 italic border-l-2 border-brand-border pl-3">"{r.comments}"</p>}
                 <div className="grid grid-cols-2 gap-4">
                   {r.goalsSet?.length > 0 && (
                     <div>
@@ -1579,7 +1600,6 @@ function SkillsPanel({ initialSkills, initialCertifications, initialEducation }:
   const [skills, setSkills] = useState<string[]>(initialSkills ?? []);
   const [certifications, setCertifications] = useState<MyCertification[]>(initialCertifications ?? []);
   const [education, setEducation] = useState<MyEducation[]>(initialEducation ?? []);
-  const [skillInput, setSkillInput] = useState('');
   const [savingSkill, setSavingSkill] = useState(false);
 
   const [showCertForm, setShowCertForm] = useState(false);
@@ -1597,12 +1617,7 @@ function SkillsPanel({ initialSkills, initialCertifications, initialEducation }:
       thenFn: () => setSkills(next), finallyFn: () => setSavingSkill(false),
     });
   };
-  const addSkill = () => {
-    const v = skillInput.trim();
-    if (!v || skills.includes(v)) return;
-    setSkillInput('');
-    saveSkills([...skills, v]);
-  };
+  const addSkill = (skill: string) => saveSkills([...skills, skill]);
   const removeSkill = (s: string) => saveSkills(skills.filter(x => x !== s));
 
   const addCert = () => {
@@ -1635,7 +1650,7 @@ function SkillsPanel({ initialSkills, initialCertifications, initialEducation }:
       thenFn: () => setEducation(e => e.filter(x => x.id !== id)) });
   };
 
-  const inp = 'h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30';
+  const inp = 'h-9 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary/30';
 
   return (
     <div className="space-y-4">
@@ -1645,19 +1660,20 @@ function SkillsPanel({ initialSkills, initialCertifications, initialEducation }:
         <div className="flex flex-wrap gap-2 mb-3">
           {skills.length === 0 && <p className="text-sm text-foreground/40">No skills added yet.</p>}
           {skills.map(s => (
-            <span key={s} className="flex items-center gap-1.5 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+            <span key={s} className="flex items-center gap-1.5 text-xs font-medium bg-brand-primary/10 text-brand-primary px-2.5 py-1 rounded-full">
               {s}
               <button onClick={() => removeSkill(s)} disabled={savingSkill} className="hover:text-red-600"><X className="h-3 w-3" /></button>
             </span>
           ))}
         </div>
-        <div className="flex gap-2">
-          <input value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
-            placeholder="Add a skill…" className={cn(inp, 'flex-1')} />
-          <button onClick={addSkill} disabled={savingSkill || !skillInput.trim()} className="flex items-center gap-1 h-9 px-3 bg-primary text-white text-xs font-semibold rounded-lg disabled:opacity-50">
-            {savingSkill ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add
-          </button>
-        </div>
+        <SkillPicker
+          existing={skills}
+          saving={savingSkill}
+          onAdd={addSkill}
+          selectClassName={inp}
+          inputClassName={cn(inp, 'flex-1')}
+          buttonClassName="flex items-center gap-1 h-9 px-3 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold rounded-lg disabled:opacity-50"
+        />
       </div>
 
       {/* Certifications */}
@@ -2279,18 +2295,18 @@ function ExpensesPanel() {
                 <div key={i} className="bg-background border border-border rounded-lg p-3 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <select value={it.category} onChange={e => updateItem(i, 'category', e.target.value)}
-                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary">
                       <option value="">Category…</option>
                       {EXPENSE_CATEGORIES.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
                     </select>
                     <input type="number" value={it.amount} onChange={e => updateItem(i, 'amount', e.target.value)} placeholder="Amount (KES)"
-                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
                   </div>
                   <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
                     <input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Description"
-                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
                     <input type="date" value={it.expenseDate} onChange={e => updateItem(i, 'expenseDate', e.target.value)}
-                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                      className="h-9 px-2 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
                     <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1}
                       className="h-9 w-9 rounded-lg bg-red-500/10 text-red-500 disabled:opacity-30 flex items-center justify-center">×</button>
                   </div>
@@ -2309,7 +2325,7 @@ function ExpensesPanel() {
               <div>
                 <label className="block text-xs text-foreground/50 mb-1">Category</label>
                 <select value={category} onChange={e => setCategory(e.target.value)}
-                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary">
                   <option value="">Select…</option>
                   {EXPENSE_CATEGORIES.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
                 </select>
@@ -2317,7 +2333,7 @@ function ExpensesPanel() {
               <div>
                 <label className="block text-xs text-foreground/50 mb-1">Amount (KES)</label>
                 <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" required
-                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
               </div>
             </div>
           )}
@@ -2328,18 +2344,18 @@ function ExpensesPanel() {
               <div>
                 <label className="block text-xs text-foreground/50 mb-1">Destination</label>
                 <input value={destination} onChange={e => setDest(e.target.value)} placeholder="e.g. Mombasa" required
-                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-foreground/50 mb-1">Start Date</label>
                   <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required
-                    className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                    className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
                 </div>
                 <div>
                   <label className="block text-xs text-foreground/50 mb-1">End Date</label>
                   <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required
-                    className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                    className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
                 </div>
               </div>
             </div>
@@ -2351,7 +2367,7 @@ function ExpensesPanel() {
               <div>
                 <label className="block text-xs text-foreground/50 mb-1">Distance (km)</label>
                 <input type="number" value={distanceKm} onChange={e => setDist(e.target.value)} placeholder="0" required
-                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                  className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
               </div>
               <div className="flex items-end pb-1">
                 <label className="flex items-center gap-2 text-sm text-foreground/60 cursor-pointer">
@@ -2368,12 +2384,12 @@ function ExpensesPanel() {
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Date</label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Description</label>
               <input value={description} onChange={e => setDesc(e.target.value)} placeholder="What was this for?"
-                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
           )}
@@ -2381,7 +2397,7 @@ function ExpensesPanel() {
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Notes for approver (optional)</label>
               <input value={description} onChange={e => setDesc(e.target.value)} placeholder="Add context…"
-                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
             </div>
           )}
 
@@ -2531,28 +2547,28 @@ function RequestsPanel() {
           <div>
             <label className="block text-xs text-foreground/50 mb-1">Title <span className="text-red-500">*</span></label>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="What do you need?" required
-              className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+              className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
           </div>
           <div>
             <label className="block text-xs text-foreground/50 mb-1">Description</label>
             <textarea value={description} onChange={e => setDesc(e.target.value)} rows={2}
-              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary resize-none" />
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary resize-none" />
           </div>
           <div>
             <label className="block text-xs text-foreground/50 mb-1">Justification</label>
             <textarea value={justification} onChange={e => setJustification(e.target.value)} rows={2} placeholder="Why is this needed?"
-              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary resize-none" />
+              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Estimated Cost (KES) <span className="text-red-500">*</span></label>
               <input type="number" value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)} placeholder="0.00" required
-                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
             </div>
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Priority</label>
               <select value={priority} onChange={e => setPriority(e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary">
                 {['urgent', 'high', 'normal', 'low'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>
             </div>
@@ -2561,7 +2577,7 @@ function RequestsPanel() {
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Vendor</label>
               <select value={vendorId} onChange={e => setVendorId(e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary">
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary">
                 <option value="">No preferred vendor</option>
                 {vendors.map((v: any) => <option key={v._id} value={v._id}>{v.name}</option>)}
               </select>
@@ -2569,7 +2585,7 @@ function RequestsPanel() {
             <div>
               <label className="block text-xs text-foreground/50 mb-1">Needed By</label>
               <input type="date" value={neededBy} onChange={e => setNeededBy(e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-primary" />
+                className="w-full h-9 px-3 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-primary" />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-1">

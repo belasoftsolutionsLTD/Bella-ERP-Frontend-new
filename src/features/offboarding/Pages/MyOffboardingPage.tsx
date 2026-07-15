@@ -9,7 +9,7 @@ import { useMyOffboarding } from '../Hooks/useMyOffboarding';
 import type { OffboardingTask, GeneratedDocumentType } from '../types';
 
 const TASK_STATUS_ICON: Record<string, JSX.Element> = {
-  pending:    <Circle className="h-5 w-5 text-slate-300" />,
+  pending:    <Circle className="h-5 w-5 text-brand-text-secondary" />,
   inProgress: <Clock className="h-5 w-5 text-amber-500" />,
   completed:  <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
   overdue:    <AlertTriangle className="h-5 w-5 text-red-500" />,
@@ -27,7 +27,7 @@ function StarInput({ value, onChange }: { value: number; onChange: (v: number) =
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map(i => (
         <button key={i} type="button" onClick={() => onChange(i)}>
-          <Star className={cn('h-6 w-6 transition-colors', i <= value ? 'text-amber-400 fill-amber-400' : 'text-slate-200 hover:text-amber-200')} />
+          <Star className={cn('h-6 w-6 transition-colors', i <= value ? 'text-amber-400 fill-amber-400' : 'text-brand-text hover:text-amber-200')} />
         </button>
       ))}
     </div>
@@ -93,7 +93,7 @@ function ExitInterviewForm({ onSubmit }: { onSubmit: (data: any) => void }) {
       <div>
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Reason for Leaving <span className="text-red-500">*</span></label>
         <textarea value={reasonForLeaving} onChange={e => setReasonForLeaving(e.target.value)} rows={2}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none" />
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-primary/40 resize-none" />
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
@@ -124,13 +124,13 @@ function ExitInterviewForm({ onSubmit }: { onSubmit: (data: any) => void }) {
       <div>
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Suggestions</label>
         <textarea value={suggestions} onChange={e => setSuggestions(e.target.value)} rows={2}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none" />
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-primary/40 resize-none" />
       </div>
 
       <div>
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Additional Comments</label>
         <textarea value={additionalComments} onChange={e => setAdditionalComments(e.target.value)} rows={2}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none" />
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-primary/40 resize-none" />
       </div>
 
       <button onClick={handleSubmit} disabled={!canSubmit || submitting}
@@ -152,7 +152,7 @@ export default function MyOffboardingPage() {
   if (!record) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-        <CheckCircle2 className="h-12 w-12 text-slate-300" />
+        <CheckCircle2 className="h-12 w-12 text-brand-text-secondary" />
         <p className="text-sm font-medium text-slate-600">No offboarding record found.</p>
         <p className="text-xs text-slate-400">You don't have an active offboarding process right now.</p>
       </div>
@@ -164,7 +164,7 @@ export default function MyOffboardingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">My Offboarding</h1>
+        <h1 className="text-xl font-semibold text-brand-text">My Offboarding</h1>
         <p className="text-sm text-slate-400">Everything you need to know before your last working day.</p>
       </div>
 

@@ -88,12 +88,12 @@ export function DeductionsPanel({ items, loading, jobGroups, onCreate, onUpdate,
               <label className="text-xs text-foreground/60">Deduction Name *</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. SACCO Contribution"
-                className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-xs text-foreground/60">Type</label>
-              <div className="flex rounded-xl border border-gray-200 overflow-hidden h-10">
+              <div className="flex rounded-xl border border-brand-border overflow-hidden h-10">
                 {(['fixed', 'percentage'] as const).map(t => (
                   <button key={t} type="button" onClick={() => setForm(f => ({ ...f, type: t }))}
                     className={`px-4 text-xs font-medium transition-colors ${
@@ -118,14 +118,14 @@ export function DeductionsPanel({ items, loading, jobGroups, onCreate, onUpdate,
                 <input type="number" step="0.1" min="0" max="100" value={form.percentage}
                   onChange={e => setForm(f => ({ ...f, percentage: e.target.value }))}
                   placeholder="e.g. 5"
-                  className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
               </div>
             )}
 
             <div className="flex flex-col gap-1 min-w-[200px]">
               <label className="text-xs text-foreground/60">Description</label>
               <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
           </div>
 
@@ -144,7 +144,7 @@ export function DeductionsPanel({ items, loading, jobGroups, onCreate, onUpdate,
                         className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
                           selected
                             ? 'bg-primary text-white border-primary'
-                            : 'border-gray-200 text-foreground/60 hover:border-primary/40 hover:bg-primary/5'
+                            : 'border-brand-border text-foreground/60 hover:border-primary/40 hover:bg-primary/5'
                         }`}>
                         {g.name}
                         {g.salaryMin != null && g.salaryMax != null && (
@@ -219,7 +219,7 @@ export function DeductionsPanel({ items, loading, jobGroups, onCreate, onUpdate,
                         <button onClick={() => { onDelete(item._id); setConfirmDeleteId(null); }}
                           className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700">Yes</button>
                         <button onClick={() => setConfirmDeleteId(null)}
-                          className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50">No</button>
+                          className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-brand-border hover:bg-gray-50">No</button>
                       </div>
                     ) : (
                       <div className="flex justify-end gap-2">

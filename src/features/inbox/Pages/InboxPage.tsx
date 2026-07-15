@@ -93,7 +93,7 @@ function ItemRow({
       onClick={onSelect}
       className="group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors rounded-xl"
       style={{
-        background: selected ? '#1e1b4b' : isUnread ? '#1e293b' : 'transparent',
+        background: selected ? '#eef2ff' : isUnread ? '#f1f5f9' : 'transparent',
         borderLeft: isUnread ? '3px solid #6366f1' : '3px solid transparent',
       }}
     >
@@ -135,7 +135,7 @@ function ItemRow({
               className="h-7 w-7 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center transition-colors"
               title="Decline"
             >
-              <X className="h-3.5 w-3.5 text-red-400" />
+              <X className="h-3.5 w-3.5 text-status-danger-text" />
             </button>
           </div>
         )}
@@ -162,8 +162,8 @@ function LeaveDetail({ item, onAction }: { item: InboxItemDetail; onAction: (act
     <div className="space-y-4">
       {/* Employee card */}
       {emp && (
-        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#0f172a' }}>
-          <div className="h-14 w-14 rounded-full bg-brand-primary/30 flex items-center justify-center text-xl font-bold text-indigo-300">
+        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#ffffff' }}>
+          <div className="h-14 w-14 rounded-full bg-brand-primary/10 flex items-center justify-center text-xl font-bold text-brand-primary">
             {String(emp.fullName || '?')[0]}
           </div>
           <div>
@@ -175,7 +175,7 @@ function LeaveDetail({ item, onAction }: { item: InboxItemDetail; onAction: (act
 
       {/* Details */}
       {ref && (
-        <div className="rounded-xl p-4 space-y-2.5" style={{ background: '#0f172a' }}>
+        <div className="rounded-xl p-4 space-y-2.5" style={{ background: '#ffffff' }}>
           {[
             { label: 'Leave type', value: String(ref.leaveType || '—') },
             { label: 'From', value: formatDate(String(ref.startDate || '')) },
@@ -201,7 +201,7 @@ function LeaveDetail({ item, onAction }: { item: InboxItemDetail; onAction: (act
                 <Check className="h-4 w-4" /> Approve
               </button>
               <button onClick={() => setDeclining(true)}
-                className="h-12 rounded-xl border border-red-500/50 text-red-400 hover:bg-red-500/10 font-semibold flex items-center justify-center gap-2 transition-colors">
+                className="h-12 rounded-xl border border-red-500/50 text-status-danger-text hover:bg-red-500/10 font-semibold flex items-center justify-center gap-2 transition-colors">
                 <X className="h-4 w-4" /> Decline
               </button>
             </div>
@@ -243,7 +243,7 @@ function ExpenseDetail({ item, onAction }: { item: InboxItemDetail; onAction: (a
   return (
     <div className="space-y-4">
       {emp && (
-        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#0f172a' }}>
+        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#ffffff' }}>
           <div className="h-14 w-14 rounded-full bg-green-600/30 flex items-center justify-center text-xl font-bold text-green-300">
             {String(emp.fullName || '?')[0]}
           </div>
@@ -255,7 +255,7 @@ function ExpenseDetail({ item, onAction }: { item: InboxItemDetail; onAction: (a
       )}
 
       {ref && (
-        <div className="rounded-xl p-4 space-y-2.5" style={{ background: '#0f172a' }}>
+        <div className="rounded-xl p-4 space-y-2.5" style={{ background: '#ffffff' }}>
           <div className="text-[28px] font-black text-brand-text">
             {String(ref.currency || 'KES')} {Number(ref.amount || 0).toLocaleString('en-KE')}
           </div>
@@ -270,7 +270,7 @@ function ExpenseDetail({ item, onAction }: { item: InboxItemDetail; onAction: (a
             </div>
           ))}
           {Boolean(ref.isPolicyViolation) && (
-            <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-[12px] text-red-400">
+            <div className="mt-2 p-2 rounded-lg bg-status-danger-bg border border-transparent text-[12px] text-status-danger-text">
               ⚠ Policy violation: {String(ref.violationReason || '')}
             </div>
           )}
@@ -286,7 +286,7 @@ function ExpenseDetail({ item, onAction }: { item: InboxItemDetail; onAction: (a
                 <Check className="h-4 w-4" /> Approve
               </button>
               <button onClick={() => setDeclining(true)}
-                className="h-12 rounded-xl border border-red-500/50 text-red-400 hover:bg-red-500/10 font-semibold flex items-center justify-center gap-2 transition-colors">
+                className="h-12 rounded-xl border border-red-500/50 text-status-danger-text hover:bg-red-500/10 font-semibold flex items-center justify-center gap-2 transition-colors">
                 <X className="h-4 w-4" /> Decline
               </button>
             </div>
@@ -321,7 +321,7 @@ function TimesheetDetail({ item, onAction }: { item: InboxItemDetail; onAction: 
   return (
     <div className="space-y-4">
       {emp && (
-        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#0f172a' }}>
+        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#ffffff' }}>
           <div className="h-14 w-14 rounded-full bg-amber-600/30 flex items-center justify-center text-xl font-bold text-amber-300">
             {String(emp.fullName || '?')[0]}
           </div>
@@ -333,7 +333,7 @@ function TimesheetDetail({ item, onAction }: { item: InboxItemDetail; onAction: 
       )}
 
       {ref && (
-        <div className="rounded-xl p-4 space-y-3" style={{ background: '#0f172a' }}>
+        <div className="rounded-xl p-4 space-y-3" style={{ background: '#ffffff' }}>
           <div className="flex justify-between text-[13px]">
             <span className="text-brand-text-secondary">Week</span>
             <span className="text-brand-text font-medium">{String(ref.weekStart || '—')} – {String(ref.weekEnd || '—')}</span>
@@ -347,7 +347,7 @@ function TimesheetDetail({ item, onAction }: { item: InboxItemDetail; onAction: 
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((d, i) => (
                 <div key={d} className="text-center">
                   <div className="text-[10px] text-brand-text-muted mb-0.5">{d}</div>
-                  <div className="rounded-lg py-1 text-[12px] font-semibold" style={{ background: '#1e293b', color: days[i]?.hours ? '#f1f5f9' : '#475569' }}>
+                  <div className="rounded-lg py-1 text-[12px] font-semibold" style={{ background: '#f8fafc', color: days[i]?.hours ? '#f1f5f9' : '#475569' }}>
                     {days[i]?.hours ? `${days[i].hours}h` : '—'}
                   </div>
                 </div>
@@ -366,7 +366,7 @@ function TimesheetDetail({ item, onAction }: { item: InboxItemDetail; onAction: 
                 <Check className="h-4 w-4" /> Approve
               </button>
               <button onClick={() => setDeclining(true)}
-                className="h-12 rounded-xl border border-red-500/50 text-red-400 hover:bg-red-500/10 font-semibold flex items-center justify-center gap-2 transition-colors">
+                className="h-12 rounded-xl border border-red-500/50 text-status-danger-text hover:bg-red-500/10 font-semibold flex items-center justify-center gap-2 transition-colors">
                 <X className="h-4 w-4" /> Reject
               </button>
             </div>
@@ -396,7 +396,7 @@ function GenericDetail({ item }: { item: InboxItemDetail }) {
   const Icon = cfg.icon;
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: '#0f172a' }}>
+      <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: '#ffffff' }}>
         <div className="h-12 w-12 rounded-full flex items-center justify-center shrink-0" style={{ background: cfg.bg }}>
           <Icon className="h-5 w-5" style={{ color: cfg.color }} />
         </div>
@@ -442,7 +442,7 @@ function DetailPanel({
               {cfg.label}
             </span>
             {item.requiresAction && item.status !== 'actioned' && (
-              <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-400">
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-status-warning-bg text-status-warning-text">
                 Pending Approval
               </span>
             )}
@@ -658,14 +658,14 @@ export default function InboxPage() {
 
       <div className="flex flex-1 min-h-0 gap-4">
         {/* ── LEFT PANEL ── */}
-        <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden border border-brand-border/60" style={{ width: 340, background: '#1e293b' }}>
+        <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden border border-brand-border/60" style={{ width: 340, background: '#f8fafc' }}>
           {/* Tabs */}
           <div className="flex border-b border-brand-border/60 px-1 pt-1">
             {TABS.map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 text-[12px] font-semibold capitalize transition-colors relative rounded-t-lg ${tab === t ? 'text-indigo-400' : 'text-brand-text-muted hover:text-brand-text-secondary'}`}
+                className={`flex-1 py-2.5 text-[12px] font-semibold capitalize transition-colors relative rounded-t-lg ${tab === t ? 'text-brand-primary' : 'text-brand-text-muted hover:text-brand-text-secondary'}`}
               >
                 {t}
                 {tabCounts[t] > 0 && (
@@ -721,11 +721,11 @@ export default function InboxPage() {
             <div className="border-t border-brand-border/60 px-4 py-3 flex items-center gap-2 flex-wrap bg-brand-bg-soft/50 rounded-b-2xl">
               <span className="text-[12px] text-brand-text-secondary mr-1">{bulkSelected.size} selected</span>
               <button onClick={() => handleBulkAction('mark_read')}
-                className="px-2.5 py-1 rounded-lg bg-brand-primary/30 text-indigo-400 text-[11px] hover:bg-brand-primary-hover/50 transition-colors">
+                className="px-2.5 py-1 rounded-lg bg-brand-primary/10 text-brand-primary text-[11px] hover:bg-brand-primary/20 transition-colors">
                 Mark read
               </button>
               <button onClick={() => handleBulkAction('dismiss')}
-                className="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-[11px] hover:bg-red-500/30 transition-colors">
+                className="px-2.5 py-1 rounded-lg bg-status-danger-bg text-status-danger-text text-[11px] hover:bg-red-500/30 transition-colors">
                 Dismiss
               </button>
               <button onClick={() => { setBulkSelected(new Set()); setBulkMode(false); }}

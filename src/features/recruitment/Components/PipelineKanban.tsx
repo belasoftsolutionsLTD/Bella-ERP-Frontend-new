@@ -12,10 +12,11 @@ import { isBackwardMove } from '../constants';
 import type { JobRequisition, Application } from '../types';
 
 export function PipelineKanban({ requisition, locale }: { requisition: JobRequisition; locale: string }) {
-  const { applications, byStage, moveStage, updateStatus, extendOffer, assignInterviewer, unassignInterviewer } = useApplications(requisition._id);
+  const { applications, byStage, moveStage, updateStatus, extendOffer, assignInterviewer, unassignInterviewer, sendInterviewReminder } = useApplications(requisition._id);
   const [selected, setSelected] = useState<Application | null>(null);
+  const [initialTab, setInitialTab] = useState<'overview' | 'offer'>('overview');
   const [activeApp, setActiveApp] = useState<Application | null>(null);
-  const [pendingMove, setPendingMove] = useState<{ appId: string; targetStageId: string; targetName: string } | null>(null);
+  const [pendingMove, setPendingMove] = useState<{ appId: string; targetStageId: string; targetName: string; backward: boolean } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -24,12 +25,18 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
   };
 
   const confirmedMoveStage = (app: Application, targetStageId: string) => {
-    if (isBackwardMove(requisition.pipelineStages, app.currentStageId, targetStageId)) {
-      const targetName = requisition.pipelineStages.find((s) => s.id === targetStageId)?.name ?? targetStageId;
-      setPendingMove({ appId: app._id, targetStageId, targetName });
+    const targetStage = requisition.pipelineStages.find((s) => s.id === targetStageId);
+    // Moving into the Offer stage isn't a plain move — it requires offer details, so
+    // route straight to that form instead of just relocating the card. The stage move
+    // itself happens server-side as part of submitting the offer (see extendOffer).
+    if (targetStage?.type === 'offer') {
+      setInitialTab('offer');
+      setSelected(app);
       return;
     }
-    moveStage(app._id, targetStageId);
+    const targetName = targetStage?.name ?? targetStageId;
+    const backward = isBackwardMove(requisition.pipelineStages, app.currentStageId, targetStageId);
+    setPendingMove({ appId: app._id, targetStageId, targetName, backward });
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -68,7 +75,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
                 key={stage.id}
                 stage={stage}
                 applications={byStage[stage.id] ?? []}
-                onCardClick={(app) => setSelected(app)}
+                onCardClick={(app) => { setInitialTab('overview'); setSelected(app); }}
               />
             ))}
           </div>
@@ -90,8 +97,12 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
 
       {pendingMove && (
         <ConfirmDialog
-          title="Move candidate back?"
-          message={`Move this candidate back to "${pendingMove.targetName}"?`}
+          title={pendingMove.backward ? 'Move candidate back?' : 'Move candidate?'}
+          message={
+            pendingMove.backward
+              ? `Are you sure you want to move this candidate back to "${pendingMove.targetName}"?`
+              : `Are you sure you want to move this candidate to "${pendingMove.targetName}"?`
+          }
           confirmLabel="Move"
           onCancel={() => setPendingMove(null)}
           onConfirm={() => {
@@ -108,12 +119,14 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
             application={currentApplication}
             requisition={requisition}
             locale={locale}
-            onClose={() => setSelected(null)}
+            initialTab={initialTab}
+            onClose={() => { setSelected(null); setInitialTab('overview'); }}
             onMoveStage={(stageId) => confirmedMoveStage(currentApplication, stageId)}
             onUpdateStatus={(status, reason) => { updateStatus(selected._id, status, reason); setSelected(null); }}
             onExtendOffer={(payload) => extendOffer(selected._id, payload)}
-            onAssignInterviewer={(stageId, interviewerId) => assignInterviewer(selected._id, stageId, interviewerId)}
+            onAssignInterviewer={(stageId, interviewerId, scheduledAt) => assignInterviewer(selected._id, stageId, interviewerId, scheduledAt)}
             onUnassignInterviewer={(stageId, interviewerId) => unassignInterviewer(selected._id, stageId, interviewerId)}
+            onSendInterviewReminder={(stageId) => sendInterviewReminder(selected._id, stageId)}
           />
         );
       })()}

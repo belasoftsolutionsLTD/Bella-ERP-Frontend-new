@@ -58,7 +58,7 @@ export default function CareersPage() {
               <Link
                 key={job._id}
                 href={`/${locale}/careers/${job._id}`}
-                className="block bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-blue-200 transition-all group"
+                className="block bg-white rounded-2xl shadow-sm border border-brand-border p-5 hover:shadow-md hover:border-blue-200 transition-all group"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">

@@ -10,23 +10,28 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useScorecards } from '../Hooks/useScorecards';
 import { useUserAccounts } from '../Hooks/useUserAccounts';
 import { RECOMMENDATION_LABELS } from '../constants';
+import { ConfirmDialog } from './ConfirmDialog';
 
-export function ApplicationDrawer({ application, requisition, locale, onClose, onMoveStage, onUpdateStatus, onExtendOffer, onAssignInterviewer, onUnassignInterviewer }: {
+export function ApplicationDrawer({ application, requisition, locale, initialTab = 'overview', onClose, onMoveStage, onUpdateStatus, onExtendOffer, onAssignInterviewer, onUnassignInterviewer, onSendInterviewReminder }: {
   application: Application;
   requisition: JobRequisition;
   locale: string;
+  initialTab?: 'overview' | 'offer';
   onClose: () => void;
   onMoveStage: (stageId: string) => void;
   onUpdateStatus: (status: string, rejectionReason?: string) => void;
   onExtendOffer: (payload: { salary: number; currency: string; startDate: string; expiresAt: string }) => void;
-  onAssignInterviewer: (stageId: string, interviewerId: string) => void;
+  onAssignInterviewer: (stageId: string, interviewerId: string, scheduledAt: string) => void;
   onUnassignInterviewer: (stageId: string, interviewerId: string) => void;
+  onSendInterviewReminder: (stageId: string) => void;
 }) {
   const { scorecards } = useScorecards(application._id);
   const { accounts } = useUserAccounts();
-  const [tab, setTab] = useState<'overview' | 'history' | 'scorecards' | 'offer'>('overview');
+  const [tab, setTab] = useState<'overview' | 'history' | 'scorecards' | 'offer'>(initialTab);
   const [offerForm, setOfferForm] = useState({ salary: '', currency: 'KES', startDate: '', expiresAt: '' });
   const [pickedInterviewer, setPickedInterviewer] = useState('');
+  const [pickedSchedule, setPickedSchedule] = useState('');
+  const [pendingStatus, setPendingStatus] = useState<{ status: string; reason?: string; title: string; message: string } | null>(null);
   const candidate = application.candidate;
   const currentStage = requisition.pipelineStages.find((s) => s.id === application.currentStageId);
   const assignedForCurrentStage = (application.interviewAssignments || []).filter((a) => a.stageId === application.currentStageId);
@@ -51,7 +56,7 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
           {candidate?.phone && <p className="text-sm text-slate-600 flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> {candidate.phone}</p>}
           {candidate?.location && <p className="text-sm text-slate-600 flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /> {candidate.location}</p>}
           {candidate?.resumeUrl && (
-            <a href={candidate.resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-primary flex items-center gap-1 hover:underline">
+            <a href={candidate.resumeUrl} target="_blank" rel="noreferrer" className="text-sm text-brand-primary flex items-center gap-1 hover:underline">
               <ExternalLink className="h-3.5 w-3.5" /> View resume
             </a>
           )}
@@ -63,7 +68,7 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
 
         <div className="flex border-b border-slate-100 text-sm">
           {(['overview', 'history', 'scorecards', 'offer'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`flex-1 py-2 capitalize ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-slate-500'}`}>
+            <button key={t} onClick={() => setTab(t)} className={`flex-1 py-2 capitalize ${tab === t ? 'text-brand-primary border-b-2 border-brand-primary font-medium' : 'text-slate-500'}`}>
               {t}
             </button>
           ))}
@@ -80,7 +85,7 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
                       key={s.id}
                       onClick={() => onMoveStage(s.id)}
                       disabled={s.id === application.currentStageId || application.status !== 'active'}
-                      className={`text-xs px-2.5 py-1 rounded-full border ${s.id === application.currentStageId ? 'bg-primary text-white border-primary' : 'border-slate-300 text-slate-600 hover:bg-slate-50'} disabled:opacity-50`}
+                      className={`text-xs px-2.5 py-1 rounded-full border ${s.id === application.currentStageId ? 'bg-brand-primary text-white border-brand-primary' : 'border-slate-300 text-slate-600 hover:bg-slate-50'} disabled:opacity-50`}
                     >
                       {s.name}
                     </button>
@@ -98,41 +103,57 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
                       </span>
                     )}
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-col gap-1.5">
                     {assignedForCurrentStage.map((a) => {
                       const hasSubmitted = submittedInterviewerIdsForCurrentStage.has(a.interviewerId);
                       return (
-                        <span
-                          key={a.interviewerId}
-                          className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${hasSubmitted ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700'}`}
-                        >
-                          {hasSubmitted && <FileCheck className="h-3 w-3" />}
-                          {a.interviewerName}
-                          <button onClick={() => onUnassignInterviewer(a.stageId, a.interviewerId)} className="text-slate-400 hover:text-red-500">
-                            <X className="h-3 w-3" />
+                        <div key={a.interviewerId} className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${hasSubmitted ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700'}`}
+                          >
+                            {hasSubmitted && <FileCheck className="h-3 w-3" />}
+                            {a.interviewerName}
+                            <button onClick={() => onUnassignInterviewer(a.stageId, a.interviewerId)} className="text-slate-400 hover:text-red-500">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                          {a.scheduledAt && (
+                            <span className="text-[11px] text-slate-500">{new Date(a.scheduledAt).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                          )}
+                          <button
+                            onClick={() => onSendInterviewReminder(a.stageId)}
+                            className="text-[11px] text-brand-primary hover:underline"
+                          >
+                            Remind candidate
                           </button>
-                        </span>
+                        </div>
                       );
                     })}
                     {assignedForCurrentStage.length === 0 && <span className="text-xs text-slate-400">Unassigned — anyone can submit a scorecard.</span>}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <select value={pickedInterviewer} onChange={(e) => setPickedInterviewer(e.target.value)} className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-xs">
                       <option value="">Assign an interviewer...</option>
                       {accounts.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}
                     </select>
+                    <input
+                      type="datetime-local"
+                      value={pickedSchedule}
+                      onChange={(e) => setPickedSchedule(e.target.value)}
+                      className="rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                    />
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={!pickedInterviewer}
-                      onClick={() => { onAssignInterviewer(currentStage.id, pickedInterviewer); setPickedInterviewer(''); }}
+                      disabled={!pickedInterviewer || !pickedSchedule}
+                      onClick={() => { onAssignInterviewer(currentStage.id, pickedInterviewer, pickedSchedule); setPickedInterviewer(''); setPickedSchedule(''); }}
                     >
                       Assign
                     </Button>
                   </div>
                   <Link
                     href={`/${locale}/recruitment/requisitions/${requisition._id}/scorecards/${application._id}/new`}
-                    className="inline-block text-sm text-primary hover:underline"
+                    className="inline-block text-sm text-brand-primary hover:underline"
                   >
                     Submit scorecard for this stage →
                   </Link>
@@ -141,10 +162,16 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
 
               {application.status === 'active' && (
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => onUpdateStatus('rejected', 'Not proceeding')}>
+                  <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => setPendingStatus({
+                    status: 'rejected', reason: 'Not proceeding',
+                    title: 'Reject candidate?', message: 'Are you sure you want to reject this candidate?',
+                  })}>
                     Reject
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onUpdateStatus('withdrawn')}>
+                  <Button size="sm" variant="outline" onClick={() => setPendingStatus({
+                    status: 'withdrawn',
+                    title: 'Mark as withdrawn?', message: 'Are you sure you want to mark this candidate as withdrawn?',
+                  })}>
                     Mark Withdrawn
                   </Button>
                 </div>
@@ -152,10 +179,23 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
 
               {(application.status === 'rejected' || application.status === 'withdrawn') && (
                 <div className="pt-2">
-                  <Button size="sm" variant="outline" onClick={() => onUpdateStatus('active')}>
+                  <Button size="sm" variant="outline" onClick={() => setPendingStatus({
+                    status: 'active',
+                    title: 'Reactivate candidate?', message: 'Are you sure you want to reactivate this candidate?',
+                  })}>
                     Reactivate
                   </Button>
                 </div>
+              )}
+
+              {pendingStatus && (
+                <ConfirmDialog
+                  title={pendingStatus.title}
+                  message={pendingStatus.message}
+                  confirmLabel="Confirm"
+                  onCancel={() => setPendingStatus(null)}
+                  onConfirm={() => { onUpdateStatus(pendingStatus.status, pendingStatus.reason); setPendingStatus(null); }}
+                />
               )}
 
               {application.coverLetter && (
@@ -233,6 +273,11 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
                 </div>
               ) : (
                 <div className="space-y-2">
+                  {currentStage?.type !== 'offer' && (
+                    <p className="text-xs text-brand-primary bg-brand-primary/10 rounded-md px-2.5 py-2">
+                      Submitting these details will move this candidate into the Offer stage.
+                    </p>
+                  )}
                   <input placeholder="Salary" type="number" value={offerForm.salary} onChange={(e) => setOfferForm((f) => ({ ...f, salary: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                   <input placeholder="Currency" value={offerForm.currency} onChange={(e) => setOfferForm((f) => ({ ...f, currency: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                   <label className="block text-xs text-slate-500">Start date</label>
@@ -241,7 +286,7 @@ export function ApplicationDrawer({ application, requisition, locale, onClose, o
                   <input type="date" value={offerForm.expiresAt} onChange={(e) => setOfferForm((f) => ({ ...f, expiresAt: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                   <Button
                     size="sm"
-                    className="bg-primary text-white w-full"
+                    className="bg-brand-primary text-white w-full"
                     onClick={() => onExtendOffer({ salary: Number(offerForm.salary), currency: offerForm.currency, startDate: offerForm.startDate, expiresAt: offerForm.expiresAt })}
                   >
                     Extend Offer

@@ -34,11 +34,11 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div>
-        <Link href={`/${locale}/my/leave/requests`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 mb-1.5 transition-colors">
+        <Link href={`/${locale}/my/leave/requests`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-brand-text mb-1.5 transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" /> My Requests
         </Link>
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl font-semibold text-slate-100">{request.leaveType?.name ?? 'Leave'}</h1>
+          <h1 className="text-xl font-semibold text-brand-text">{request.leaveType?.name ?? 'Leave'}</h1>
           <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>{cfg.label}</span>
         </div>
       </div>

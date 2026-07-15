@@ -207,7 +207,7 @@ function AttachmentFile({ att, isMine }: { att: Attachment; isMine: boolean }) {
   return (
     <div className={cn(
       'flex items-center gap-2.5 mt-1.5 px-3 py-2.5 rounded-2xl text-xs w-[240px]',
-      isMine ? 'bg-white/15 text-white' : 'bg-gray-50 border border-gray-100 text-foreground',
+      isMine ? 'bg-white/15 text-white' : 'bg-gray-50 border border-brand-border text-foreground',
     )}>
       <div className={cn(
         'h-9 w-9 rounded-xl flex items-center justify-center shrink-0',
@@ -264,7 +264,7 @@ function EmojiPicker({ onSelect, onClose }: { onSelect: (e: string) => void; onC
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
   return (
-    <div ref={ref} className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-3 z-50 w-72">
+    <div ref={ref} className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-2xl border border-brand-border p-3 z-50 w-72">
       <div className="grid grid-cols-9 gap-0.5 max-h-52 overflow-y-auto">
         {EMOJIS.map((e, i) => (
           <button key={i} onClick={() => { onSelect(e); onClose(); }}
@@ -282,9 +282,9 @@ function AttachPreview({ file, preview, onRemove }: { file: File; preview: strin
   return (
     <div className="relative group shrink-0">
       {isImage && preview ? (
-        <img src={preview} alt={file.name} className="h-14 w-14 rounded-xl object-cover border border-gray-200" />
+        <img src={preview} alt={file.name} className="h-14 w-14 rounded-xl object-cover border border-brand-border" />
       ) : (
-        <div className="h-14 w-14 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-0.5 px-1">
+        <div className="h-14 w-14 rounded-xl border border-brand-border bg-gray-50 flex flex-col items-center justify-center gap-0.5 px-1">
           <FileText className="h-5 w-5 text-foreground/30" />
           <span className="text-[9px] text-foreground/40 truncate w-full text-center px-1">{file.name}</span>
         </div>
@@ -367,7 +367,7 @@ function GroupInfoPanel({
               value={newName}
               onChange={e => setNewName(e.target.value)}
               autoFocus
-              className="flex-1 text-sm font-semibold border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="flex-1 text-sm font-semibold border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
             <button onClick={handleRename} disabled={saving}
               className="h-7 w-7 rounded-lg bg-primary text-white flex items-center justify-center">
@@ -409,7 +409,7 @@ function GroupInfoPanel({
               value={addSearch}
               onChange={e => setAddSearch(e.target.value)}
               placeholder="Search people…"
-              className="w-full text-xs px-3 py-1.5 rounded-lg bg-white border focus:outline-none focus:ring-1 focus:ring-primary/30 mb-2"
+              className="w-full text-xs px-3 py-1.5 rounded-lg bg-white border focus:outline-none focus:ring-1 focus:ring-brand-primary/30 mb-2"
             />
             <div className="max-h-40 overflow-y-auto space-y-1">
               {filtered.length === 0 ? (
@@ -697,7 +697,7 @@ export function ChatPanel({ announcements, onReadAnnouncement }: Props) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/30" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search conversations…"
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-100 border-0 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-100 border-0 focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
             </div>
           )}
         </div>
@@ -744,7 +744,7 @@ export function ChatPanel({ announcements, onReadAnnouncement }: Props) {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/30" />
                   <input value={contactSearch} onChange={e => setContactSearch(e.target.value)}
                     placeholder="Search people…" autoFocus
-                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-100 border-0 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-100 border-0 focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
                 </div>
               </div>
               <div className="divide-y overflow-y-auto">
@@ -776,13 +776,13 @@ export function ChatPanel({ announcements, onReadAnnouncement }: Props) {
                 value={groupName}
                 onChange={e => setGroupName(e.target.value)}
                 placeholder="Group name…"
-                className="w-full text-xs px-3 py-2 rounded-lg border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 font-semibold"
+                className="w-full text-xs px-3 py-2 rounded-lg border bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-semibold"
               />
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/30" />
                 <input value={groupSearch} onChange={e => setGroupSearch(e.target.value)}
                   placeholder="Add people…"
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-100 border-0 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-100 border-0 focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
               </div>
 
               {groupMembers.length > 0 && (
@@ -1097,7 +1097,7 @@ export function ChatPanel({ announcements, onReadAnnouncement }: Props) {
                     onKeyDown={handleKeyDown}
                     placeholder="Type a message…"
                     rows={1}
-                    className="flex-1 resize-none px-3.5 py-2.5 text-sm rounded-2xl bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-primary/30 max-h-32 leading-relaxed"
+                    className="flex-1 resize-none px-3.5 py-2.5 text-sm rounded-2xl bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 max-h-32 leading-relaxed"
                     style={{ minHeight: '42px' }}
                   />
                   <button

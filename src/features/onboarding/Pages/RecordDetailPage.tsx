@@ -9,6 +9,7 @@ import {
   ShieldCheck, Users, ClipboardList, Activity as ActivityIcon, ExternalLink, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { openFile, resolveUploadUrl } from '@/functions/downloadFile';
 import { useOnboardingRecord } from '../Hooks/useOnboardingRecords';
 import { useOnboardingRecordDocuments } from '../Hooks/useOnboardingDocuments';
@@ -16,11 +17,8 @@ import type { OnboardingTask } from '../types';
 
 const TABS = ['Overview', 'Tasks', 'Documents', 'Activity'] as const;
 
-const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
-  preboarding: { label: 'Preboarding', bg: 'bg-cyan-500/15', text: 'text-cyan-400' },
-  active:      { label: 'Active',      bg: 'bg-brand-primary/15', text: 'text-indigo-400' },
-  completed:   { label: 'Completed',   bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
-  stalled:     { label: 'Stalled',     bg: 'bg-red-500/15', text: 'text-red-400' },
+const RECORD_STATUS_MAP: Record<string, Status> = {
+  preboarding: 'preboarding', active: 'active', completed: 'completed', stalled: 'atRisk',
 };
 
 const TASK_STATUS_ICON: Record<string, JSX.Element> = {
@@ -184,8 +182,6 @@ export default function RecordDetailPage({ recordId }: { recordId: string }) {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-indigo-400" /></div>;
   if (!record) return <p className="text-sm text-brand-text-muted text-center py-16">Record not found.</p>;
 
-  const cfg = STATUS_CFG[record.status] ?? STATUS_CFG.active;
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
@@ -194,7 +190,7 @@ export default function RecordDetailPage({ recordId }: { recordId: string }) {
         </Link>
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-xl font-bold text-brand-text">{record.employee?.fullName ?? 'Unknown Employee'}</h1>
-          <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>{cfg.label}</span>
+          <StatusBadge status={RECORD_STATUS_MAP[record.status] ?? 'active'} label={record.status} className="capitalize" />
         </div>
         <p className="text-sm text-brand-text-secondary mt-0.5">{record.employee?.department} · {record.employee?.staffNumber} · Started {fmtDate(record.startDate)}</p>
       </div>

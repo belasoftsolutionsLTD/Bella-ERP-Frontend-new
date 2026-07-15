@@ -306,7 +306,7 @@ function ClockInWidget() {
               <button
                 disabled={loading}
                 onClick={startBreak}
-                className="h-10 rounded-xl border border-amber-500/50 text-amber-400 hover:bg-amber-500/10 text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                className="h-10 rounded-xl border border-amber-500/50 text-amber-600 hover:bg-amber-500/10 text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 <Coffee className="h-3.5 w-3.5" /> Break
               </button>
@@ -424,10 +424,10 @@ function QuickStatsCard({ summary }: { summary: Summary | null }) {
 function PendingActionsBanner({ pending, locale }: { pending: PendingActions | null; locale: string }) {
   if (!pending || pending.total === 0) return null;
   return (
-    <div className="rounded-xl p-4 mb-4" style={{ background: '#1e293b', borderLeft: '4px solid #f59e0b', border: '1px solid #f59e0b40' }}>
+    <div className="rounded-xl p-4 mb-4" style={{ background: '#f8fafc', borderLeft: '4px solid #f59e0b', border: '1px solid #f59e0b40' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-amber-400 font-semibold text-[13px]">⚡ You have {pending.total} action{pending.total !== 1 ? 's' : ''} waiting</span>
+          <span className="text-amber-600 font-semibold text-[13px]">⚡ You have {pending.total} action{pending.total !== 1 ? 's' : ''} waiting</span>
           {Object.entries(pending.byType).map(([type, count]) => (
             <Link key={type} href={`/${locale}/inbox?type=${type}`}
               className="px-2 py-0.5 rounded-full bg-brand-bg-muted text-brand-text-secondary text-[11px] hover:bg-brand-border-strong transition-colors">
@@ -435,7 +435,7 @@ function PendingActionsBanner({ pending, locale }: { pending: PendingActions | n
             </Link>
           ))}
         </div>
-        <Link href={`/${locale}/inbox`} className="text-[11px] text-amber-400 hover:text-amber-300 whitespace-nowrap flex items-center gap-0.5">
+        <Link href={`/${locale}/inbox`} className="text-[11px] text-amber-600 hover:text-amber-700 whitespace-nowrap flex items-center gap-0.5">
           View all in Inbox <ChevronRight className="h-3 w-3" />
         </Link>
       </div>
@@ -523,7 +523,7 @@ function FeedPreviewCard({ posts, celebrations, locale }: {
           {celebrations.map((c, i) => (
             <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-xl bg-brand-bg-muted/30 min-w-[72px]">
               <div className="h-9 w-9 rounded-full bg-brand-primary/30 flex items-center justify-center">
-                {c.type === 'birthday' ? <Cake className="h-4 w-4 text-pink-400" /> : <PartyPopper className="h-4 w-4 text-amber-400" />}
+                {c.type === 'birthday' ? <Cake className="h-4 w-4 text-pink-400" /> : <PartyPopper className="h-4 w-4 text-amber-600" />}
               </div>
               <span className="text-[10px] text-brand-text-secondary text-center font-medium leading-tight truncate w-full text-center">{c.employee.fullName.split(' ')[0]}</span>
               <span className="text-[10px] text-brand-text-muted">{formatDate(c.date)}</span>
@@ -739,7 +739,7 @@ function WelcomeOverlay({ name, locale, onDismiss }: { name: string; locale: str
             animationDuration: `${1 + Math.random()}s`,
           }} />
       ))}
-      <div className="w-full max-w-[560px] rounded-2xl p-8 text-center space-y-4 relative z-10" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-[560px] rounded-2xl p-8 text-center space-y-4 relative z-10" style={{ background: '#f8fafc' }}>
         <div className="h-16 w-16 rounded-2xl bg-brand-primary flex items-center justify-center mx-auto text-3xl">
           🎉
         </div>
@@ -821,7 +821,7 @@ export default function DashboardPage() {
   const firstName = userData?.name?.split(' ')[0] || 'there';
 
   return (
-    <div className="min-h-full" style={{ background: '#0f172a' }}>
+    <div className="min-h-full" style={{ background: '#ffffff' }}>
       {showWelcome && (
         <WelcomeOverlay name={firstName} locale={locale} onDismiss={() => setShowWelcome(false)} />
       )}

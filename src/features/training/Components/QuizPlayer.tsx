@@ -82,7 +82,7 @@ export function QuizPlayer({ quiz, attemptsRemaining, onSubmit }: {
           )}
         </div>
       ))}
-      <Button className="bg-primary text-white" onClick={submit} disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Quiz'}</Button>
+      <Button className="bg-brand-primary text-white" onClick={submit} disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Quiz'}</Button>
     </div>
   );
 }

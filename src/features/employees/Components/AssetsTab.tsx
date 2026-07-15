@@ -65,8 +65,8 @@ export function AssetsTab({ employeeId }: { employeeId: string }) {
       </div>
 
       {devices.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-8 text-center">
-          <Package className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+        <div className="bg-gray-50 border border-brand-border rounded-xl px-4 py-8 text-center">
+          <Package className="h-8 w-8 text-brand-text-secondary mx-auto mb-2" />
           <p className="text-sm text-slate-500 font-medium">No assets assigned</p>
           <p className="text-xs text-slate-400 mt-1">Assign devices from the Asset Management module.</p>
         </div>
@@ -76,8 +76,8 @@ export function AssetsTab({ employeeId }: { employeeId: string }) {
             const Icon = deviceIcon(d.type);
             const condColor = CONDITION_COLOR[d.condition?.toLowerCase() ?? ''] ?? 'bg-gray-100 text-gray-600';
             return (
-              <div key={d._id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-start gap-3">
-                <div className="h-9 w-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center shadow-sm shrink-0">
+              <div key={d._id} className="bg-gray-50 border border-brand-border rounded-xl p-4 flex items-start gap-3">
+                <div className="h-9 w-9 rounded-xl bg-white border border-brand-border flex items-center justify-center shadow-sm shrink-0">
                   <Icon className="h-4 w-4 text-slate-500" />
                 </div>
                 <div className="min-w-0 flex-1">

@@ -120,9 +120,9 @@ export function ClockInWidget() {
 
       {/* ── Hero clock ── */}
       <div className="bg-brand-bg-soft border border-brand-border rounded-2xl overflow-hidden">
-        <div className="relative px-6 pt-6 pb-5 text-center bg-gradient-to-br from-[#1e293b] via-[#1e293b] to-indigo-900/40">
+        <div className="relative px-6 pt-6 pb-5 text-center bg-gradient-to-br from-brand-bg-soft via-brand-bg-soft to-brand-primary/5">
           <div className="absolute -top-6 -right-6 h-32 w-32 rounded-full bg-brand-primary/5 pointer-events-none" />
-          <div className="inline-flex items-center gap-1.5 bg-brand-bg-muted/60 rounded-full px-3 py-1 mb-4">
+          <div className="inline-flex items-center gap-1.5 bg-brand-bg-muted rounded-full px-3 py-1 mb-4">
             <CalendarDays className="h-3 w-3 text-brand-text-secondary" />
             <span className="text-brand-text-secondary text-xs font-medium">{dateStr}</span>
           </div>
@@ -136,22 +136,22 @@ export function ClockInWidget() {
 
           {/* Status badge */}
           {!clockedIn && (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand-text-muted bg-brand-bg-muted/50 px-4 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand-text-secondary bg-brand-bg-muted px-4 py-1.5 rounded-full">
               <Clock className="h-3.5 w-3.5" /> Not clocked in yet
             </span>
           )}
           {isWorking && (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-full">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> On duty since {record?.checkInTime}
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-status-success-text bg-status-success-bg px-4 py-1.5 rounded-full">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> On duty since {record?.checkInTime}
             </span>
           )}
           {isOnBreak && (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-4 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-status-warning-text bg-status-warning-bg px-4 py-1.5 rounded-full">
               <Coffee className="h-3.5 w-3.5" /> On break
             </span>
           )}
           {clockedOut && (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-indigo-400 bg-brand-primary/10 border border-brand-primary/20 px-4 py-1.5 rounded-full">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand-primary bg-brand-primary/10 px-4 py-1.5 rounded-full">
               <CheckCircle2 className="h-3.5 w-3.5" /> Day complete · {record?.checkInTime} – {record?.checkOutTime}
             </span>
           )}

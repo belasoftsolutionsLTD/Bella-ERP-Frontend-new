@@ -6,15 +6,12 @@ import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Check, X, RotateCcw, FileText, Activity as ActivityIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { useLeaveRequest } from '../Hooks/useLeaveRequests';
 
-const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
-  draft:     { label: 'Draft',     bg: 'bg-brand-bg-muted', text: 'text-brand-text-secondary' },
-  pending:   { label: 'Pending',   bg: 'bg-amber-500/15', text: 'text-amber-400' },
-  approved:  { label: 'Approved',  bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
-  rejected:  { label: 'Rejected',  bg: 'bg-red-500/15', text: 'text-red-400' },
-  cancelled: { label: 'Cancelled', bg: 'bg-brand-bg-muted', text: 'text-brand-text-secondary' },
-  disputed:  { label: 'Disputed',  bg: 'bg-purple-500/15', text: 'text-purple-400' },
+const LEAVE_STATUS_MAP: Record<string, Status> = {
+  draft: 'draft', pending: 'pending', approved: 'approved', rejected: 'rejected',
+  cancelled: 'cancelled', disputed: 'pending',
 };
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -29,8 +26,6 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-indigo-400" /></div>;
   if (!request) return <p className="text-sm text-brand-text-muted text-center py-16">Request not found.</p>;
 
-  const cfg = STATUS_CFG[request.status] ?? STATUS_CFG.pending;
-
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -39,7 +34,7 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
         </Link>
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-xl font-bold text-brand-text">{request.employee?.fullName ?? 'Unknown Employee'}</h1>
-          <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>{cfg.label}</span>
+          <StatusBadge status={LEAVE_STATUS_MAP[request.status] ?? 'inactive'} label={request.status} className="capitalize" />
         </div>
         <p className="text-sm text-brand-text-secondary mt-0.5">{request.employee?.department} · {request.employee?.staffNumber}</p>
       </div>

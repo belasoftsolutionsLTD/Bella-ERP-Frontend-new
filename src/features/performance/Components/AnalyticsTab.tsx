@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, BarChart2, Target, Users, Star } from 'lucide-react';
+import { Loader2, BarChart2, Target, Users, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
@@ -29,16 +29,21 @@ const RATING_LABELS: Record<number, string> = { 1: 'Unsatisfactory', 2: 'Needs W
 export function AnalyticsTab() {
   const [data, setData]     = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     setLoading(true);
+    setError(null);
     apiCallFunction<any>({
       url: `${API_BASE_URL}/performance/analytics`,
       showToast: false,
-      thenFn: r => setData(r.data?.data ?? null),
+      thenFn: r => setData(r.data ?? null),
+      catchFn: (e: any) => setError(e?.response?.data?.message || e?.message || 'Failed to load analytics.'),
       finallyFn: () => setLoading(false),
     });
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -46,8 +51,14 @@ export function AnalyticsTab() {
     </div>
   );
 
-  if (!data) return (
-    <div className="text-center py-20 text-brand-text-muted">Failed to load analytics.</div>
+  if (error || !data) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-center">
+      <AlertTriangle className="h-6 w-6 text-brand-danger" />
+      <p className="text-brand-text-secondary text-sm">{error || 'Failed to load analytics.'}</p>
+      <button onClick={load} className="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors">
+        Retry
+      </button>
+    </div>
   );
 
   const statCards = [

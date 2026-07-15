@@ -38,8 +38,8 @@ function PasswordResetPrompt({ onDone }: { onDone: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
         <div className="text-center space-y-1">
-          <div className="h-12 w-12 rounded-xl bg-primary mx-auto flex items-center justify-center mb-3">
-            <span className="text-accent font-bold text-lg">SE</span>
+          <div className="h-12 w-12 rounded-xl bg-brand-primary mx-auto flex items-center justify-center mb-3">
+            <span className="text-white font-bold text-lg">SE</span>
           </div>
           <h2 className="text-xl font-bold">Set your password</h2>
           <p className="text-sm text-foreground/50">
@@ -55,7 +55,7 @@ function PasswordResetPrompt({ onDone }: { onDone: () => void }) {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="At least 6 characters"
               required
-              className="w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
           </div>
           <div className="space-y-1">
@@ -66,7 +66,7 @@ function PasswordResetPrompt({ onDone }: { onDone: () => void }) {
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Repeat password"
               required
-              className="w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
           </div>
           <div className="flex gap-3 pt-1">
@@ -78,7 +78,7 @@ function PasswordResetPrompt({ onDone }: { onDone: () => void }) {
             >
               Skip for now
             </Button>
-            <Button type="submit" className="flex-1 bg-primary text-white" disabled={loading}>
+            <Button type="submit" className="flex-1 bg-brand-primary text-white" disabled={loading}>
               {loading ? 'Saving...' : 'Set Password'}
             </Button>
           </div>
@@ -119,7 +119,7 @@ export default function HrLayout({ children }: { children: React.ReactNode }) {
   if (authLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-10 w-10 rounded-full border-4 border-primary border-t-accent animate-spin" />
+        <div className="h-10 w-10 rounded-full border-4 border-brand-border-strong border-t-brand-primary animate-spin" />
       </div>
     );
   }

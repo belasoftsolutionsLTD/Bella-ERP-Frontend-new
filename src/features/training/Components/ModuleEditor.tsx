@@ -28,7 +28,7 @@ function UploadButton({ accept, onUploaded }: { accept: string; onUploaded: (fil
   };
 
   return (
-    <label htmlFor={inputId} className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md border border-dashed border-slate-300 text-slate-500 hover:border-primary hover:text-primary cursor-pointer transition-colors">
+    <label htmlFor={inputId} className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md border border-dashed border-slate-300 text-slate-500 hover:border-brand-primary hover:text-brand-primary cursor-pointer transition-colors">
       {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
       {uploading ? 'Uploading…' : 'Or upload a file'}
       <input id={inputId} type="file" accept={accept} className="hidden" disabled={uploading}
@@ -108,7 +108,7 @@ export function AddModuleForm({ onAdd }: { onAdd: (payload: { title: string; typ
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={isRequired} onChange={(e) => setIsRequired(e.target.checked)} /> Required
         </label>
-        <Button size="sm" className="bg-primary text-white" onClick={submit} disabled={!title.trim()}>
+        <Button size="sm" className="bg-brand-primary text-white" onClick={submit} disabled={!title.trim()}>
           <Plus className="h-4 w-4 mr-1" /> Add Module
         </Button>
       </div>
@@ -155,7 +155,7 @@ export function QuizBuilder({ initial, onSave }: {
                       <button type="button" onClick={() => updateQuestion(i, { options: (q.options || []).filter((_, x) => x !== oi) })} className="text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => updateQuestion(i, { options: [...(q.options || []), ''] })} className="text-xs text-primary">+ Add option</button>
+                  <button type="button" onClick={() => updateQuestion(i, { options: [...(q.options || []), ''] })} className="text-xs text-brand-primary">+ Add option</button>
                   <input placeholder="Correct answer (exact option text)" value={String(q.correctAnswer)} onChange={(e) => updateQuestion(i, { correctAnswer: e.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm mt-1" />
                 </div>
               )}
@@ -192,7 +192,7 @@ export function QuizBuilder({ initial, onSave }: {
         </div>
       </div>
       <Button
-        size="sm" className="bg-primary text-white w-full"
+        size="sm" className="bg-brand-primary text-white w-full"
         disabled={questions.length === 0}
         onClick={() => onSave({ questions, passingScore, maxAttempts, shuffleQuestions, shuffleOptions, timeLimitMinutes: timeLimitMinutes || undefined })}
       >

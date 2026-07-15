@@ -102,7 +102,7 @@ function HrStaffPortalView() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search name or Staff ID…"
-                className="w-full pl-9 pr-3 h-9 text-sm border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                className="w-full pl-9 pr-3 h-9 text-sm border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary/30 transition-all"
               />
             </div>
           </div>
@@ -204,7 +204,7 @@ function HrStaffPortalView() {
                       'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all',
                       detailTab === key
                         ? 'border-accent text-primary'
-                        : 'border-transparent text-foreground/50 hover:text-foreground hover:border-gray-200'
+                        : 'border-transparent text-foreground/50 hover:text-foreground hover:border-brand-border'
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" /> {label}

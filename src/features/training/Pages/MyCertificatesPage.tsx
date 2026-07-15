@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useMyCertificates, useMyExternalCertificates } from '../Hooks/useCertificates';
 import { UploadExternalCertSchema, type UploadExternalCertFormValues } from '../schemas';
 import { EXTERNAL_CERT_STATUS_MAP } from '../constants';
-import { API_BASE_URL } from '@/configs/constants';
+import { resolveMediaUrl } from '../mediaUrl';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 
 function UploadCertForm({ onClose, onUploaded }: { onClose: () => void; onUploaded: () => void }) {
@@ -36,7 +36,7 @@ function UploadCertForm({ onClose, onUploaded }: { onClose: () => void; onUpload
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-        <Button type="submit" className="bg-primary text-white" disabled={isSubmitting}>{isSubmitting ? 'Uploading...' : 'Upload'}</Button>
+        <Button type="submit" className="bg-brand-primary text-white" disabled={isSubmitting}>{isSubmitting ? 'Uploading...' : 'Upload'}</Button>
       </div>
     </form>
   );
@@ -57,7 +57,7 @@ export function MyCertificatesPage() {
 
       <div className="flex gap-1 border-b border-brand-border">
         {(['earned', 'external'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm font-medium border-b-2 transition ${tab === t ? 'border-primary text-brand-text' : 'border-transparent text-brand-text-secondary hover:text-brand-text'}`}>
+          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm font-medium border-b-2 transition ${tab === t ? 'border-brand-primary text-brand-text' : 'border-transparent text-brand-text-secondary hover:text-brand-text'}`}>
             {t === 'earned' ? 'Earned' : 'External'}
           </button>
         ))}
@@ -72,7 +72,7 @@ export function MyCertificatesPage() {
               <p className="text-xs text-brand-text-muted">{c.certificateNumber}</p>
               <p className="text-xs text-brand-text-muted">Issued {new Date(c.issuedAt).toLocaleDateString()}{c.expiresAt ? ` · Expires ${new Date(c.expiresAt).toLocaleDateString()}` : ''}</p>
               {c.pdfUrl && (
-                <a href={`${API_BASE_URL.replace(/\/api$/, '')}${c.pdfUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary text-sm hover:underline">
+                <a href={resolveMediaUrl(c.pdfUrl.replace(/^\/?uploads\//, ''))} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-primary text-sm hover:underline">
                   <Download className="h-3.5 w-3.5" /> Download PDF
                 </a>
               )}
@@ -85,7 +85,7 @@ export function MyCertificatesPage() {
       {tab === 'external' && (
         <div className="space-y-4">
           {!showUpload && (
-            <Button size="sm" className="bg-primary text-white" onClick={() => setShowUpload(true)}><Plus className="h-4 w-4 mr-1" /> Upload Certificate</Button>
+            <Button size="sm" className="bg-brand-primary text-white" onClick={() => setShowUpload(true)}><Plus className="h-4 w-4 mr-1" /> Upload Certificate</Button>
           )}
           {showUpload && <UploadCertForm onClose={() => setShowUpload(false)} onUploaded={() => mutateExternal()} />}
 
@@ -98,7 +98,7 @@ export function MyCertificatesPage() {
                 </div>
                 <p className="text-xs text-brand-text-muted">{c.issuingOrganization}</p>
                 <p className="text-xs text-brand-text-muted">Issued {new Date(c.issuedDate).toLocaleDateString()}{c.expiryDate ? ` · Expires ${new Date(c.expiryDate).toLocaleDateString()}` : ''}</p>
-                <a href={c.fileUrl} target="_blank" rel="noreferrer" className="text-primary text-sm hover:underline">View file</a>
+                <a href={c.fileUrl} target="_blank" rel="noreferrer" className="text-brand-primary text-sm hover:underline">View file</a>
               </div>
             ))}
             {!externalLoading && externalCerts.length === 0 && <p className="col-span-full text-sm text-brand-text-secondary text-center py-10">No external certificates uploaded yet.</p>}

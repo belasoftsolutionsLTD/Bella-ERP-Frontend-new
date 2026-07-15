@@ -133,10 +133,10 @@ export function AttendanceReportTab() {
       {stats && (
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: 'Attendance Rate', value: `${stats.attendanceRate}%`,  color: 'text-emerald-400' },
-            { label: 'Present',         value: stats.totalPresent,          color: 'text-emerald-400' },
-            { label: 'Late',            value: stats.totalLate,             color: 'text-amber-400'   },
-            { label: 'Absent',          value: stats.totalAbsent,           color: 'text-red-400'     },
+            { label: 'Attendance Rate', value: `${stats.attendanceRate}%`,  color: 'text-emerald-600' },
+            { label: 'Present',         value: stats.totalPresent,          color: 'text-emerald-600' },
+            { label: 'Late',            value: stats.totalLate,             color: 'text-amber-600'   },
+            { label: 'Absent',          value: stats.totalAbsent,           color: 'text-red-600'     },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3 text-center">
               <p className="text-[11px] text-brand-text-muted uppercase tracking-wide mb-0.5">{label}</p>

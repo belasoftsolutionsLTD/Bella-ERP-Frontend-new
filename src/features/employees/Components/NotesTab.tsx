@@ -79,7 +79,7 @@ export function NotesTab({ employeeId }: { employeeId: string }) {
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
+              className="w-full h-9 px-3 border border-brand-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
             >
               {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
@@ -91,7 +91,7 @@ export function NotesTab({ employeeId }: { employeeId: string }) {
               onChange={e => setNote(e.target.value)}
               rows={3}
               placeholder="Write the note here…"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 resize-none"
+              className="w-full px-3 py-2 border border-brand-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 resize-none"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export function NotesTab({ employeeId }: { employeeId: string }) {
                 <span className="text-xs font-semibold text-slate-600">
                   {n.createdByName ?? n.createdByRole ?? 'HR'}
                 </span>
-                <span className="text-slate-300 text-xs">·</span>
+                <span className="text-brand-text-secondary text-xs">·</span>
                 <span className="text-xs text-slate-400">
                   {n.createdAt
                     ? new Date(n.createdAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) +
@@ -150,7 +150,7 @@ export function NotesTab({ employeeId }: { employeeId: string }) {
             {/* Delete */}
             <button
               onClick={() => del(n._id)}
-              className="shrink-0 h-7 w-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="shrink-0 h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-secondary hover:text-red-500 hover:bg-red-50 transition-colors"
               title="Delete note"
             >
               <Trash2 className="h-3.5 w-3.5" />

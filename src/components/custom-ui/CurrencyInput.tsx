@@ -32,7 +32,7 @@ export function CurrencyInput({ value, onChange, placeholder = '0', className, r
         placeholder={placeholder}
         required={required}
         className={cn(
-          'h-10 w-full border border-gray-200 rounded-xl pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all',
+          'h-10 w-full border border-brand-border rounded-xl pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary/40 transition-all',
           className
         )}
       />

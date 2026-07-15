@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import { LOAN_TYPES } from '../loanTypes';
 
 interface EmpSummary {
   _id: string; fullName: string; staffNumber: string; department: string; designation: string;
@@ -139,6 +140,7 @@ function AddCompModal({ employeeId, onClose, onSaved }: { employeeId: string; on
 
 function AddLoanModal({ employeeId, onClose, onSaved }: { employeeId: string; onClose: () => void; onSaved: () => void }) {
   const [loanType, setLoanType] = useState('Staff Loan');
+  const [loanTypeIsOther, setLoanTypeIsOther] = useState(false);
   const [principal, setPrincipal] = useState('');
   const [monthlyInstallment, setInstallment] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -156,8 +158,18 @@ function AddLoanModal({ employeeId, onClose, onSaved }: { employeeId: string; on
         <div className="px-6 py-5 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Loan Type</label>
-            <input value={loanType} onChange={e => setLoanType(e.target.value)} placeholder="e.g. Staff Loan, Salary Advance, Emergency Loan"
-              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+            <select value={loanTypeIsOther ? 'Other' : loanType}
+              onChange={e => {
+                if (e.target.value === 'Other') { setLoanTypeIsOther(true); setLoanType(''); }
+                else { setLoanTypeIsOther(false); setLoanType(e.target.value); }
+              }}
+              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+              {LOAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {loanTypeIsOther && (
+              <input value={loanType} onChange={e => setLoanType(e.target.value)} placeholder="Type the loan type" autoFocus
+                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary mt-1.5" />
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -187,7 +199,7 @@ function AddLoanModal({ employeeId, onClose, onSaved }: { employeeId: string; on
         </div>
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-brand-border">
           <button onClick={onClose} className="px-4 py-2 text-sm text-brand-text-secondary hover:text-brand-text transition-colors">Cancel</button>
-          <button disabled={!principal || !monthlyInstallment || saving} onClick={() => {
+          <button disabled={!principal || !monthlyInstallment || !loanType || saving} onClick={() => {
             setSaving(true);
             apiCallFunction({ url: `${API_BASE_URL}/payroll/loans`, method: 'POST',
               data: { employeeId, loanType, principal: Number(principal), monthlyInstallment: Number(monthlyInstallment), startDate, notes: notes || undefined },
@@ -290,9 +302,9 @@ function EmployeeDrawer({ emp, onClose }: { emp: EmpSummary; onClose: () => void
           {/* Summary row */}
           <div className="grid grid-cols-4 gap-3 px-6 py-4 border-b border-brand-border shrink-0">
             {[
-              { label: 'Total Earnings',    value: fmt(emp.totalEarnings),    color: 'text-emerald-400' },
-              { label: 'Total Deductions',  value: fmt(emp.totalDeductions),  color: 'text-red-400'     },
-              { label: 'Est. Net Pay',      value: fmt(emp.netEstimate),      color: 'text-indigo-400'  },
+              { label: 'Total Earnings',    value: fmt(emp.totalEarnings),    color: 'text-emerald-600' },
+              { label: 'Total Deductions',  value: fmt(emp.totalDeductions),  color: 'text-red-600'     },
+              { label: 'Est. Net Pay',      value: fmt(emp.netEstimate),      color: 'text-indigo-600'  },
               { label: 'Items',             value: String(emp.compensationCount), color: 'text-brand-text-secondary' },
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-brand-bg-soft rounded-xl px-3 py-3">

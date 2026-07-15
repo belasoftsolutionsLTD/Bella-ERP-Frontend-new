@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Matches the established convention from WorkforceAnalyticsPage.tsx / AttendancePage.tsx
@@ -45,6 +45,20 @@ export function StatTile({ label, value, colorCls = 'text-indigo-400', icon: Ico
 
 export function LoadingBlock() {
   return <div className="py-20 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-primary" /></div>;
+}
+
+export function ErrorBlock({ message, onRetry }: { message?: string | null; onRetry?: () => void }) {
+  return (
+    <div className="py-20 flex flex-col items-center gap-3 text-center">
+      <AlertTriangle className="h-6 w-6 text-brand-danger" />
+      <p className="text-sm text-brand-text-secondary">{message || 'Failed to load this report.'}</p>
+      {onRetry && (
+        <button onClick={onRetry} className="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors">
+          Retry
+        </button>
+      )}
+    </div>
+  );
 }
 
 // Client-side CSV export of already-fetched rows — matches the pattern already

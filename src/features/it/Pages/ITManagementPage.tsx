@@ -89,11 +89,11 @@ const DEVICE_ICONS: Record<string, React.ElementType> = {
 };
 
 const CONDITION_STYLES: Record<string, { bg: string; text: string }> = {
-  new:          { bg: '#d1fae520', text: '#34d399' },
-  good:         { bg: '#dbeafe20', text: '#60a5fa' },
-  fair:         { bg: '#fef3c720', text: '#fbbf24' },
-  needs_repair: { bg: '#fee2e220', text: '#f87171' },
-  retired:      { bg: '#f1f5f920', text: '#94a3b8' },
+  new:          { bg: '#d1fae5', text: '#059669' },
+  good:         { bg: '#dbeafe', text: '#2563eb' },
+  fair:         { bg: '#fef3c7', text: '#d97706' },
+  needs_repair: { bg: '#fee2e2', text: '#dc2626' },
+  retired:      { bg: '#f1f5f9', text: '#64748b' },
 };
 
 const STATUS_STYLES: Record<string, { color: string; label: string }> = {
@@ -104,9 +104,9 @@ const STATUS_STYLES: Record<string, { color: string; label: string }> = {
 };
 
 const PRIORITY_STYLES: Record<string, { color: string; bg: string }> = {
-  high:   { color: '#f87171', bg: '#fee2e220' },
-  medium: { color: '#fbbf24', bg: '#fef3c720' },
-  low:    { color: '#94a3b8', bg: '#f1f5f920' },
+  high:   { color: '#dc2626', bg: '#fee2e2' },
+  medium: { color: '#d97706', bg: '#fef3c7' },
+  low:    { color: '#64748b', bg: '#f1f5f9' },
 };
 
 const REQUEST_STATUS_COLORS: Record<string, string> = {
@@ -181,7 +181,7 @@ function AddDeviceModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
-      <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: '#f8fafc' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
           <h2 className="text-[15px] font-bold text-brand-text">Add Device</h2>
           <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-4 w-4" /></button>
@@ -291,7 +291,7 @@ function AddSoftwareModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#f8fafc' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
           <h2 className="text-[15px] font-bold text-brand-text">Add Software / App</h2>
           <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-4 w-4" /></button>
@@ -412,7 +412,7 @@ function AddRequestModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#f8fafc' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
           <h2 className="text-[15px] font-bold text-brand-text">New IT Request</h2>
           <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-4 w-4" /></button>
@@ -556,7 +556,7 @@ function AssignDeviceModal({ device, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#f8fafc' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
           <div>
             <h2 className="text-[15px] font-bold text-brand-text">Assign Device</h2>
@@ -820,7 +820,7 @@ function AssignSoftwareModal({ app, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#f8fafc' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl flex items-center justify-center text-base font-black"
@@ -1019,7 +1019,7 @@ function AssignRequestModal({ request, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#f8fafc' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
           <div>
             <h2 className="text-[15px] font-bold text-brand-text">{isRepair ? 'Assign Technician' : 'Assign Request'}</h2>
@@ -1126,7 +1126,7 @@ function ResolveRepairModal({ request, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.85)' }}>
-      <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: '#1e293b' }}>
+      <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: '#f8fafc' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
           <h2 className="text-[15px] font-bold text-brand-text">Mark as Resolved</h2>
           <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-4 w-4" /></button>
@@ -1306,7 +1306,7 @@ export default function ITManagementPage() {
   const [tab, setTab] = useState<TabType>('devices');
 
   return (
-    <div className="min-h-full" style={{ background: '#0f172a' }}>
+    <div className="min-h-full" style={{ background: '#ffffff' }}>
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-brand-text">Assets Management</h1>

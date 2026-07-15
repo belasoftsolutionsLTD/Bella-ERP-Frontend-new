@@ -28,7 +28,7 @@ export default function SpendReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-100">Spend Reports</h1>
+        <h1 className="text-xl font-bold text-brand-text">Spend Reports</h1>
         <p className="text-sm text-slate-400 mt-0.5">Expense claims and procurement spend in one view</p>
       </div>
       <ReportsNav active="spend" />
@@ -74,8 +74,8 @@ export default function SpendReportsPage() {
                 <div className="divide-y divide-slate-700/60">
                   {expenses.topSpenders.map((s) => (
                     <div key={s._id} className="flex items-center justify-between py-2.5 text-sm">
-                      <div><p className="text-slate-200">{s.employee?.fullName ?? 'Unknown'}</p><p className="text-xs text-slate-500">{s.employee?.department}</p></div>
-                      <span className="text-slate-300 font-semibold">{fmtKES(s.total)} <span className="text-xs text-slate-500">({s.count})</span></span>
+                      <div><p className="text-brand-text">{s.employee?.fullName ?? 'Unknown'}</p><p className="text-xs text-slate-500">{s.employee?.department}</p></div>
+                      <span className="text-brand-text-secondary font-semibold">{fmtKES(s.total)} <span className="text-xs text-slate-500">({s.count})</span></span>
                     </div>
                   ))}
                 </div>
@@ -105,8 +105,8 @@ export default function SpendReportsPage() {
                 <div className="divide-y divide-slate-700/60">
                   {vendors.map((v) => (
                     <div key={v._id ?? 'unknown'} className="flex items-center justify-between py-2.5 text-sm">
-                      <div><p className="text-slate-200">{v.vendor?.name ?? 'Unknown Vendor'}</p><p className="text-xs text-slate-500">{v.vendor?.category} · {v.orderCount} orders</p></div>
-                      <span className="text-slate-300 font-semibold">{fmtKES(v.totalSpend)}</span>
+                      <div><p className="text-brand-text">{v.vendor?.name ?? 'Unknown Vendor'}</p><p className="text-xs text-slate-500">{v.vendor?.category} · {v.orderCount} orders</p></div>
+                      <span className="text-brand-text-secondary font-semibold">{fmtKES(v.totalSpend)}</span>
                     </div>
                   ))}
                 </div>

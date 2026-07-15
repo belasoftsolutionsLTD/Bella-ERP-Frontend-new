@@ -105,7 +105,7 @@ function DropOffFunnel() {
           {data.funnel.map((f) => (
             <div key={f.moduleId}>
               <div className="flex justify-between text-xs text-slate-600 mb-1"><span>{f.title}</span><span>{f.completedCount} completed</span></div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${100 - f.dropOffRate}%` }} /></div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-brand-primary rounded-full" style={{ width: `${100 - f.dropOffRate}%` }} /></div>
             </div>
           ))}
         </div>
@@ -135,8 +135,8 @@ function DeptHeatmap() {
                 {mandatoryCourses.map((c) => {
                   const inScope = c.targetDepartments.includes(dept);
                   const rate = c.completionRate;
-                  const color = !inScope ? 'bg-slate-50 text-slate-300' : rate >= 80 ? 'bg-green-100 text-green-800' : rate >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
-                  return <td key={c.courseId} className="py-2 px-2 text-center">{inScope ? <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${color}`}>{rate}%</span> : <span className="text-slate-300">—</span>}</td>;
+                  const color = !inScope ? 'bg-slate-50 text-brand-text-secondary' : rate >= 80 ? 'bg-green-100 text-green-800' : rate >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
+                  return <td key={c.courseId} className="py-2 px-2 text-center">{inScope ? <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${color}`}>{rate}%</span> : <span className="text-brand-text-secondary">—</span>}</td>;
                 })}
               </tr>
             ))}
@@ -151,7 +151,7 @@ export function TrainingAnalyticsPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Training Analytics</h1>
+        <h1 className="text-xl font-semibold text-brand-text">Training Analytics</h1>
         <p className="text-sm text-slate-400">Trends, leaderboards, and engagement across your training program</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -121,7 +121,7 @@ export default function JobDetailPage() {
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => (view === 'form' ? setView('detail') : router.push(`/${locale}/careers`))}
-            className="h-9 w-9 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            className="h-9 w-9 rounded-xl border border-brand-border flex items-center justify-center hover:bg-gray-50 transition-colors"
           >
             <ArrowLeft className="h-4 w-4 text-gray-600" />
           </button>
@@ -135,7 +135,7 @@ export default function JobDetailPage() {
       <main className="max-w-3xl mx-auto px-6 py-8">
         {view === 'detail' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <span className="text-[11px] font-semibold bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full">{job.department}</span>
@@ -155,7 +155,7 @@ export default function JobDetailPage() {
             </div>
 
             {job.description && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-6">
                 <h3 className="font-bold text-gray-800 mb-3">About this Role</h3>
                 <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{job.description}</p>
               </div>
@@ -164,7 +164,7 @@ export default function JobDetailPage() {
         )}
 
         {view === 'form' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-6">
             <h2 className="font-bold text-gray-900 text-lg mb-1">Your Application</h2>
             <p className="text-sm text-gray-400 mb-6">Applying for: <strong className="text-gray-700">{job.title}</strong></p>
 
@@ -172,43 +172,43 @@ export default function JobDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">First Name <span className="text-red-500">*</span></label>
-                  <input required value={form.firstName} onChange={(e) => set('firstName', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                  <input required value={form.firstName} onChange={(e) => set('firstName', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Name <span className="text-red-500">*</span></label>
-                  <input required value={form.lastName} onChange={(e) => set('lastName', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                  <input required value={form.lastName} onChange={(e) => set('lastName', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email <span className="text-red-500">*</span></label>
-                  <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                  <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</label>
-                  <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                  <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</label>
-                  <input value={form.location} onChange={(e) => set('location', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                  <input value={form.location} onChange={(e) => set('location', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">LinkedIn URL</label>
-                  <input value={form.linkedInUrl} onChange={(e) => set('linkedInUrl', e.target.value)} className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                  <input value={form.linkedInUrl} onChange={(e) => set('linkedInUrl', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cover Letter</label>
-                <textarea value={form.coverLetter} onChange={(e) => set('coverLetter', e.target.value)} rows={5} className="border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary/20 leading-relaxed" />
+                <textarea value={form.coverLetter} onChange={(e) => set('coverLetter', e.target.value)} rows={5} className="border border-brand-border rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary/20 leading-relaxed" />
               </div>
 
               {(job.screeningQuestions || []).length > 0 && (
-                <div className="space-y-4 border-t border-gray-100 pt-5">
+                <div className="space-y-4 border-t border-brand-border pt-5">
                   {job.screeningQuestions!.map((q) => (
                     <div key={q.id} className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -218,7 +218,7 @@ export default function JobDetailPage() {
                         required={q.required}
                         value={answers[q.id] ?? ''}
                         onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                        className="h-11 border border-gray-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                        className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                       />
                     </div>
                   ))}
@@ -234,11 +234,15 @@ export default function JobDetailPage() {
                     <button type="button" onClick={() => setResume(null)} className="text-gray-400 hover:text-red-500 transition-colors"><X className="h-4 w-4" /></button>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all">
+                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-brand-border rounded-xl py-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all">
                     <Upload className="h-6 w-6 text-gray-300 mb-2" />
                     <span className="text-sm text-gray-400">Click to upload your resume</span>
-                    <span className="text-xs text-gray-300 mt-1">PDF, DOC, DOCX (max 5MB)</span>
-                    <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setResume(e.target.files?.[0] ?? null)} />
+                    <span className="text-xs text-gray-300 mt-1">PDF only (max 5MB)</span>
+                    <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && f.type !== 'application/pdf') { alert('Please upload your CV as a PDF file.'); e.target.value = ''; return; }
+                      setResume(f ?? null);
+                    }} />
                   </label>
                 )}
               </div>

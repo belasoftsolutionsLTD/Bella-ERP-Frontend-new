@@ -38,6 +38,7 @@ interface CustomInputProps<T extends FieldValues> {
   className?: string;
   selectTriggerClassName?: string;
   selectItemClassName?: string;
+  required?: boolean;
 }
 
 export function CustomInput<T extends FieldValues>({
@@ -50,6 +51,7 @@ export function CustomInput<T extends FieldValues>({
   className,
   selectTriggerClassName,
   selectItemClassName,
+  required,
 }: CustomInputProps<T>) {
   return (
     <Controller
@@ -57,7 +59,7 @@ export function CustomInput<T extends FieldValues>({
       control={control}
       render={({ field, fieldState }) => (
         <div className={cn('flex flex-col gap-1.5', className)}>
-          <Label htmlFor={String(name)}>{label}</Label>
+          <Label htmlFor={String(name)}>{label}{required && <span className="text-brand-danger ml-0.5">*</span>}</Label>
 
           {component === 'textarea' && (
             <Textarea

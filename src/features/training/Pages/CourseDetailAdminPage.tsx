@@ -24,7 +24,7 @@ function ContentTab({ courseId, locale }: { courseId: string; locale: string }) 
       ))}
       {modules.length === 0 && <p className="p-6 text-sm text-brand-text-secondary text-center">No modules yet.</p>}
       <div className="p-3">
-        <Link href={`/${locale}/training/courses/${courseId}/edit`} className="text-sm text-primary hover:underline">Edit modules →</Link>
+        <Link href={`/${locale}/training/courses/${courseId}/edit`} className="text-sm text-brand-primary hover:underline">Edit modules →</Link>
       </div>
     </div>
   );
@@ -57,7 +57,7 @@ function EnrollmentsTab({ courseId }: { courseId: string }) {
               <td className="px-4 py-2 text-brand-text-muted">{e.dueDate ? new Date(e.dueDate).toLocaleDateString() : '—'}</td>
               <td className="px-4 py-2">
                 {e.status !== 'completed' && e.status !== 'waived' && (
-                  <button onClick={() => waiveEnrollment(e._id)} className="text-xs text-primary hover:underline">Waive</button>
+                  <button onClick={() => waiveEnrollment(e._id)} className="text-xs text-brand-primary hover:underline">Waive</button>
                 )}
               </td>
             </tr>
@@ -80,7 +80,7 @@ function AnalyticsTab({ courseId }: { courseId: string }) {
           {data.funnel.map((f) => (
             <div key={f.moduleId}>
               <div className="flex justify-between text-xs text-brand-text-muted mb-1"><span>{f.title}</span><span>{f.completedCount} completed ({f.dropOffRate}% drop-off)</span></div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${100 - f.dropOffRate}%` }} /></div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-brand-primary rounded-full" style={{ width: `${100 - f.dropOffRate}%` }} /></div>
             </div>
           ))}
         </div>
@@ -110,7 +110,7 @@ function SettingsTab({ courseId, locale }: { courseId: string; locale: string })
   if (!course) return null;
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-      <Link href={`/${locale}/training/courses/${courseId}/edit`} className="text-sm text-primary hover:underline">Edit course details →</Link>
+      <Link href={`/${locale}/training/courses/${courseId}/edit`} className="text-sm text-brand-primary hover:underline">Edit course details →</Link>
       {course.status !== 'archived' && (
         <div>
           <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => archiveCourse()}>Archive Course</Button>
@@ -139,7 +139,7 @@ export function CourseDetailAdminPage({ id, locale }: { id: string; locale: stri
 
       <div className="flex gap-1 border-b border-brand-border">
         {(['content', 'enrollments', 'analytics', 'settings'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-primary border-b-2 border-primary font-medium' : 'text-brand-text-secondary'}`}>{t}</button>
+          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-brand-primary border-b-2 border-brand-primary font-medium' : 'text-brand-text-secondary'}`}>{t}</button>
         ))}
       </div>
 

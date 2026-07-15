@@ -35,9 +35,9 @@ export function EmployeeDetailTabs({ employee, onChanged }: { employee: Employee
   const visibleTabs = TABS.filter(t => !t.hrOnly || isHR);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
       {/* Tab bar */}
-      <div className="flex gap-0 border-b border-gray-100 overflow-x-auto px-2">
+      <div className="flex gap-0 border-b border-brand-border overflow-x-auto px-2">
         {visibleTabs.map(tab => (
           <button
             key={tab.key}

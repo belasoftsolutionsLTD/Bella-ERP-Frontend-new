@@ -197,7 +197,7 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
               onChange={e => setName(e.target.value)}
               placeholder="Jane Wanjiku"
               required
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
           </div>
 
@@ -212,7 +212,7 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
               onChange={e => setEmail(e.target.value)}
               placeholder="jane@school.ac.ke"
               required
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
           </div>
 
@@ -259,7 +259,7 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
                 value={department}
                 onChange={e => setDepartment(e.target.value)}
                 placeholder="e.g. Senior Secondary"
-                className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
               />
             </div>
           )}

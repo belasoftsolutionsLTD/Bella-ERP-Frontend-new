@@ -185,14 +185,14 @@ export function CompanySettingsPanel() {
           <label className="text-xs text-foreground/60">Work Start Time</label>
           <input type="time" value={form.workStartTime ?? '08:00'}
             onChange={(e) => set('workStartTime', e.target.value)}
-            className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
           <p className="text-[10px] text-foreground/40">Employees are notified 15 min before this time to clock in</p>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-foreground/60">Work End Time</label>
           <input type="time" value={form.workEndTime ?? '17:00'}
             onChange={(e) => set('workEndTime', e.target.value)}
-            className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
           <p className="text-[10px] text-foreground/40">Employees are notified 15 min before this time to clock out</p>
         </div>
       </div>
@@ -222,7 +222,7 @@ export function CompanySettingsPanel() {
               value={form.officeLatitude ?? ''}
               onChange={(e) => set('officeLatitude', e.target.value)}
               placeholder="e.g. -1.2921"
-              className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+              className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-mono"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -232,7 +232,7 @@ export function CompanySettingsPanel() {
               value={form.officeLongitude ?? ''}
               onChange={(e) => set('officeLongitude', e.target.value)}
               placeholder="e.g. 36.8219"
-              className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+              className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 font-mono"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -242,7 +242,7 @@ export function CompanySettingsPanel() {
               value={form.officeRadiusMeters ?? '200'}
               onChange={(e) => set('officeRadiusMeters', e.target.value)}
               placeholder="200"
-              className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             />
           </div>
         </div>
@@ -312,7 +312,7 @@ export function CompanySettingsPanel() {
                 type="text"
                 value={primaryColor}
                 onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) { set('primaryColor', e.target.value); if (e.target.value.length === 7) applyPreview(e.target.value, gradEndColor); } }}
-                className="h-9 w-28 border border-gray-200 rounded-lg px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-9 w-28 border border-brand-border rounded-lg px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
               <div className="flex-1 h-9 rounded-lg border" style={{ backgroundColor: primaryColor }} />
             </div>
@@ -360,7 +360,7 @@ export function CompanySettingsPanel() {
                 type="text"
                 value={gradEndColor}
                 onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) { set('gradientEndColor', e.target.value); if (e.target.value.length === 7) applyPreview(primaryColor, e.target.value); } }}
-                className="h-9 w-28 border border-gray-200 rounded-lg px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-9 w-28 border border-brand-border rounded-lg px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
               <div
                 className="flex-1 h-9 rounded-lg border"
@@ -398,7 +398,7 @@ export function CompanySettingsPanel() {
       {/* File uploads */}
       <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Logo with preview */}
-        <div className="flex flex-col gap-2 p-3 border border-dashed border-gray-200 rounded-xl">
+        <div className="flex flex-col gap-2 p-3 border border-dashed border-brand-border rounded-xl">
           <div className="flex items-center gap-2 text-xs font-medium text-foreground/70">
             <Building2 className="h-4 w-4" /> Company Logo
           </div>
@@ -456,7 +456,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
     <div className="flex flex-col gap-1">
       <label className="text-xs text-foreground/60">{label}</label>
       <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+        className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
     </div>
   );
 }
@@ -466,7 +466,7 @@ function TextArea({ label, value, onChange, rows, placeholder }: { label: string
     <div className="flex flex-col gap-1">
       <label className="text-xs text-foreground/60">{label}</label>
       <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows ?? 3} placeholder={placeholder}
-        className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
+        className="border border-brand-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 resize-none" />
     </div>
   );
 }
@@ -478,7 +478,7 @@ function UploadField({ label, icon, accept, currentPath, uploading, inputRef, on
   onPick: () => void; onChange: (f: File) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 p-3 border border-dashed border-gray-200 rounded-xl">
+    <div className="flex flex-col gap-2 p-3 border border-dashed border-brand-border rounded-xl">
       <div className="flex items-center gap-2 text-xs font-medium text-foreground/70">{icon} {label}</div>
       {currentPath && <p className="text-xs text-green-600 truncate">✓ File uploaded</p>}
       <button onClick={onPick} disabled={uploading}

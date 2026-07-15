@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 import {
   ArrowLeft, Users, MessageSquare, FileText, ListChecks,
-  Plus, X, Check, Send, Trash2, Upload, Paperclip,
+  Plus, X, Check, Send, Trash2, Upload, Paperclip, Smile, Download,
   CheckCircle2, AlertCircle, Info, ChevronDown, ChevronUp,
   Search,
 } from 'lucide-react';
@@ -85,7 +86,48 @@ interface ChatMessage {
   senderName: string;
   senderRole: string;
   message: string;
+  attachmentFilename?: string | null;
+  attachmentOriginalName?: string | null;
+  attachmentMimeType?: string | null;
   createdAt: string;
+}
+
+interface ChatGroup {
+  _id: string;
+  name: string;
+  memberIds: string[];
+  createdBy: string;
+  createdByName: string;
+}
+
+const CHAT_EMOJIS = [
+  '😀','😂','🤣','😊','😍','🥰','😎','🤔','😅','😭','😤','😡','🥺','😩','😴','🤧','🤯','😷',
+  '👍','👎','🙌','👏','🙏','💪','✌️','🤞','👋','🤝','👊','🫡',
+  '❤️','💕','💔','🧡','💛','💚','💙','💜','🖤',
+  '🎉','🔥','✨','⭐','💯','✅','❌','🎊','🏆','🎯','🚀','💡','💰','🍕','☕','🎵',
+];
+
+function ChatEmojiPicker({ onSelect, onClose }: { onSelect: (e: string) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+  return (
+    <div ref={ref} className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-2xl border border-brand-border p-3 z-50 w-72">
+      <div className="grid grid-cols-9 gap-0.5 max-h-52 overflow-y-auto">
+        {CHAT_EMOJIS.map((e, i) => (
+          <button key={i} type="button" onClick={() => { onSelect(e); onClose(); }}
+            className="h-8 w-8 text-lg hover:bg-brand-bg-soft rounded-lg flex items-center justify-center transition-colors">
+            {e}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 interface Employee { _id: string; fullName: string; department?: string; staffNumber?: string }
@@ -135,7 +177,7 @@ function OverviewTab({ project, onComplete, onRefresh }: {
         ].map(({ label, value }) => (
           <div key={label} className="bg-brand-bg-soft rounded-xl p-4 border border-brand-border">
             <p className="text-[11px] text-brand-text-secondary mb-1">{label}</p>
-            <p className="text-[18px] font-bold text-white">{value}</p>
+            <p className="text-[18px] font-bold text-brand-text">{value}</p>
           </div>
         ))}
       </div>
@@ -232,7 +274,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between text-[13px]">
       <span className="text-brand-text-secondary">{label}</span>
-      <span className="text-white font-medium">{value}</span>
+      <span className="text-brand-text font-medium">{value}</span>
     </div>
   );
 }
@@ -670,34 +712,128 @@ function SubtasksTab({ project, onRefresh }: { project: Project; onRefresh: () =
   );
 }
 
+// ── New Chat Group Modal ─────────────────────────────────────────────────────
+
+function NewChatGroupModal({ project, onClose, onCreated }: { project: Project; onClose: () => void; onCreated: () => void }) {
+  const { userData } = useAuth() as any;
+  const myId = String(userData?._id ?? '');
+  const [name, setName]         = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [saving, setSaving]     = useState(false);
+
+  const people = [
+    { id: String(project.createdBy), name: project.supervisorName, role: 'Supervisor' },
+    ...project.members.map(m => ({ id: String(m.employeeId), name: m.employee?.fullName ?? m.name, role: m.role.replace('_', ' ') })),
+  ].filter(p => p.id !== myId);
+
+  const toggle = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+
+  const create = () => {
+    if (!name.trim() || selected.size === 0) return;
+    setSaving(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/projects/${project._id}/chat-groups`,
+      method: 'POST',
+      data: { name: name.trim(), memberIds: [...selected] },
+      showToast: false,
+      thenFn: () => { onCreated(); onClose(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
+          <h2 className="text-[15px] font-bold text-brand-text">New Group Chat</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-soft transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Group name, e.g. Comms Sub-team"
+            className="w-full h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border rounded-lg text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+          <div>
+            <p className="text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Members</p>
+            {people.length === 0 ? (
+              <p className="text-[12px] text-brand-text-muted px-1">No other project members to add.</p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto border border-brand-border rounded-lg divide-y divide-brand-border/50">
+                {people.map(p => {
+                  const sel = selected.has(p.id);
+                  return (
+                    <button key={p.id} type="button" onClick={() => toggle(p.id)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-brand-bg-muted/40 transition-colors ${sel ? 'bg-brand-primary/10' : ''}`}>
+                      <div className={`h-3.5 w-3.5 rounded border shrink-0 flex items-center justify-center ${sel ? 'bg-brand-primary border-brand-primary' : 'border-slate-500'}`}>
+                        {sel && <Check className="h-2 w-2 text-white" />}
+                      </div>
+                      <span className="text-[12px] text-brand-text truncate">{p.name}</span>
+                      <span className="text-[10px] text-brand-text-muted ml-auto capitalize">{p.role}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-brand-border">
+          <button onClick={onClose} className="px-3 h-8 text-[13px] text-brand-text-secondary hover:text-brand-text transition-colors">Cancel</button>
+          <button onClick={create} disabled={!name.trim() || selected.size === 0 || saving}
+            className="px-4 h-8 text-[13px] bg-brand-primary text-white rounded-lg hover:bg-brand-primary-hover disabled:opacity-50">
+            {saving ? 'Creating…' : 'Create Group'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Chat Tab ──────────────────────────────────────────────────────────────────
 
-function ChatTab({ projectId }: { projectId: string }) {
+function ChatTab({ project }: { project: Project }) {
+  const projectId = project._id;
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
+  const [groups, setGroups]       = useState<ChatGroup[]>([]);
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [showNewGroup, setShowNewGroup]   = useState(false);
   const [input, setInput]         = useState('');
   const [sending, setSending]     = useState(false);
+  const [file, setFile]           = useState<File | null>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
   const bottomRef                 = useRef<HTMLDivElement>(null);
   const lastIdRef                 = useRef<string>('');
+  const fileInputRef              = useRef<HTMLInputElement>(null);
+  const inputRef                  = useRef<HTMLInputElement>(null);
 
-  const fetchMessages = useCallback((quiet = false) => {
+  const fetchGroups = useCallback(() => {
     apiCallFunction<any>({
-      url: `${API_BASE_URL}/projects/${projectId}/messages?limit=60`,
+      url: `${API_BASE_URL}/projects/${projectId}/chat-groups`,
       showToast: false,
-      thenFn: r => {
-        const msgs: ChatMessage[] = r?.data ?? [];
-        if (msgs.length > 0) {
-          const newest = msgs[msgs.length - 1]._id;
-          if (newest !== lastIdRef.current) {
-            lastIdRef.current = newest;
-            setMessages(msgs);
-            if (!quiet) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-          }
-        }
-      },
+      thenFn: r => setGroups(r?.data ?? []),
     });
   }, [projectId]);
 
+  useEffect(() => { fetchGroups(); }, [fetchGroups]);
+
+  const fetchMessages = useCallback((quiet = false) => {
+    const groupParam = activeGroupId ? `&groupId=${activeGroupId}` : '';
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/projects/${projectId}/messages?limit=60${groupParam}`,
+      showToast: false,
+      thenFn: r => {
+        const msgs: ChatMessage[] = r?.data ?? [];
+        const newest = msgs.length > 0 ? msgs[msgs.length - 1]._id : '';
+        if (newest !== lastIdRef.current) {
+          lastIdRef.current = newest;
+          setMessages(msgs);
+          if (!quiet) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+        }
+      },
+    });
+  }, [projectId, activeGroupId]);
+
   useEffect(() => {
+    lastIdRef.current = '';
+    setMessages([]);
     fetchMessages(false);
     const interval = setInterval(() => fetchMessages(true), 5000);
     return () => clearInterval(interval);
@@ -708,16 +844,29 @@ function ChatTab({ projectId }: { projectId: string }) {
   }, [messages]);
 
   const sendMsg = () => {
-    if (!input.trim()) return;
+    if (!input.trim() && !file) return;
     setSending(true);
+    const fd = new FormData();
+    if (input.trim()) fd.append('message', input.trim());
+    if (file) fd.append('file', file);
+    if (activeGroupId) fd.append('groupId', activeGroupId);
     apiCallFunction({
       url: `${API_BASE_URL}/projects/${projectId}/messages`,
       method: 'POST',
-      data: { message: input.trim() },
+      data: fd,
       showToast: false,
-      thenFn: () => { setInput(''); fetchMessages(false); },
+      thenFn: () => { setInput(''); setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; fetchMessages(false); },
       finallyFn: () => setSending(false),
     });
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const el = inputRef.current;
+    if (!el) { setInput(v => v + emoji); return; }
+    const start = el.selectionStart ?? input.length;
+    const end   = el.selectionEnd ?? input.length;
+    setInput(v => v.slice(0, start) + emoji + v.slice(end));
+    setTimeout(() => { el.focus(); el.selectionStart = el.selectionEnd = start + emoji.length; }, 0);
   };
 
   const ROLE_COLORS: Record<string, string> = {
@@ -726,8 +875,30 @@ function ChatTab({ projectId }: { projectId: string }) {
     member:       'text-brand-text-secondary',
   };
 
+  const isImageAttachment = (mime?: string | null) => !!mime && mime.startsWith('image/');
+
   return (
-    <div className="flex flex-col h-[520px] bg-white rounded-xl border border-brand-border overflow-hidden">
+    <div className="flex flex-col h-[560px] bg-white rounded-xl border border-brand-border overflow-hidden">
+      {/* Channels */}
+      <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto border-b border-brand-border shrink-0">
+        <button onClick={() => setActiveGroupId(null)}
+          className={cn('px-3 py-1.5 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors',
+            activeGroupId === null ? 'bg-brand-primary text-white' : 'text-brand-text-secondary hover:bg-brand-bg-soft')}>
+          General
+        </button>
+        {groups.map(g => (
+          <button key={g._id} onClick={() => setActiveGroupId(g._id)}
+            className={cn('px-3 py-1.5 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors',
+              activeGroupId === g._id ? 'bg-brand-primary text-white' : 'text-brand-text-secondary hover:bg-brand-bg-soft')}>
+            # {g.name}
+          </button>
+        ))}
+        <button onClick={() => setShowNewGroup(true)} title="Create a new group chat"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold whitespace-nowrap shrink-0 text-brand-primary border border-dashed border-brand-primary/40 hover:bg-brand-primary/10 transition-colors ml-1">
+          <Plus className="h-3.5 w-3.5" /> New Group
+        </button>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
@@ -749,16 +920,68 @@ function ChatTab({ projectId }: { projectId: string }) {
                 <span className="text-[10px] text-brand-text-muted capitalize">{m.senderRole.replace('_', ' ')}</span>
                 <span className="text-[10px] text-brand-text-muted ml-auto">{fmtTime(m.createdAt)}</span>
               </div>
-              <p className="text-[13px] text-brand-text-secondary leading-relaxed break-words">{m.message}</p>
+              {m.message && <p className="text-[13px] text-brand-text-secondary leading-relaxed break-words">{m.message}</p>}
+              {m.attachmentFilename && (
+                isImageAttachment(m.attachmentMimeType) ? (
+                  <a href={projectFileUrl(m.attachmentFilename)} target="_blank" rel="noopener noreferrer" className="inline-block mt-1.5">
+                    <img src={projectFileUrl(m.attachmentFilename)} alt={m.attachmentOriginalName ?? 'attachment'}
+                      className="max-h-48 max-w-[220px] rounded-lg border border-brand-border object-cover" />
+                  </a>
+                ) : (
+                  <a href={projectFileUrl(m.attachmentFilename)} target="_blank" rel="noopener noreferrer"
+                    className="mt-1.5 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-bg-soft border border-brand-border hover:bg-brand-bg-muted transition-colors max-w-full">
+                    <FileText className="h-4 w-4 text-brand-text-muted shrink-0" />
+                    <span className="text-[12px] text-brand-text truncate">{m.attachmentOriginalName || m.attachmentFilename}</span>
+                    <Download className="h-3.5 w-3.5 text-brand-text-muted shrink-0" />
+                  </a>
+                )
+              )}
             </div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
+      {/* Attach preview */}
+      {file && (
+        <div className="px-3 pt-2 border-t border-brand-border">
+          <div className="inline-flex items-center gap-2 bg-brand-bg-soft border border-brand-border rounded-lg px-2.5 py-1.5">
+            <Paperclip className="h-3.5 w-3.5 text-brand-text-muted shrink-0" />
+            <span className="text-[12px] text-brand-text truncate max-w-[200px]">{file.name}</span>
+            <button onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+              className="h-4 w-4 rounded-full bg-brand-bg-muted hover:bg-brand-border-strong flex items-center justify-center shrink-0">
+              <X className="h-2.5 w-2.5 text-brand-text-secondary" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
-      <div className="border-t border-brand-border p-3 flex gap-2">
+      <div className="border-t border-brand-border p-3 flex gap-2 items-center relative">
+        {showEmoji && <ChatEmojiPicker onSelect={insertEmoji} onClose={() => setShowEmoji(false)} />}
+        <input ref={fileInputRef} type="file" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f); }} />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          title="Attach a file"
+          className="h-9 w-9 shrink-0 rounded-xl text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-soft flex items-center justify-center transition-colors"
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowEmoji(v => !v)}
+          title="Emoji"
+          className={cn(
+            'h-9 w-9 shrink-0 rounded-xl flex items-center justify-center transition-colors',
+            showEmoji ? 'bg-amber-100 text-amber-600' : 'text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-soft',
+          )}
+        >
+          <Smile className="h-4 w-4" />
+        </button>
         <input
+          ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
@@ -767,12 +990,17 @@ function ChatTab({ projectId }: { projectId: string }) {
         />
         <button
           onClick={sendMsg}
-          disabled={sending || !input.trim()}
-          className="h-9 w-9 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white flex items-center justify-center disabled:opacity-40 transition-colors"
+          disabled={sending || (!input.trim() && !file)}
+          className="h-9 w-9 shrink-0 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white flex items-center justify-center disabled:opacity-40 transition-colors"
         >
           <Send className="h-4 w-4" />
         </button>
       </div>
+
+      {showNewGroup && (
+        <NewChatGroupModal project={project} onClose={() => setShowNewGroup(false)}
+          onCreated={() => { fetchGroups(); }} />
+      )}
     </div>
   );
 }
@@ -1005,7 +1233,7 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
             {project.supervisorName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-white">{project.supervisorName}</p>
+            <p className="text-[13px] font-semibold text-brand-text">{project.supervisorName}</p>
             <p className="text-[11px] text-brand-text-muted">Project Supervisor</p>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-brand-primary bg-brand-primary/20">Supervisor</span>
@@ -1018,7 +1246,7 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
               {(m.employee?.fullName ?? m.name).charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-white">{m.employee?.fullName ?? m.name}</p>
+              <p className="text-[13px] font-medium text-brand-text">{m.employee?.fullName ?? m.name}</p>
               <p className="text-[11px] text-brand-text-muted">{m.employee?.department ?? m.department}</p>
             </div>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${ROLE_BADGE[m.role] ?? ROLE_BADGE.member}`}>
@@ -1090,7 +1318,7 @@ export default function ProjectDetailPage({ projectId }: { projectId: string }) 
   };
 
   return (
-    <div className="min-h-screen bg-white text-white p-6 space-y-6">
+    <div className="min-h-screen bg-white text-brand-text p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
         <button
@@ -1108,7 +1336,7 @@ export default function ProjectDetailPage({ projectId }: { projectId: string }) 
               <span className="text-[11px] text-brand-text-muted">· You: {project.myRole.replace('_', ' ')}</span>
             )}
           </div>
-          <h1 className="text-[22px] font-bold text-white leading-tight">{project.name}</h1>
+          <h1 className="text-[22px] font-bold text-brand-text leading-tight">{project.name}</h1>
           <p className="text-[13px] text-brand-text-secondary mt-0.5">
             {project.departments.length > 0 ? project.departments.join(', ') : 'No departments assigned'}
           </p>
@@ -1139,7 +1367,7 @@ export default function ProjectDetailPage({ projectId }: { projectId: string }) 
       {/* Tab content */}
       {tab === 'overview'  && <OverviewTab project={project} onComplete={() => setTab('overview')} onRefresh={load} />}
       {tab === 'subtasks'  && <SubtasksTab project={project} onRefresh={load} />}
-      {tab === 'chat'      && <ChatTab projectId={project._id} />}
+      {tab === 'chat'      && <ChatTab project={project} />}
       {tab === 'notes'     && <NotesTab project={project} />}
       {tab === 'team'      && <TeamTab project={project} onRefresh={load} />}
     </div>

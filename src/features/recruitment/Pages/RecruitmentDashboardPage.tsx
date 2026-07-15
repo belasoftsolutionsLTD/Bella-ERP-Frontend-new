@@ -27,7 +27,7 @@ export function RecruitmentDashboardPage({ locale }: { locale: string }) {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Recruitment</h1>
+        <h1 className="text-xl font-semibold text-brand-text">Recruitment</h1>
         <p className="text-sm text-slate-400">Structured hiring, from requisition to offer.</p>
       </div>
 

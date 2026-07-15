@@ -131,14 +131,14 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Search employee…"
-                    className="w-full pl-9 pr-3 h-9 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                    className="w-full pl-9 pr-3 h-9 border border-brand-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                   />
                 </div>
                 {search && (
-                  <div className="border border-gray-200 rounded-lg max-h-40 overflow-y-auto">
+                  <div className="border border-brand-border rounded-lg max-h-40 overflow-y-auto">
                     {filtered.slice(0, 8).map(e => (
                       <button key={e._id} onClick={() => { setSelectedEmp(e); setSearch(''); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 text-sm border-b border-gray-100 last:border-0">
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-gray-50 text-sm border-b border-brand-border last:border-0">
                         <div className={cn('h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0', avatarColor(e.fullName))}>
                           {e.fullName.charAt(0)}
                         </div>
@@ -163,7 +163,7 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
             <select
               value={docType}
               onChange={e => setDocType(e.target.value)}
-              className="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+              className="w-full h-9 border border-brand-border rounded-lg px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             >
               {DOC_TYPES.filter(t => t.value).map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -176,7 +176,7 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
             <label className="text-xs font-semibold text-slate-600 mb-1.5 block">File *</label>
             <label className={cn(
               'flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-6 cursor-pointer transition-colors',
-              file ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50',
+              file ? 'border-emerald-400 bg-emerald-50' : 'border-brand-border hover:border-indigo-300 hover:bg-indigo-50',
             )}>
               <input type="file" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
               {file ? (
@@ -189,7 +189,7 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
                 </>
               ) : (
                 <>
-                  <Upload className="h-8 w-8 text-slate-300" />
+                  <Upload className="h-8 w-8 text-brand-text-secondary" />
                   <p className="text-sm text-slate-500">Click to browse or drag & drop</p>
                   <p className="text-xs text-slate-400">PDF, DOC, XLS, PNG, JPG · max 25 MB</p>
                 </>
@@ -199,7 +199,7 @@ function UploadDrawer({ onClose, onUploaded }: { onClose: () => void; onUploaded
         </div>
 
         <div className="flex items-center gap-2 px-5 py-4 border-t">
-          <button onClick={onClose} className="flex-1 h-9 border border-gray-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-gray-50 transition-colors">
+          <button onClick={onClose} className="flex-1 h-9 border border-brand-border rounded-lg text-sm font-medium text-slate-600 hover:bg-gray-50 transition-colors">
             Cancel
           </button>
           <button
@@ -242,7 +242,7 @@ export default function DocumentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-slate-100">Document Management</h1>
+          <h1 className="text-xl font-bold text-brand-text">Document Management</h1>
           <p className="text-sm text-slate-400 mt-0.5">{total} document{total !== 1 ? 's' : ''} total</p>
         </div>
         <button
@@ -258,7 +258,7 @@ export default function DocumentsPage() {
 
         {/* Folder sidebar */}
         <div className="w-52 shrink-0">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
             {DOC_TYPES.map(({ value, label, icon: Icon }) => {
               const active = activeFolder === value;
               return (
@@ -293,7 +293,7 @@ export default function DocumentsPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search by file name or employee…"
-                className="w-full pl-9 pr-4 h-9 border border-gray-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                className="w-full pl-9 pr-4 h-9 border border-brand-border bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
               />
               {search && (
                 <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -303,7 +303,7 @@ export default function DocumentsPage() {
             </div>
             {departments.length > 0 && (
               <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-                className="h-9 border border-gray-200 bg-white rounded-lg px-3 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all">
+                className="h-9 border border-brand-border bg-white rounded-lg px-3 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all">
                 <option value="">All Departments</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
@@ -312,7 +312,7 @@ export default function DocumentsPage() {
 
           <Wrapper loading={loading} error={error} onRetry={refetch}>
             {documents.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm py-20 flex flex-col items-center gap-3 text-center">
+              <div className="bg-white rounded-xl border border-brand-border shadow-sm py-20 flex flex-col items-center gap-3 text-center">
                 <div className="h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center">
                   <FolderOpen className="h-7 w-7 text-gray-300" />
                 </div>
@@ -329,9 +329,9 @@ export default function DocumentsPage() {
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
                 {/* Table header */}
-                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-gray-50/70 border-b border-gray-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-gray-50/70 border-b border-brand-border text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   <span>Document</span>
                   <span>Employee</span>
                   <span>Type</span>

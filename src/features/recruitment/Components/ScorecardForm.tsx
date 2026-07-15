@@ -17,7 +17,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((n) => (
         <button key={n} type="button" onClick={() => onChange(n)}>
-          <Star className={`h-5 w-5 ${n <= value ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+          <Star className={`h-5 w-5 ${n <= value ? 'fill-amber-400 text-amber-400' : 'text-brand-text-secondary'}`} />
         </button>
       ))}
     </div>
@@ -56,7 +56,7 @@ export function ScorecardForm({ requisitionId, applicationId, locale }: { requis
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto space-y-4">
-      <h1 className="text-lg font-semibold text-slate-100">Interview Scorecard — {requisition.title}</h1>
+      <h1 className="text-lg font-semibold text-brand-text">Interview Scorecard — {requisition.title}</h1>
 
       {fields.length === 0 && <p className="text-sm text-slate-400">This requisition has no competencies configured.</p>}
 

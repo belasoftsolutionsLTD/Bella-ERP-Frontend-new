@@ -113,7 +113,7 @@ export function JdTemplatesPanel({ items, loading, refetch }: Props) {
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. Teacher JD, Intern JD"
-                className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
 
@@ -123,7 +123,7 @@ export function JdTemplatesPanel({ items, loading, refetch }: Props) {
                 value={form.roles}
                 onChange={e => setForm(f => ({ ...f, roles: e.target.value }))}
                 placeholder="e.g. teacher, lecturer, tutor"
-                className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
 
@@ -133,7 +133,7 @@ export function JdTemplatesPanel({ items, loading, refetch }: Props) {
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Brief description of what this JD covers"
-                className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
           </div>
@@ -156,7 +156,7 @@ export function JdTemplatesPanel({ items, loading, refetch }: Props) {
               className={`h-10 w-full border-2 border-dashed rounded-xl px-3 text-sm text-left transition-colors ${
                 form.pdfFile
                   ? 'border-green-400 bg-green-50 text-green-700'
-                  : 'border-gray-200 text-foreground/40 hover:border-primary/40 hover:bg-primary/5'
+                  : 'border-brand-border text-foreground/40 hover:border-primary/40 hover:bg-primary/5'
               }`}
             >
               {form.pdfFile ? form.pdfFile.name : 'Click to upload PDF…'}
@@ -228,7 +228,7 @@ export function JdTemplatesPanel({ items, loading, refetch }: Props) {
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(null)}
-                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50"
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-brand-border hover:bg-gray-50"
                       >
                         No
                       </button>

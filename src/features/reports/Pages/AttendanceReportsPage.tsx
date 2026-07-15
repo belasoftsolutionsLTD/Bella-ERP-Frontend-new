@@ -25,7 +25,7 @@ export default function AttendanceReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-100">Attendance Reports</h1>
+        <h1 className="text-xl font-bold text-brand-text">Attendance Reports</h1>
         <p className="text-sm text-slate-400 mt-0.5">Presence, overtime, and punctuality across the organization</p>
       </div>
       <ReportsNav active="attendance" />
@@ -89,7 +89,7 @@ export default function AttendanceReportsPage() {
                 <div className="divide-y divide-slate-700/60">
                   {punctuality.leaderboard.map((e) => (
                     <div key={e.employeeId} className="flex items-center justify-between py-2 text-sm">
-                      <div><span className="text-slate-200">{e.employee?.fullName ?? 'Unknown'}</span>{e.employee?.department && <span className="text-xs text-slate-500 ml-2">{e.employee.department}</span>}</div>
+                      <div><span className="text-brand-text">{e.employee?.fullName ?? 'Unknown'}</span>{e.employee?.department && <span className="text-xs text-slate-500 ml-2">{e.employee.department}</span>}</div>
                       <span className="text-amber-400 font-semibold">{e.lateCount}</span>
                     </div>
                   ))}

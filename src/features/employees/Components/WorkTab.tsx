@@ -36,7 +36,7 @@ function SectionHeader({ icon: Icon, title, onEdit, editing }: {
   );
 }
 
-const inp = 'w-full h-9 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors';
+const inp = 'w-full h-9 px-3 border border-brand-border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors';
 const sel = `${inp} appearance-none`;
 
 const PAYMENT_METHODS = [
@@ -107,7 +107,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
   return (
     <div className="space-y-5">
       {/* Position */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm">
         <SectionHeader icon={Briefcase} title="Position" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Field label="Designation"     value={emp.designation} />
@@ -119,7 +119,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
       </div>
 
       {/* Contract Dates */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm">
         <SectionHeader icon={CalendarDays} title="Contract" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Field label="Date of Hire"      value={hireDate} />
@@ -133,12 +133,12 @@ export function WorkTab({ employee }: { employee: Employee }) {
 
       {/* Compensation — super_admin/hr_manager only; department_head must never see pay/bank/tax info */}
       {!isHR ? (
-        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+        <div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm">
           <SectionHeader icon={DollarSign} title="Compensation" />
           <p className="flex items-center gap-1.5 text-sm text-slate-400 italic"><Lock className="h-3.5 w-3.5" /> Restricted to HR.</p>
         </div>
       ) : (
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm">
         <SectionHeader icon={DollarSign} title="Compensation" onEdit={() => setEditComp(true)} editing={editComp} />
         {editComp ? (
           <div className="space-y-3">
@@ -170,7 +170,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
                 {savingComp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 {savingComp ? 'Saving…' : 'Save'}
               </button>
-              <button onClick={() => setEditComp(false)} className="flex items-center gap-1 h-8 px-3 text-xs text-slate-500 hover:text-slate-700 border border-gray-200 rounded-lg">
+              <button onClick={() => setEditComp(false)} className="flex items-center gap-1 h-8 px-3 text-xs text-slate-500 hover:text-slate-700 border border-brand-border rounded-lg">
                 <X className="h-3.5 w-3.5" /> Cancel
               </button>
             </div>
@@ -187,12 +187,12 @@ export function WorkTab({ employee }: { employee: Employee }) {
 
       {/* Payment Method — super_admin/hr_manager only */}
       {!isHR ? (
-        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+        <div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm">
           <SectionHeader icon={CreditCard} title="Payment Method" />
           <p className="flex items-center gap-1.5 text-sm text-slate-400 italic"><Lock className="h-3.5 w-3.5" /> Restricted to HR.</p>
         </div>
       ) : (
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm">
         <SectionHeader icon={CreditCard} title="Payment Method" onEdit={() => setEditPay(true)} editing={editPay} />
         {editPay ? (
           <div className="space-y-3">
@@ -248,7 +248,7 @@ export function WorkTab({ employee }: { employee: Employee }) {
                 {savingPay ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 {savingPay ? 'Saving…' : 'Save'}
               </button>
-              <button onClick={() => setEditPay(false)} className="flex items-center gap-1 h-8 px-3 text-xs text-slate-500 hover:text-slate-700 border border-gray-200 rounded-lg">
+              <button onClick={() => setEditPay(false)} className="flex items-center gap-1 h-8 px-3 text-xs text-slate-500 hover:text-slate-700 border border-brand-border rounded-lg">
                 <X className="h-3.5 w-3.5" /> Cancel
               </button>
             </div>

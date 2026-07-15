@@ -9,6 +9,7 @@ import {
   Package, ShieldOff, MessageSquare, Activity as ActivityIcon, ExternalLink, Star, DollarSign, RotateCcw, Plus, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { openFile, resolveUploadUrl } from '@/functions/downloadFile';
 import { useOffboardingRecord } from '../Hooks/useOffboardingRecords';
 import { useOffboardingRecordDocuments } from '../Hooks/useOffboardingDocuments';
@@ -16,11 +17,8 @@ import type { OffboardingTask, GeneratedDocumentType } from '../types';
 
 const TABS = ['Overview', 'Tasks', 'Assets', 'Access', 'Exit Interview', 'Documents', 'Activity'] as const;
 
-const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
-  initiated:        { label: 'Initiated',        bg: 'bg-cyan-500/15', text: 'text-cyan-400' },
-  inProgress:       { label: 'In Progress',      bg: 'bg-brand-primary/15', text: 'text-indigo-400' },
-  pendingClearance: { label: 'Pending Clearance', bg: 'bg-amber-500/15', text: 'text-amber-400' },
-  completed:        { label: 'Completed',        bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
+const RECORD_STATUS_MAP: Record<string, Status> = {
+  initiated: 'new', inProgress: 'inProgress', pendingClearance: 'pending', completed: 'completed',
 };
 
 const TASK_STATUS_ICON: Record<string, JSX.Element> = {
@@ -195,7 +193,6 @@ export default function RecordDetailPage({ recordId }: { recordId: string }) {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-indigo-400" /></div>;
   if (!record) return <p className="text-sm text-brand-text-muted text-center py-16">Record not found.</p>;
 
-  const cfg = STATUS_CFG[record.status] ?? STATUS_CFG.initiated;
   const requiredTasks = record.taskLists.flatMap(l => l.tasks).filter(t => t.isRequired);
   const allRequiredDone = requiredTasks.length > 0 ? requiredTasks.every(t => t.status === 'completed') : record.taskLists.some(l => l.tasks.length > 0);
   const canComplete = record.status !== 'completed' && requiredTasks.every(t => t.status === 'completed');
@@ -209,7 +206,7 @@ export default function RecordDetailPage({ recordId }: { recordId: string }) {
         <div className="flex items-center gap-3 flex-wrap justify-between">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-brand-text">{record.employee?.fullName ?? 'Unknown Employee'}</h1>
-            <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>{cfg.label}</span>
+            <StatusBadge status={RECORD_STATUS_MAP[record.status] ?? 'new'} label={record.status} className="capitalize" />
           </div>
           {record.status !== 'completed' && (
             <button onClick={() => completeRecord(() => toast.success('Offboarding completed. Employee marked inactive.'))} disabled={!canComplete}

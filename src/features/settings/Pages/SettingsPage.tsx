@@ -423,7 +423,7 @@ export default function SettingsPage() {
   const ActiveSection = SECTION_COMPONENTS[active];
 
   return (
-    <div className="min-h-full" style={{ background: '#0f172a' }}>
+    <div className="min-h-full" style={{ background: '#ffffff' }}>
       <div className="mb-6">
         <h1 className="text-[22px] font-bold text-brand-text">Settings</h1>
         <p className="text-[13px] text-brand-text-secondary mt-0.5">Configure your HR system preferences and integrations</p>

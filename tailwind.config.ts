@@ -12,7 +12,7 @@ const config: Config = {
     extend: {
       colors: {
         // ── Unified Design System (single source of truth — see design-system audit) ──
-        'brand-sidebar':       '#1E293B',
+        'brand-sidebar':       '#FFFFFF',
         'brand-primary':       '#4F46E5',
         'brand-primary-hover': '#4338CA',
         'brand-success':       '#10B981',

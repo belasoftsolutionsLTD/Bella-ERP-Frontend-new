@@ -13,7 +13,7 @@ export type OfferStatus = 'pending' | 'accepted' | 'declined' | 'expired';
 export type Recommendation = 'strongYes' | 'yes' | 'neutral' | 'no' | 'strongNo';
 export type TouchpointChannel = 'email' | 'linkedIn' | 'phone' | 'event';
 export type CampaignStatus = 'active' | 'paused' | 'completed';
-export type EmailTrigger = 'applicationReceived' | 'stageAdvance' | 'rejection' | 'offerExtended' | 'nurture';
+export type EmailTrigger = 'applicationReceived' | 'stageAdvance' | 'rejection' | 'offerExtended' | 'nurture' | 'interviewReminder';
 
 export interface Competency {
   id: string;
@@ -123,6 +123,7 @@ export interface InterviewAssignment {
   stageId: string;
   interviewerId: string;
   interviewerName: string;
+  scheduledAt: string;
   assignedAt: string;
 }
 

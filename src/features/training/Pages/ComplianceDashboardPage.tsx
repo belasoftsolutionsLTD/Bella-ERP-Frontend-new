@@ -20,7 +20,7 @@ export function ComplianceDashboardPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Compliance Dashboard</h1>
+        <h1 className="text-xl font-semibold text-brand-text">Compliance Dashboard</h1>
         <p className="text-sm text-slate-400">Mandatory course completion and certificate expiry tracking</p>
       </div>
 
@@ -78,7 +78,7 @@ export function ComplianceDashboardPage() {
                 <td className="py-2 text-slate-600">{c.courseTitle}</td>
                 <td className="py-2 text-slate-500">{new Date(c.expiresAt).toLocaleDateString()}</td>
                 <td className={`py-2 ${c.daysRemaining <= 7 ? 'text-red-600' : 'text-amber-600'}`}>{c.daysRemaining}d</td>
-                <td className="py-2"><button onClick={() => sendReminder(c.employeeId)} className="text-xs text-primary hover:underline">Send Reminder</button></td>
+                <td className="py-2"><button onClick={() => sendReminder(c.employeeId)} className="text-xs text-brand-primary hover:underline">Send Reminder</button></td>
               </tr>
             ))}
             {certExpiry.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-slate-400">No certificates expiring in the next 30 days.</td></tr>}

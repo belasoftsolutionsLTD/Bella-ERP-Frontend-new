@@ -36,15 +36,15 @@ export default function PerformancePage() {
     <div className="flex flex-col h-full gap-5">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-gradient-to-r from-slate-800 via-slate-800 to-indigo-900 p-5 flex items-center justify-between gap-6 shrink-0 border border-brand-border shadow-lg">
+      <div className="rounded-2xl bg-brand-primary p-5 flex items-center justify-between gap-6 shrink-0 shadow-lg">
         <div>
-          <h1 className="text-2xl font-extrabold text-brand-text">Performance</h1>
-          <p className="text-sm text-brand-text-secondary mt-0.5">Track goals, reviews, and team development</p>
+          <h1 className="text-2xl font-extrabold text-white">Performance</h1>
+          <p className="text-sm text-white/70 mt-0.5">Track goals, reviews, and team development</p>
         </div>
         {isHR && (
           <button
             onClick={() => setActiveTab('reviews')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold transition-colors shadow-md shrink-0"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-white/90 text-brand-primary text-sm font-semibold transition-colors shadow-md shrink-0"
           >
             <Plus className="h-4 w-4" /> Start Review Cycle
           </button>

@@ -71,10 +71,10 @@ export default function LeaveDashboardPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Pending Approval', value: pending.length, color: 'text-amber-400', icon: Clock },
-          { label: 'On Leave Today', value: outToday.length, color: 'text-cyan-400', icon: Users },
-          { label: 'Requests This Month', value: thisMonthCount, color: 'text-indigo-400', icon: CalendarDays },
-          { label: 'Approved (Total)', value: allApproved.length, color: 'text-emerald-400', icon: TrendingUp },
+          { label: 'Pending Approval', value: pending.length, color: 'text-amber-600', icon: Clock },
+          { label: 'On Leave Today', value: outToday.length, color: 'text-blue-600', icon: Users },
+          { label: 'Requests This Month', value: thisMonthCount, color: 'text-indigo-600', icon: CalendarDays },
+          { label: 'Approved (Total)', value: allApproved.length, color: 'text-emerald-600', icon: TrendingUp },
         ].map(({ label, value, color, icon: Icon }) => (
           <div key={label} className="bg-brand-bg-soft border border-brand-border/60 rounded-xl p-4 text-center">
             <p className={cn('text-2xl font-bold flex items-center justify-center gap-1.5', color)}><Icon className="h-4 w-4" /> {value}</p>

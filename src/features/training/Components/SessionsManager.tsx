@@ -49,7 +49,7 @@ function AttendanceModal({ session, onClose, onSave }: {
         )}
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" className="bg-primary text-white" onClick={() => {
+          <Button size="sm" className="bg-brand-primary text-white" onClick={() => {
             onSave(registrants.map((r) => ({ employeeId: r._id, attended: attended.has(r._id) })));
             onClose();
           }}>
@@ -91,7 +91,7 @@ export function SessionsManager({ courseId }: { courseId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900">Live Sessions</h2>
-        <Button size="sm" className="bg-primary text-white" onClick={() => setShowNew((s) => !s)}><Plus className="h-4 w-4 mr-1" /> Schedule Session</Button>
+        <Button size="sm" className="bg-brand-primary text-white" onClick={() => setShowNew((s) => !s)}><Plus className="h-4 w-4 mr-1" /> Schedule Session</Button>
       </div>
 
       {showNew && (
@@ -109,7 +109,7 @@ export function SessionsManager({ courseId }: { courseId: string }) {
             <input type="number" placeholder="Duration (minutes)" value={form.durationMinutes} onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>
           <input placeholder="Meeting link (Google Meet, Zoom, etc.)" value={form.meetingLink} onChange={(e) => setForm((f) => ({ ...f, meetingLink: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <Button size="sm" className="bg-primary text-white" onClick={submit} disabled={!form.scheduledAt || !form.meetingLink}>Schedule</Button>
+          <Button size="sm" className="bg-brand-primary text-white" onClick={submit} disabled={!form.scheduledAt || !form.meetingLink}>Schedule</Button>
         </div>
       )}
 
@@ -128,10 +128,10 @@ export function SessionsManager({ courseId }: { courseId: string }) {
               <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_STYLE[s.status]}`}>{s.status}</span>
             </div>
             <div className="flex items-center gap-3 pt-1">
-              <a href={s.meetingLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Video className="h-3 w-3" /> Meeting link</a>
+              <a href={s.meetingLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-primary hover:underline"><Video className="h-3 w-3" /> Meeting link</a>
               {s.status === 'scheduled' && (
                 <>
-                  <button onClick={() => setAttendanceFor(s)} className="text-xs text-primary hover:underline">Mark Attendance</button>
+                  <button onClick={() => setAttendanceFor(s)} className="text-xs text-brand-primary hover:underline">Mark Attendance</button>
                   <button onClick={() => deleteSession(s._id)} className="text-xs text-red-500 hover:underline flex items-center gap-1"><Trash2 className="h-3 w-3" /> Cancel</button>
                 </>
               )}

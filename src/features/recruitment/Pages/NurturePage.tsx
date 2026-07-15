@@ -110,7 +110,7 @@ export function NurturePage({ locale }: { locale: string }) {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Nurture CRM</h1>
+          <h1 className="text-xl font-semibold text-brand-text">Nurture CRM</h1>
           <p className="text-sm text-slate-400">Engage passive talent over time</p>
         </div>
         <Button className="bg-primary text-white" onClick={() => setShowNew((s) => !s)}><Plus className="h-4 w-4 mr-1" /> New Campaign</Button>
@@ -120,7 +120,7 @@ export function NurturePage({ locale }: { locale: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1 space-y-2">
-          <h2 className="text-sm font-semibold text-slate-300">Campaigns</h2>
+          <h2 className="text-sm font-semibold text-brand-text-secondary">Campaigns</h2>
           {campaigns.map((c) => (
             <button
               key={c._id}

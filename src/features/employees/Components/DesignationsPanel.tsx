@@ -76,7 +76,7 @@ export function DesignationsPanel({ items, loading, departments, onCreate, onUpd
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Senior Teacher"
-              className="h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-10 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             />
           </div>
 
@@ -98,7 +98,7 @@ export function DesignationsPanel({ items, loading, departments, onCreate, onUpd
                         className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
                           selected
                             ? 'bg-primary text-white border-primary'
-                            : 'border-gray-200 text-foreground/60 hover:border-primary/40 hover:bg-primary/5'
+                            : 'border-brand-border text-foreground/60 hover:border-primary/40 hover:bg-primary/5'
                         }`}
                       >
                         {d.name}
@@ -169,7 +169,7 @@ export function DesignationsPanel({ items, loading, departments, onCreate, onUpd
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50"
+                          className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-brand-border hover:bg-gray-50"
                         >
                           No
                         </button>

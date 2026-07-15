@@ -28,7 +28,7 @@ function LiveSessionsCourseView({ locale, courseId, courseTitle, enrollment }: {
 
   return (
     <div className="p-6">
-      <Link href={`/${locale}/my/training`} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 mb-4">
+      <Link href={`/${locale}/my/training`} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-brand-text mb-4">
         <ArrowLeft className="h-4 w-4" /> Back to My Training
       </Link>
 
@@ -67,14 +67,14 @@ function LiveSessionsCourseView({ locale, courseId, courseTitle, enrollment }: {
                       </span>
                     ) : isRegistered ? (
                       <>
-                        <a href={s.meetingLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"><Video className="h-3 w-3" /> Join Meeting</a>
+                        <a href={s.meetingLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"><Video className="h-3 w-3" /> Join Meeting</a>
                         <button onClick={() => unregister(s._id)} className="text-xs text-slate-400 hover:underline">Unregister</button>
                       </>
                     ) : (
                       <button
                         onClick={() => register(s._id)}
                         disabled={isFull}
-                        className="text-xs font-medium text-primary hover:underline disabled:text-slate-300 disabled:no-underline"
+                        className="text-xs font-medium text-brand-primary hover:underline disabled:text-brand-text-secondary disabled:no-underline"
                       >
                         {isFull ? 'Session full' : 'Register'}
                       </button>
@@ -110,7 +110,7 @@ function ModuleContentView({ module_ }: { module_: CourseModule }) {
   }
   if (module_.type === 'document') {
     return c.fileUrl ? (
-      <a href={resolveMediaUrl(c.fileUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline text-sm">
+      <a href={resolveMediaUrl(c.fileUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-brand-primary hover:underline text-sm">
         <FileText className="h-4 w-4" /> Open {c.fileName || 'document'}
       </a>
     ) : <p className="text-sm text-slate-400">No document uploaded.</p>;
@@ -121,7 +121,7 @@ function ModuleContentView({ module_ }: { module_: CourseModule }) {
   if (module_.type === 'link') {
     return c.linkUrl ? (
       <div className="space-y-1">
-        <a href={c.linkUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline text-sm"><Link2 className="h-4 w-4" /> {c.linkUrl}</a>
+        <a href={c.linkUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-brand-primary hover:underline text-sm"><Link2 className="h-4 w-4" /> {c.linkUrl}</a>
         {c.linkDescription && <p className="text-sm text-slate-500">{c.linkDescription}</p>}
       </div>
     ) : <p className="text-sm text-slate-400">No link configured.</p>;
@@ -186,7 +186,7 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
     return (
       <div className="p-6">
         <p className="text-sm text-slate-400">You are not enrolled in this course. Contact HR to be assigned.</p>
-        <Link href={`/${locale}/my/training/catalog`} className="text-primary text-sm hover:underline">Back to catalog</Link>
+        <Link href={`/${locale}/my/training/catalog`} className="text-brand-primary text-sm hover:underline">Back to catalog</Link>
       </div>
     );
   }
@@ -208,7 +208,7 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
 
   return (
     <div className="p-6">
-      <Link href={`/${locale}/my/training`} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 mb-4">
+      <Link href={`/${locale}/my/training`} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-brand-text mb-4">
         <ArrowLeft className="h-4 w-4" /> Back to My Training
       </Link>
 
@@ -216,7 +216,7 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
         <div className="bg-white rounded-xl border border-slate-200 p-3 h-fit lg:sticky lg:top-4">
           <h2 className="font-semibold text-slate-900 px-2 mb-2">{course.title}</h2>
           <div className="px-2 mb-3">
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${enrollment.progressPercentage}%` }} /></div>
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-brand-primary rounded-full" style={{ width: `${enrollment.progressPercentage}%` }} /></div>
             <p className="text-xs text-slate-500 mt-1">{enrollment.progressPercentage}% complete</p>
           </div>
           <div className="space-y-1">
@@ -224,8 +224,8 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
               const Icon = MODULE_ICONS[m.type] || FileText;
               const done = isComplete(m._id);
               return (
-                <button key={m._id} onClick={() => setActiveModuleId(m._id)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left text-sm transition ${activeModuleId === m._id ? 'bg-primary/10 text-primary font-medium' : 'text-slate-600 hover:bg-slate-50'}`}>
-                  {done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Circle className="h-4 w-4 text-slate-300 shrink-0" />}
+                <button key={m._id} onClick={() => setActiveModuleId(m._id)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left text-sm transition ${activeModuleId === m._id ? 'bg-brand-primary/10 text-brand-primary font-medium' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  {done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Circle className="h-4 w-4 text-brand-text-secondary shrink-0" />}
                   <Icon className="h-4 w-4 shrink-0 opacity-60" />
                   <span className="truncate flex-1">{m.title}</span>
                   {!m.isRequired && <span className="text-[10px] text-slate-400">optional</span>}
@@ -240,7 +240,7 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between">
               <p className="text-sm font-medium text-green-800">You've completed this course!</p>
               {course.hasCertificate && (
-                <button onClick={handleGenerateCertificate} disabled={certGenerated} className="text-sm text-primary font-medium hover:underline disabled:opacity-50">
+                <button onClick={handleGenerateCertificate} disabled={certGenerated} className="text-sm text-brand-primary font-medium hover:underline disabled:opacity-50">
                   {certGenerated ? 'Certificate ready — see My Certificates' : 'Get Certificate'}
                 </button>
               )}
@@ -264,7 +264,7 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
                     {isComplete(activeModule._id) ? (
                       <span className="inline-flex items-center gap-1.5 text-sm text-green-700 font-medium"><CheckCircle2 className="h-4 w-4" /> Completed</span>
                     ) : (
-                      <button onClick={markComplete} className="px-3 py-2 rounded-md bg-primary text-white text-sm font-medium">Mark as Complete</button>
+                      <button onClick={markComplete} className="px-3 py-2 rounded-md bg-brand-primary text-white text-sm font-medium">Mark as Complete</button>
                     )}
                   </div>
                 </>

@@ -1226,8 +1226,8 @@ export default function ExpensesPage() {
           {stats && isHR && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
               {[
-                { label: 'Pending Approval', value: `${stats.pendingCount} claims`, sub: fmt(stats.pendingTotal), color: 'text-amber-400' },
-                { label: 'Approved This Month', value: `${stats.approvedCount} claims`, sub: fmt(stats.approvedTotal), color: 'text-emerald-400' },
+                { label: 'Pending Approval', value: `${stats.pendingCount} claims`, sub: fmt(stats.pendingTotal), color: 'text-amber-600' },
+                { label: 'Approved This Month', value: `${stats.approvedCount} claims`, sub: fmt(stats.approvedTotal), color: 'text-emerald-600' },
                 { label: 'Policy Violations', value: String(stats.violations), sub: '', color: stats.violations > 0 ? 'text-red-400' : 'text-brand-text-secondary' },
               ].map(({ label, value, sub, color }) => (
                 <div key={label} className="bg-brand-bg-soft border border-brand-border/60 rounded-xl px-4 py-3">

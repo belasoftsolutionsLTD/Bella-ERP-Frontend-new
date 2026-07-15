@@ -8,7 +8,7 @@ import { useComplianceReport } from '../Hooks/useTrainingAnalytics';
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: number | string }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-      <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+      <div className="h-10 w-10 rounded-lg bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
         <Icon className="h-5 w-5" />
       </div>
       <div>
@@ -33,7 +33,7 @@ export function TrainingDashboardPage({ locale }: { locale: string }) {
           <p className="text-sm text-brand-text-secondary">Build courses, track compliance, and grow your team&apos;s skills.</p>
         </div>
         <div className="flex gap-2">
-          <Link href={`/${locale}/training/courses/new`} className="px-3 py-2 rounded-md bg-primary text-white text-sm font-medium">Build Course</Link>
+          <Link href={`/${locale}/training/courses/new`} className="px-3 py-2 rounded-md bg-brand-primary text-white text-sm font-medium">Build Course</Link>
           <Link href={`/${locale}/training/assignments`} className="px-3 py-2 rounded-md border border-brand-border text-brand-text text-sm font-medium">Assign Training</Link>
           <Link href={`/${locale}/training/compliance`} className="px-3 py-2 rounded-md border border-brand-border text-brand-text text-sm font-medium">Compliance Report</Link>
         </div>
@@ -91,7 +91,7 @@ export function TrainingDashboardPage({ locale }: { locale: string }) {
           { href: 'learning-paths', label: 'Learning Paths', desc: 'Sequenced course journeys' },
           { href: 'analytics', label: 'Analytics', desc: 'Completion trends, leaderboards' },
         ].map((item) => (
-          <Link key={item.href} href={`/${locale}/training/${item.href}`} className="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary/40 hover:shadow-sm transition">
+          <Link key={item.href} href={`/${locale}/training/${item.href}`} className="bg-white rounded-xl border border-slate-200 p-4 hover:border-brand-primary/40 hover:shadow-sm transition">
             <p className="font-medium text-slate-900">{item.label}</p>
             <p className="text-xs text-brand-text-muted">{item.desc}</p>
           </Link>

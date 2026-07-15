@@ -20,7 +20,7 @@ export default function EmployeeDetailPage({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <Button variant="ghost" onClick={() => router.push(`/${locale}/employees`)} className="gap-2 text-slate-400 hover:text-slate-200">
+      <Button variant="ghost" onClick={() => router.push(`/${locale}/employees`)} className="gap-2 text-slate-400 hover:text-brand-text">
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
       <Wrapper loading={loading} error={error} onRetry={refetch}>

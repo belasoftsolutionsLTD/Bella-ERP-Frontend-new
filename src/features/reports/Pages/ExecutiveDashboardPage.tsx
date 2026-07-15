@@ -8,7 +8,7 @@ import {
   ClipboardCheck, Hourglass, AlertTriangle, ShieldAlert,
 } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, LoadingBlock, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, LoadingBlock, ErrorBlock, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface ExecutiveSummary {
@@ -36,7 +36,7 @@ const pctChange = (curr: number, prev: number) => (prev > 0 ? Math.round(((curr 
 
 export default function ExecutiveDashboardPage() {
   const locale = useLocale();
-  const { data: summary, loading: summaryLoading } = useReportQuery<ExecutiveSummary>('/executive');
+  const { data: summary, loading: summaryLoading, error: summaryError, refetch: refetchSummary } = useReportQuery<ExecutiveSummary>('/executive');
   const { data: trends, loading: trendsLoading } = useReportQuery<ExecutiveTrends>('/executive/trends');
   const loading = summaryLoading || trendsLoading;
 
@@ -51,7 +51,7 @@ export default function ExecutiveDashboardPage() {
 
       <ReportsNav active="executive" />
 
-      {loading || !summary ? <LoadingBlock /> : (
+      {summaryError ? <ErrorBlock message={summaryError} onRetry={refetchSummary} /> : loading || !summary ? <LoadingBlock /> : (
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">

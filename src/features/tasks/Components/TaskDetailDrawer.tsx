@@ -25,11 +25,11 @@ const PRIORITY_CFG: Record<TaskPriority, { label: string; dot: string }> = {
   low:    { label: 'Low',    dot: 'bg-slate-500' },
 };
 const TYPE_CFG: Record<TaskType, { label: string; icon: React.ElementType; color: string }> = {
-  action:    { label: 'Action',    icon: ClipboardCheck, color: 'text-blue-400' },
-  document:  { label: 'Document',  icon: FileText,       color: 'text-purple-400' },
-  form:      { label: 'Form',      icon: FileText,       color: 'text-pink-400' },
-  meeting:   { label: 'Meeting',   icon: CalendarCheck,  color: 'text-green-400' },
-  equipment: { label: 'Equipment', icon: Wrench,         color: 'text-orange-400' },
+  action:    { label: 'Action',    icon: ClipboardCheck, color: 'text-blue-600' },
+  document:  { label: 'Document',  icon: FileText,       color: 'text-purple-600' },
+  form:      { label: 'Form',      icon: FileText,       color: 'text-pink-600' },
+  meeting:   { label: 'Meeting',   icon: CalendarCheck,  color: 'text-green-600' },
+  equipment: { label: 'Equipment', icon: Wrench,         color: 'text-orange-600' },
   approval:  { label: 'Approval',  icon: Shield,         color: 'text-status-warning-text' },
 };
 const MODULE_LABELS: Record<string, string> = {
@@ -471,8 +471,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const ACTIVITY_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
   created:          { icon: Plus,        color: 'text-brand-primary' },
   completed:        { icon: CheckCircle2,color: 'text-status-success-text' },
-  status_changed:   { icon: ChevronRight,color: 'text-blue-400' },
-  reassigned:       { icon: User,        color: 'text-purple-400' },
+  status_changed:   { icon: ChevronRight,color: 'text-blue-600' },
+  reassigned:       { icon: User,        color: 'text-purple-600' },
   due_date_changed: { icon: CalendarCheck,color:'text-status-warning-text' },
 };
 

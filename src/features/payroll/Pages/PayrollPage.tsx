@@ -20,6 +20,7 @@ interface PayrollCycle {
   totalGross: number; totalDeductions: number; totalNet: number; totalEmployerCost: number;
   employeeCount: number; hasExceptions: boolean; exceptionCount: number;
   payFrequency?: string; runType?: string;
+  excludedEmployees?: { employeeId: string; fullName: string; staffNumber: string | null; missingFields: string[] }[];
 }
 
 interface PayrollResult {
@@ -39,10 +40,10 @@ interface PayrollResult {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<CycleStatus, { label: string; border: string; badge: string; text: string }> = {
-  open:   { label: 'Open',   border: 'border-l-blue-500',   badge: 'bg-blue-500/15 text-blue-400',    text: 'text-blue-400'    },
-  review: { label: 'Review', border: 'border-l-amber-500',  badge: 'bg-amber-500/15 text-amber-400',  text: 'text-amber-400'   },
-  locked: { label: 'Locked', border: 'border-l-violet-500', badge: 'bg-violet-500/15 text-violet-400',text: 'text-violet-400'  },
-  closed: { label: 'Closed', border: 'border-l-emerald-500',badge: 'bg-emerald-500/15 text-emerald-400',text:'text-emerald-400'},
+  open:   { label: 'Open',   border: 'border-l-blue-500',   badge: 'bg-blue-100 text-blue-600',    text: 'text-blue-600'    },
+  review: { label: 'Review', border: 'border-l-amber-500',  badge: 'bg-amber-100 text-amber-600',  text: 'text-amber-600'   },
+  locked: { label: 'Locked', border: 'border-l-violet-500', badge: 'bg-violet-100 text-violet-600',text: 'text-violet-600'  },
+  closed: { label: 'Closed', border: 'border-l-emerald-500',badge: 'bg-status-success-bg text-status-success-text',text:'text-status-success-text'},
 };
 
 const PIPELINE: CycleStatus[] = ['open', 'review', 'locked', 'closed'];
@@ -84,7 +85,10 @@ function Pipeline({ status }: { status: CycleStatus }) {
 
 // ── New Cycle Modal ───────────────────────────────────────────────────────────
 
-function NewCycleModal({ onClose, onCreated, offCycle }: { onClose: () => void; onCreated: () => void; offCycle?: boolean }) {
+function NewCycleModal({ onClose, onCreated, offCycle, presetEmployeeIds, presetReason }: {
+  onClose: () => void; onCreated: () => void; offCycle?: boolean;
+  presetEmployeeIds?: string[]; presetReason?: string;
+}) {
   const now = new Date();
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year,  setYear]  = useState(String(now.getFullYear()));
@@ -92,7 +96,7 @@ function NewCycleModal({ onClose, onCreated, offCycle }: { onClose: () => void; 
   const [payGroup, setPayGroup] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [offCycleReason, setOffCycleReason] = useState('');
+  const [offCycleReason, setOffCycleReason] = useState(presetReason || '');
   const [payDate, setPayDate] = useState('');
   const [saving, setSaving]   = useState(false);
   const mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -118,6 +122,12 @@ function NewCycleModal({ onClose, onCreated, offCycle }: { onClose: () => void; 
             <p className="text-xs text-brand-text-muted mb-1">Cycle name</p>
             <p className="text-sm font-bold text-indigo-300">{name}</p>
           </div>
+
+          {!!presetEmployeeIds?.length && (
+            <p className="text-xs text-brand-primary bg-brand-primary/10 rounded-lg px-3 py-2">
+              Scoped to {presetEmployeeIds.length} employee{presetEmployeeIds.length !== 1 ? 's' : ''} — anyone still missing a required field will be excluded again.
+            </p>
+          )}
 
           {offCycle && (
             <div>
@@ -189,6 +199,7 @@ function NewCycleModal({ onClose, onCreated, offCycle }: { onClose: () => void; 
                 payGroup: offCycle ? 'all' : payGroup,
                 runType: offCycle ? 'off_cycle' : 'regular',
                 offCycleReason: offCycle ? offCycleReason : undefined,
+                employeeIds: presetEmployeeIds?.length ? presetEmployeeIds : undefined,
                 ...(needsExplicitRange ? { startDate, endDate } : { month, year }),
               },
               thenFn: () => { onCreated(); onClose(); },
@@ -626,6 +637,7 @@ export default function PayrollPage() {
   const [loading,      setLoading]      = useState(true);
   const [newOpen,      setNewOpen]      = useState(false);
   const [offCycleOpen, setOffCycleOpen] = useState(false);
+  const [catchUpIds,   setCatchUpIds]   = useState<string[] | null>(null);
   const [compareOpen,  setCompareOpen]  = useState(false);
   const [excOpen,      setExcOpen]      = useState(false);
   const [detailR,      setDetailR]      = useState<PayrollResult | null>(null);
@@ -704,7 +716,8 @@ export default function PayrollPage() {
               <a href="/en/payroll/employees" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Compensations</a>
               <a href="/en/payroll/concepts"  className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Concepts</a>
               <a href="/en/payroll/analytics" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Analytics</a>
-              <a href="/en/payroll/settings"  className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Settings</a>
+              <a href="/en/payroll/loans"     className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Loans</a>
+              <a href="/en/employees/settings" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Settings</a>
               <button onClick={() => setReadyOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">
                 <ShieldCheck className="h-4 w-4" /> Check Readiness
               </button>
@@ -776,6 +789,34 @@ export default function PayrollPage() {
                 </div>
               )}
 
+              {!!ac.excludedEmployees?.length && (
+                <div className="bg-status-danger-bg border border-transparent rounded-xl px-4 py-3 mb-5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 text-sm text-status-danger-text font-semibold">
+                      <AlertTriangle className="h-4 w-4" />
+                      {ac.excludedEmployees.length} employee{ac.excludedEmployees.length !== 1 ? 's were' : ' was'} excluded from this cycle — incomplete profile
+                    </div>
+                    {isHR && (
+                      <button
+                        onClick={() => setCatchUpIds(ac.excludedEmployees!.map((e) => e.employeeId))}
+                        className="shrink-0 px-3 py-1.5 rounded-lg bg-white text-status-danger-text text-xs font-bold hover:bg-red-50 transition-colors"
+                      >
+                        Run Catch-Up Payroll
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {ac.excludedEmployees.map((e) => (
+                      <div key={e.employeeId} className="text-xs text-brand-text flex items-center justify-between gap-2">
+                        <span>{e.fullName}{e.staffNumber ? ` (${e.staffNumber})` : ''}</span>
+                        <span className="text-status-danger-text">Missing: {e.missingFields.join(', ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-status-danger-text/70 mt-2">Fix their profile first (Employees → Work tab), then use this to run a one-off payroll for just them instead of waiting for the next cycle.</p>
+                </div>
+              )}
+
               {isHR && (
                 <div className="flex items-center gap-3 flex-wrap">
                   {actionLabel && (
@@ -789,7 +830,7 @@ export default function PayrollPage() {
                     </button>
                   )}
                   {(ac.status === 'review' || ac.status === 'locked') && results.some(r => r.status === 'pending') && (
-                    <button onClick={approveAll} className="px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-sm font-bold hover:bg-emerald-500/20 transition-colors">Approve All</button>
+                    <button onClick={approveAll} className="px-4 py-2.5 rounded-xl border border-transparent bg-status-success-bg text-status-success-text text-sm font-bold hover:bg-emerald-200 transition-colors">Approve All</button>
                   )}
                   {(ac.status === 'locked' || ac.status === 'closed') && (
                     <button onClick={() => downloadFile(`${API_BASE_URL}/payroll/cycles/${ac._id}/export`, `payroll-${ac._id}.csv`).catch(err => alert(err.message))}
@@ -887,6 +928,15 @@ export default function PayrollPage() {
 
       {newOpen   && <NewCycleModal onClose={() => setNewOpen(false)} onCreated={fetchCycles} />}
       {offCycleOpen && <NewCycleModal offCycle onClose={() => setOffCycleOpen(false)} onCreated={fetchCycles} />}
+      {catchUpIds && (
+        <NewCycleModal
+          offCycle
+          presetEmployeeIds={catchUpIds}
+          presetReason="Catch-up run for previously excluded employees"
+          onClose={() => setCatchUpIds(null)}
+          onCreated={fetchCycles}
+        />
+      )}
       {compareOpen && <CompareCyclesModal cycles={cycles} onClose={() => setCompareOpen(false)} />}
       {excOpen   && ac && <ExceptionsPanel cycleId={ac._id} onClose={() => setExcOpen(false)} />}
       {detailR   && ac && <ResultModal r={detailR} cur={cur} cycleYear={ac.period.year} onClose={() => setDetailR(null)} onApprove={() => approveEmployee(detailR._id)} isHR={isHR} />}

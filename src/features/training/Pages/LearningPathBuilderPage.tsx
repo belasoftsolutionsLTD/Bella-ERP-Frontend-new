@@ -87,7 +87,7 @@ export function LearningPathBuilderPage({ locale, pathId }: { locale: string; pa
         </div>
 
         <div className="flex justify-end pt-3 border-t border-slate-100">
-          <Button type="submit" disabled={isSubmitting} className="bg-primary text-white">{isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Path'}</Button>
+          <Button type="submit" disabled={isSubmitting} className="bg-brand-primary text-white">{isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Path'}</Button>
         </div>
       </form>
     </div>

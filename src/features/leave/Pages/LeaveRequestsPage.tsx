@@ -4,17 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { Search, X, ArrowRight, ArrowLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { useLeaveRequests } from '../Hooks/useLeaveRequests';
 import { useLeaveTypes } from '../Hooks/useLeaveTypes';
 
-const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
-  draft:     { label: 'Draft',     bg: 'bg-brand-bg-muted', text: 'text-brand-text-secondary' },
-  pending:   { label: 'Pending',   bg: 'bg-amber-500/15', text: 'text-amber-400' },
-  approved:  { label: 'Approved',  bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
-  rejected:  { label: 'Rejected',  bg: 'bg-red-500/15', text: 'text-red-400' },
-  cancelled: { label: 'Cancelled', bg: 'bg-brand-bg-muted', text: 'text-brand-text-secondary' },
-  disputed:  { label: 'Disputed',  bg: 'bg-purple-500/15', text: 'text-purple-400' },
+const LEAVE_STATUS_MAP: Record<string, Status> = {
+  draft: 'draft', pending: 'pending', approved: 'approved', rejected: 'rejected',
+  cancelled: 'cancelled', disputed: 'pending',
 };
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -45,7 +41,9 @@ export default function LeaveRequestsPage() {
         </div>
         <select value={status} onChange={e => setStatus(e.target.value)} className="h-9 border border-brand-border rounded-xl px-3 text-sm bg-brand-bg-soft text-brand-text focus:outline-none">
           <option value="">All Statuses</option>
-          {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          {['draft', 'pending', 'approved', 'rejected', 'cancelled', 'disputed'].map(k => (
+            <option key={k} value={k}>{k[0].toUpperCase() + k.slice(1)}</option>
+          ))}
         </select>
         <select value={leaveTypeId} onChange={e => setLeaveTypeId(e.target.value)} className="h-9 border border-brand-border rounded-xl px-3 text-sm bg-brand-bg-soft text-brand-text focus:outline-none">
           <option value="">All Leave Types</option>
@@ -70,7 +68,6 @@ export default function LeaveRequestsPage() {
             ))}
           </div>
           {requests.map(r => {
-            const cfg = STATUS_CFG[r.status] ?? STATUS_CFG.pending;
             return (
               <div key={r._id} style={{ gridTemplateColumns: '1fr 130px 140px 90px 110px 90px' }}
                 className="grid border-b border-brand-border/60 last:border-0 hover:bg-brand-bg-soft/30 transition-colors items-center">
@@ -87,8 +84,8 @@ export default function LeaveRequestsPage() {
                 <div className="px-4 py-3 text-xs text-brand-text-secondary">{r.totalDays}d</div>
                 <div className="px-4 py-3 text-xs text-brand-text-secondary">{fmtDate(r.startDate)}</div>
                 <div className="px-4 py-3 flex items-center justify-between gap-2">
-                  <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>{cfg.label}</span>
-                  <Link href={`/${locale}/leave/requests/${r._id}`} className="text-indigo-400 hover:text-indigo-300 transition-colors"><ArrowRight className="h-3.5 w-3.5" /></Link>
+                  <StatusBadge status={LEAVE_STATUS_MAP[r.status] ?? 'inactive'} label={r.status} className="capitalize" />
+                  <Link href={`/${locale}/leave/requests/${r._id}`} className="text-brand-primary hover:text-brand-primary-hover transition-colors"><ArrowRight className="h-3.5 w-3.5" /></Link>
                 </div>
               </div>
             );

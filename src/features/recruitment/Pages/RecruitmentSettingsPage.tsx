@@ -16,6 +16,7 @@ const TRIGGER_OPTIONS: { value: EmailTrigger; label: string }[] = [
   { value: 'rejection', label: 'Rejection' },
   { value: 'offerExtended', label: 'Offer Extended' },
   { value: 'nurture', label: 'Nurture' },
+  { value: 'interviewReminder', label: 'Interview Reminder' },
 ];
 
 function EmailTemplatesTab() {

@@ -29,11 +29,11 @@ const STATUS_CFG: Record<TaskStatus, { label: string; color: string; dot: string
 };
 const PRIORITY_DOT: Record<TaskPriority, string> = { high: 'bg-red-500', medium: 'bg-amber-500', low: 'bg-slate-500' };
 const TYPE_CFG: Record<TaskType, { label: string; icon: React.ElementType; color: string }> = {
-  action:    { label: 'Action',    icon: ClipboardCheck, color: 'text-blue-400' },
-  document:  { label: 'Document',  icon: FileText,       color: 'text-purple-400' },
-  form:      { label: 'Form',      icon: ListChecks,     color: 'text-pink-400' },
-  meeting:   { label: 'Meeting',   icon: CalendarCheck,  color: 'text-green-400' },
-  equipment: { label: 'Equipment', icon: Wrench,         color: 'text-orange-400' },
+  action:    { label: 'Action',    icon: ClipboardCheck, color: 'text-blue-600' },
+  document:  { label: 'Document',  icon: FileText,       color: 'text-purple-600' },
+  form:      { label: 'Form',      icon: ListChecks,     color: 'text-pink-600' },
+  meeting:   { label: 'Meeting',   icon: CalendarCheck,  color: 'text-green-600' },
+  equipment: { label: 'Equipment', icon: Wrench,         color: 'text-orange-600' },
   approval:  { label: 'Approval',  icon: Shield,         color: 'text-status-warning-text' },
 };
 const MODULE_LABELS: Record<string, string> = {

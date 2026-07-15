@@ -39,7 +39,7 @@ const STATUS_LABELS: Record<string, string> = {
 const MODULE_COLORS = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6'];
 
 const tooltipStyle = {
-  backgroundColor: '#1e293b',
+  backgroundColor: '#f8fafc',
   border: '1px solid #334155',
   borderRadius: '12px',
   color: '#e2e8f0',

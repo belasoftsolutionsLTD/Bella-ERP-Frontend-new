@@ -48,12 +48,12 @@ export default function AttendancePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Page header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-800 to-emerald-900/40 border-b border-brand-border">
+      <div className="bg-brand-bg-soft border-b border-brand-border">
         <div className="px-6 pt-6 pb-0">
           <div className="flex items-start justify-between mb-5">
             <div>
               <h1 className="text-2xl font-bold text-brand-text flex items-center gap-2">
-                <Clock className="h-6 w-6 text-emerald-400" />
+                <Clock className="h-6 w-6 text-brand-primary" />
                 Shift & Time
               </h1>
               <p className="text-sm text-brand-text-secondary mt-1">Track time, manage schedules, and review attendance records.</p>
@@ -61,7 +61,7 @@ export default function AttendancePage() {
             {isManager && (
               <Link
                 href={`/${locale}/attendance/analytics`}
-                className="flex items-center gap-2 h-9 px-4 border border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:text-brand-text text-sm font-semibold rounded-lg transition-colors"
+                className="flex items-center gap-2 h-9 px-4 border border-brand-border bg-white text-brand-text-secondary hover:text-brand-text text-sm font-semibold rounded-lg transition-colors"
               >
                 <PieChart className="h-4 w-4" />
                 Analytics
@@ -76,8 +76,8 @@ export default function AttendancePage() {
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-semibold whitespace-nowrap transition-all',
                   tab === t.key
-                    ? 'bg-white text-emerald-400 border-t border-x border-brand-border'
-                    : 'text-brand-text-muted hover:text-brand-text-secondary hover:bg-brand-bg-soft/50',
+                    ? 'bg-white text-brand-primary border-t border-x border-brand-border'
+                    : 'text-brand-text-muted hover:text-brand-text-secondary hover:bg-white/50',
                 )}>
                 <t.icon className="h-4 w-4" />
                 {t.label}

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CustomInput } from '@/components/custom-ui/CustomInput';
 import { Button } from '@/components/ui/button';
-import { DEPARTMENTS } from '@/features/employees/Components/EmployeeSchema';
+import { DEPARTMENTS, DESIGNATIONS } from '@/features/employees/Components/EmployeeSchema';
 import { useRequisitions, useRequisition } from '../Hooks/useRequisitions';
 import { useUserAccounts } from '../Hooks/useUserAccounts';
 import { useInterviewKits } from '../Hooks/useInterviewKits';
@@ -16,6 +16,41 @@ import { CreateRequisitionSchema, type CreateRequisitionFormValues } from '../sc
 import { STAGE_TYPE_OPTIONS, uid } from '../constants';
 
 const STEPS = ['Basic Details', 'Competencies', 'Pipeline Stages', 'Approval Chain', 'Review'];
+
+// Dropdown-first job title picker backed by the same DESIGNATIONS list used when
+// creating employees, so requisitions and employee records use consistent titles
+// instead of free text — "Other" reveals a text input for anything not in the list.
+function JobTitleField({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
+  const [isOther, setIsOther] = useState(() => value !== '' && !DESIGNATIONS.includes(value));
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium text-slate-700">Job Title</label>
+      <select
+        value={isOther ? '__other__' : value}
+        onChange={(e) => {
+          if (e.target.value === '__other__') { setIsOther(true); onChange(''); return; }
+          setIsOther(false);
+          onChange(e.target.value);
+        }}
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+      >
+        <option value="">Select a job title…</option>
+        {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+        <option value="__other__">Other (type your own)</option>
+      </select>
+      {isOther && (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Type the job title…"
+          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+      )}
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
 
 export function RequisitionWizard({ locale, requisitionId }: { locale: string; requisitionId?: string }) {
   const router = useRouter();
@@ -112,7 +147,13 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
         {step === 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Basic Details</h2>
-            <CustomInput component="text" name="title" control={control} label="Job Title" placeholder="e.g. Senior Accountant" />
+            <Controller
+              control={control}
+              name="title"
+              render={({ field, fieldState }) => (
+                <JobTitleField value={field.value} onChange={field.onChange} error={fieldState.error?.message} />
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <CustomInput component="select" name="department" control={control} label="Department" options={DEPARTMENTS.map((d) => ({ value: d, label: d }))} />
               <CustomInput component="text" name="location" control={control} label="Location" placeholder="e.g. Nairobi or Remote" />

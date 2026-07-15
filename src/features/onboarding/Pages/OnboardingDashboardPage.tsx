@@ -176,10 +176,10 @@ export default function OnboardingDashboardPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Preboarding', value: stats.preboarding, color: 'text-cyan-400' },
-          { label: 'Active', value: stats.active, color: 'text-indigo-400' },
-          { label: 'Completed this month', value: stats.completedThisMonth, color: 'text-emerald-400' },
-          { label: 'Stalled', value: stats.stalled, color: 'text-red-400' },
+          { label: 'Preboarding', value: stats.preboarding, color: 'text-blue-600' },
+          { label: 'Active', value: stats.active, color: 'text-indigo-600' },
+          { label: 'Completed this month', value: stats.completedThisMonth, color: 'text-emerald-600' },
+          { label: 'Stalled', value: stats.stalled, color: 'text-red-600' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-brand-bg-soft border border-brand-border/60 rounded-xl p-4 text-center">
             <p className={cn('text-2xl font-bold', color)}>{value}</p>
@@ -260,8 +260,8 @@ export default function OnboardingDashboardPage() {
                 </div>
                 <div className="px-4 py-3"><span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>{cfg.label}</span></div>
                 <div className="px-4 py-3">
-                  <Link href={`/${locale}/onboarding/${r._id}`} className="flex items-center gap-1 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
-                    View <ArrowRight className="h-3 w-3" />
+                  <Link href={`/${locale}/onboarding/${r._id}`} className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-primary-hover transition-colors">
+                    Start Onboarding <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
               </div>

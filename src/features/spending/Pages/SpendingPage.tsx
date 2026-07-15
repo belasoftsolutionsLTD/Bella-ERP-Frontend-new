@@ -156,7 +156,7 @@ function CardChip({ card }: { card: Card }) {
     <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-brand-border rounded-2xl p-5 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-brand-text-muted font-medium uppercase tracking-wide">{card.network.toUpperCase()}</p>
+          <p className="text-xs text-white/50 font-medium uppercase tracking-wide">{card.network.toUpperCase()}</p>
           <p className="font-bold text-white text-lg tracking-widest mt-0.5">•••• •••• •••• {card.last4}</p>
         </div>
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[card.status]}`}>
@@ -164,25 +164,25 @@ function CardChip({ card }: { card: Card }) {
         </span>
       </div>
       <div>
-        <p className="text-sm text-brand-text-secondary">{card.cardHolder}</p>
-        {card.employee && <p className="text-xs text-brand-text-muted">{card.employee.department}</p>}
+        <p className="text-sm text-white/80">{card.cardHolder}</p>
+        {card.employee && <p className="text-xs text-white/50">{card.employee.department}</p>}
       </div>
       {card.creditLimit ? (
         <div>
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-brand-text-secondary">Spent: {fmt(card.totalSpent, card.currency)}</span>
-            <span className="text-brand-text-secondary">Limit: {fmt(card.creditLimit, card.currency)}</span>
+            <span className="text-white/60">Spent: {fmt(card.totalSpent, card.currency)}</span>
+            <span className="text-white/60">Limit: {fmt(card.creditLimit, card.currency)}</span>
           </div>
-          <div className="h-1.5 bg-brand-bg-muted rounded-full overflow-hidden">
+          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div className={`h-full rounded-full ${utilPct >= 90 ? 'bg-red-500' : utilPct >= 70 ? 'bg-amber-500' : 'bg-brand-primary'}`}
               style={{ width: `${Math.min(utilPct, 100)}%` }} />
           </div>
         </div>
       ) : (
-        <p className="text-xs text-brand-text-muted">Total spent: {fmt(card.totalSpent, card.currency)}</p>
+        <p className="text-xs text-white/50">Total spent: {fmt(card.totalSpent, card.currency)}</p>
       )}
       {card.expiryDate && (
-        <p className="text-xs text-brand-text-muted">Expires {fmtDate(card.expiryDate)}</p>
+        <p className="text-xs text-white/50">Expires {fmtDate(card.expiryDate)}</p>
       )}
     </div>
   );

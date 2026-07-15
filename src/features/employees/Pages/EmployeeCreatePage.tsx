@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
@@ -96,12 +96,22 @@ export default function EmployeeCreatePage() {
   });
   const paymentMethod = watch('paymentMethod');
   const bankName = watch('bankName');
+  const grossPay = watch('grossPay');
   const [bankIsOther, setBankIsOther] = useState(false);
   const departmentOptions = (departments.items.length > 0 ? departments.items : DEPARTMENTS.map(name => ({ name })))
     .map((d) => ({ label: d.name, value: d.name }));
   const designationOptions = (designations.items.length > 0 ? designations.items : DESIGNATIONS.map(name => ({ name })))
     .map((d) => ({ label: d.name, value: d.name }));
   const jobGroupOptions = jobGroups.items.map((g: any) => ({ label: g.name, value: g._id }));
+
+  // Gross pay drives job group selection automatically — the tier is looked up from
+  // the entered figure rather than left for HR to guess/pick manually.
+  useEffect(() => {
+    const pay = Number(grossPay);
+    if (!pay || jobGroups.items.length === 0) return;
+    const match = jobGroups.items.find((g: any) => pay >= (g.salaryMin ?? 0) && pay <= (g.salaryMax ?? Infinity));
+    if (match) setValue('jobGroupId', match._id, { shouldValidate: true });
+  }, [grossPay, jobGroups.items, setValue]);
 
   const submit = (data: FormValues) => {
     const { nokName, nokRelationship, nokPhone, nokNationalId, nokEmail, addressStreet, addressCity, addressState, addressCountry, addressPostalCode, ...rest } = data;
@@ -154,10 +164,10 @@ export default function EmployeeCreatePage() {
         <div className="rounded-2xl border border-brand-border/60 bg-brand-bg-soft p-6 space-y-5">
           <SectionHeader icon={User} title="Personal Information" color="text-blue-400" />
           <div className="grid gap-4 md:grid-cols-2">
-            <CustomInput component="text" name="firstName" control={control} label="First Name" placeholder="e.g. Jane" />
-            <CustomInput component="text" name="lastName" control={control} label="Last Name" placeholder="e.g. Wanjiku" />
-            <CustomInput component="text" name="nationalId" control={control} label="National ID" placeholder="e.g. 12345678" />
-            <CustomInput component="email" name="email" control={control} label="Email Address" placeholder="jane@school.ac.ke" />
+            <CustomInput component="text" name="firstName" control={control} label="First Name" placeholder="e.g. Jane" required />
+            <CustomInput component="text" name="lastName" control={control} label="Last Name" placeholder="e.g. Wanjiku" required />
+            <CustomInput component="text" name="nationalId" control={control} label="National ID" placeholder="e.g. 12345678" required />
+            <CustomInput component="email" name="email" control={control} label="Email Address" placeholder="jane@school.ac.ke" required />
             <CustomInput component="text" name="phone" control={control} label="Phone Number" placeholder="+254 7XX XXX XXX" />
             <CustomInput component="text" name="preferredName" control={control} label="Preferred Name" placeholder="e.g. Jay" />
             <CustomInput component="select" name="gender" control={control} label="Gender" placeholder="Not specified"
@@ -193,6 +203,7 @@ export default function EmployeeCreatePage() {
               label="Designation"
               placeholder="Select designation"
               options={designationOptions}
+              required
             />
             <CustomInput
               component="select"
@@ -201,6 +212,7 @@ export default function EmployeeCreatePage() {
               label="Department"
               placeholder="Select department"
               options={departmentOptions}
+              required
             />
             <CustomInput
               component="select"
@@ -209,6 +221,7 @@ export default function EmployeeCreatePage() {
               label="Employment Type"
               placeholder="Select type"
               options={employmentTypeOptions}
+              required
             />
           </div>
         </div>
@@ -217,7 +230,7 @@ export default function EmployeeCreatePage() {
         <div className="rounded-2xl border border-brand-border/60 bg-brand-bg-soft p-6 space-y-5">
           <SectionHeader icon={CalendarDays} title="Contract Details" color="text-emerald-400" />
           <div className="grid gap-4 md:grid-cols-2">
-            <CustomInput component="date" name="dateOfHire" control={control} label="Date of Hire" />
+            <CustomInput component="date" name="dateOfHire" control={control} label="Date of Hire" required />
             <CustomInput component="date" name="contractEndDate" control={control} label="Contract End Date" />
             <CustomInput component="date" name="probationEndDate" control={control} label="Probation End Date" />
             <CustomInput component="date" name="confirmationDate" control={control} label="Confirmation Date" />
@@ -229,7 +242,7 @@ export default function EmployeeCreatePage() {
         <div className="rounded-2xl border border-brand-border/60 bg-brand-bg-soft p-6 space-y-5">
           <SectionHeader icon={DollarSign} title="Gross Pay" color="text-amber-400" />
           <div className="grid gap-4 md:grid-cols-2">
-            <CustomInput component="text" name="grossPay" control={control} label="Gross Monthly Pay (KES)" placeholder="e.g. 85000" />
+            <CustomInput component="text" name="grossPay" control={control} label="Gross Monthly Pay (KES)" placeholder="e.g. 85000" required />
             <CustomInput
               component="select"
               name="jobGroupId"
@@ -237,8 +250,10 @@ export default function EmployeeCreatePage() {
               label="Job Group"
               placeholder="Select job group"
               options={jobGroupOptions}
+              required
             />
           </div>
+          <p className="text-xs text-brand-text-muted">Job group is auto-selected from gross pay based on each group's salary band — override manually if needed.</p>
           <p className="text-xs text-brand-text-muted">Gross pay and job group are used to auto-calculate PAYE, NSSF, SHA and job-group-linked allowances/deductions during payroll generation.</p>
         </div>
 

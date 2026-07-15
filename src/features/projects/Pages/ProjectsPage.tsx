@@ -307,7 +307,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
         <StatusBadge status={cfg.status} label={cfg.label} className="text-[11px]" />
       </div>
 
-      <h3 className="font-bold text-white text-[15px] mb-0.5 group-hover:text-indigo-300 transition-colors leading-tight">
+      <h3 className="font-bold text-brand-text text-[15px] mb-0.5 group-hover:text-indigo-300 transition-colors leading-tight">
         {project.name}
       </h3>
       <p className="text-[11px] text-brand-text-muted mb-3">Supervisor: {project.supervisorName}</p>
@@ -396,11 +396,11 @@ export default function ProjectsPage() {
   const other      = projects.filter(p => p.status !== 'in_progress' && p.status !== 'completed');
 
   return (
-    <div className="min-h-screen bg-white text-white p-6 space-y-6">
+    <div className="min-h-screen bg-white text-brand-text p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-bold text-white">Projects</h1>
+          <h1 className="text-[22px] font-bold text-brand-text">Projects</h1>
           <p className="text-[13px] text-brand-text-secondary mt-0.5">Cross-department project coordination</p>
         </div>
         {canCreate && (
@@ -421,13 +421,13 @@ export default function ProjectsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search projects…"
-            className="w-full pl-9 pr-3 h-9 text-[13px] bg-brand-bg-soft border border-brand-border rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary"
+            className="w-full pl-9 pr-3 h-9 text-[13px] bg-brand-bg-soft border border-brand-border rounded-xl text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary"
           />
         </div>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border rounded-xl text-white focus:outline-none focus:border-brand-primary"
+          className="h-9 px-3 text-[13px] bg-brand-bg-soft border border-brand-border rounded-xl text-brand-text focus:outline-none focus:border-brand-primary"
         >
           <option value="">All Statuses</option>
           {Object.entries(STATUS_MAP).map(([k, v]) => (

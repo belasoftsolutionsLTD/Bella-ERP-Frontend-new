@@ -183,7 +183,7 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', classN
     <input
       type={type} value={value} onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+      className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
     />
   </div>
 );
@@ -331,11 +331,11 @@ export function TaxConfigPanel() {
               placeholder="Search by code or name… (e.g. KES, Dollar, Naira)"
               value={currencySearch}
               onChange={e => setCurrencySearch(e.target.value)}
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
             <select
               size={6}
-              className="w-full text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 overflow-y-auto"
+              className="w-full text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30 overflow-y-auto"
               value={cfg.currency}
               onChange={e => {
                 const found = CURRENCIES.find(c => c.code === e.target.value);
@@ -395,37 +395,51 @@ export function TaxConfigPanel() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-foreground/60">Band limit (leave blank for top bracket)</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-foreground/60">Taxable width of this band</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-foreground/60">Applies to (income range)</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-foreground/60">Rate (%)</th>
                   <th className="w-10" />
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {cfg.incomeTax.brackets.map((b, i) => (
-                  <tr key={i}>
-                    <td className="px-3 py-2">
-                      <input type="number" value={b.limit ?? ''} onChange={e => updateBracket(i, 'limit', e.target.value)}
-                        placeholder="No limit (top bracket)"
-                        className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input type="number" value={b.rate} onChange={e => updateBracket(i, 'rate', e.target.value)}
-                        className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <button onClick={() => removeBracket(i)} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {(() => {
+                  let runningFrom = 0;
+                  return cfg.incomeTax.brackets.map((b, i) => {
+                    const from = runningFrom;
+                    const to = b.limit ? from + b.limit : null;
+                    runningFrom = to ?? from;
+                    return (
+                      <tr key={i}>
+                        <td className="px-3 py-2">
+                          <input type="number" value={b.limit ?? ''} onChange={e => updateBracket(i, 'limit', e.target.value)}
+                            placeholder="No limit (top bracket)"
+                            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
+                        </td>
+                        <td className="px-3 py-2 text-xs text-foreground/60 whitespace-nowrap">
+                          {from === 0
+                            ? (to != null ? `Up to ${to.toLocaleString()}` : 'All income')
+                            : (to != null ? `Over ${from.toLocaleString()}, up to ${to.toLocaleString()}` : `Over ${from.toLocaleString()}`)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <input type="number" value={b.rate} onChange={e => updateBracket(i, 'rate', e.target.value)}
+                            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
+                        </td>
+                        <td className="px-3 py-2">
+                          <button onClick={() => removeBracket(i)} className="text-red-400 hover:text-red-600">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
                 {cfg.incomeTax.brackets.length === 0 && (
-                  <tr><td colSpan={3} className="px-4 py-6 text-center text-foreground/30 text-xs">No brackets — add one above.</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-6 text-center text-foreground/30 text-xs">No brackets — add one above.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-foreground/40 mt-1.5">Brackets are applied incrementally top-to-bottom. The bracket with no limit catches the remainder.</p>
+          <p className="text-xs text-foreground/40 mt-1.5">Each band's number is <em>how much income</em> is taxed at that rate, not a cumulative ceiling — e.g. the first band taxes the first 24,000 at 10%, the next band taxes the next 8,333 at 25%, and so on. The &quot;Applies to&quot; column shows the actual income range so this is easier to read at a glance. The bracket with no limit catches the remainder.</p>
         </div>
       </Section>
 
@@ -450,7 +464,7 @@ export function TaxConfigPanel() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground/60 uppercase tracking-wide">Calculation Type</label>
                 <select value={d.type} onChange={e => updateDed(i, { type: e.target.value as StatDed['type'] })}
-                  className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
                   {DEDUCTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
@@ -490,11 +504,11 @@ export function TaxConfigPanel() {
                           <tr key={ti}>
                             <td className="px-3 py-2">
                               <input type="number" value={t.limit} onChange={e => updateTier(i, ti, 'limit', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
                             </td>
                             <td className="px-3 py-2">
                               <input type="number" value={t.rate} onChange={e => updateTier(i, ti, 'rate', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
                             </td>
                             <td className="px-3 py-2">
                               <button onClick={() => removeTier(i, ti)} className="text-red-400 hover:text-red-600">

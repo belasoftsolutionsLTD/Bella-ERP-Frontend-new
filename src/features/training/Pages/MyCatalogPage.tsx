@@ -51,12 +51,12 @@ export function MyCatalogPage({ locale }: { locale: string }) {
                   {enrolled ? (
                     <div className="flex items-center justify-between">
                       <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full" style={{ width: `${c.myEnrollment!.progressPercentage}%` }} />
+                        <div className="h-full bg-brand-primary rounded-full" style={{ width: `${c.myEnrollment!.progressPercentage}%` }} />
                       </div>
                       <StatusBadge status={ENROLLMENT_STATUS_MAP[c.myEnrollment!.status]} label={ENROLLMENT_STATUS_LABELS[c.myEnrollment!.status]} />
                     </div>
                   ) : c.deliveryMethod === 'instructor_led' ? (
-                    <p className="text-xs text-primary">View sessions & register →</p>
+                    <p className="text-xs text-brand-primary">View sessions & register →</p>
                   ) : (
                     <p className="text-xs text-brand-text-secondary">Not assigned — contact HR to enroll.</p>
                   )}

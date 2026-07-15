@@ -201,10 +201,10 @@ export default function OffboardingDashboardPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Active', value: stats.active, color: 'text-indigo-400', icon: null },
-          { label: 'Completed this month', value: stats.completedThisMonth, color: 'text-emerald-400', icon: null },
-          { label: 'Assets outstanding', value: stats.assetsOutstanding, color: 'text-amber-400', icon: Package },
-          { label: 'Accesses not revoked', value: stats.accessesOutstanding, color: 'text-red-400', icon: ShieldOff },
+          { label: 'Active', value: stats.active, color: 'text-indigo-600', icon: null },
+          { label: 'Completed this month', value: stats.completedThisMonth, color: 'text-emerald-600', icon: null },
+          { label: 'Assets outstanding', value: stats.assetsOutstanding, color: 'text-amber-600', icon: Package },
+          { label: 'Accesses not revoked', value: stats.accessesOutstanding, color: 'text-red-600', icon: ShieldOff },
         ].map(({ label, value, color, icon: Icon }) => (
           <div key={label} className="bg-brand-bg-soft border border-brand-border/60 rounded-xl p-4 text-center">
             <p className={cn('text-2xl font-bold flex items-center justify-center gap-1.5', color)}>

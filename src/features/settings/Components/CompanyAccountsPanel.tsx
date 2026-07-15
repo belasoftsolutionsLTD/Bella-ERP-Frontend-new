@@ -119,12 +119,12 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
               <label className="text-xs text-foreground/60">Account Name *</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. KCB Business Account"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-foreground/60">Account Type *</label>
               <select value={form.accountType} onChange={e => setForm(f => ({ ...f, accountType: e.target.value as AccountType }))}
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white">
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 bg-white">
                 <optgroup label="Local">
                   <option value="bank">Bank Transfer (Local)</option>
                   <option value="mpesa">M-Pesa</option>
@@ -148,13 +148,13 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
                 <label className="text-xs text-foreground/60">Bank Name</label>
                 <input value={form.bankName} onChange={e => setForm(f => ({ ...f, bankName: e.target.value }))}
                   placeholder="e.g. KCB, Equity, GTBank"
-                  className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-foreground/60">Account Number</label>
                 <input value={form.accountNumber} onChange={e => setForm(f => ({ ...f, accountNumber: e.target.value }))}
                   placeholder="e.g. 1234567890"
-                  className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
               </div>
             </div>
           )}
@@ -166,25 +166,25 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
                 <label className="text-xs text-foreground/60">Bank Name</label>
                 <input value={form.bankName} onChange={e => setForm(f => ({ ...f, bankName: e.target.value }))}
                   placeholder="e.g. Barclays, HSBC"
-                  className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-foreground/60">SWIFT / BIC Code</label>
                 <input value={form.swiftCode} onChange={e => setForm(f => ({ ...f, swiftCode: e.target.value }))}
                   placeholder="e.g. BARCGB22"
-                  className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-foreground/60">IBAN / Account Number</label>
                 <input value={form.ibanNumber} onChange={e => setForm(f => ({ ...f, ibanNumber: e.target.value }))}
                   placeholder="e.g. GB29NWBK60161331926819"
-                  className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-foreground/60">Currency</label>
                 <input value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
                   placeholder="e.g. USD, GBP, EUR"
-                  className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
               </div>
             </div>
           )}
@@ -195,7 +195,7 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
               <label className="text-xs text-foreground/60">M-Pesa Number / Paybill / Till</label>
               <input value={form.mpesaNumber} onChange={e => setForm(f => ({ ...f, mpesaNumber: e.target.value }))}
                 placeholder="e.g. 254712345678"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
           )}
 
@@ -205,7 +205,7 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
               <label className="text-xs text-foreground/60">PayPal Email</label>
               <input type="email" value={form.paypalEmail} onChange={e => setForm(f => ({ ...f, paypalEmail: e.target.value }))}
                 placeholder="e.g. payments@company.com"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
           )}
 
@@ -215,7 +215,7 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
               <label className="text-xs text-foreground/60">Wise Email / Account</label>
               <input type="email" value={form.wiseEmail} onChange={e => setForm(f => ({ ...f, wiseEmail: e.target.value }))}
                 placeholder="e.g. payments@company.com"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
           )}
 
@@ -225,7 +225,7 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
               <label className="text-xs text-foreground/60">Stripe Account ID</label>
               <input value={form.stripeAccountId} onChange={e => setForm(f => ({ ...f, stripeAccountId: e.target.value }))}
                 placeholder="e.g. acct_1ABC..."
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
           )}
 
@@ -235,7 +235,7 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
               <label className="text-xs text-foreground/60">Flutterwave Account / Merchant ID</label>
               <input value={form.flutterwaveAccountId} onChange={e => setForm(f => ({ ...f, flutterwaveAccountId: e.target.value }))}
                 placeholder="e.g. FLW-MERCHANT-12345"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
           )}
 
@@ -251,7 +251,7 @@ export function CompanyAccountsPanel({ items, refetch }: Props) {
 
       {/* Accounts list */}
       {items.length === 0 && !isNew ? (
-        <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-sm text-foreground/40">
+        <div className="rounded-xl border border-dashed border-brand-border py-10 text-center text-sm text-foreground/40">
           No company accounts added yet.
         </div>
       ) : (

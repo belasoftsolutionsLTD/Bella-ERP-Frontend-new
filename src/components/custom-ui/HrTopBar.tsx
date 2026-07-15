@@ -433,7 +433,7 @@ function ProfileModal({ userData, initials, onClose, onSaved }: ProfileModalProp
               <input
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                className="w-full h-9 px-3 border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
             <div className="space-y-1">
@@ -442,7 +442,7 @@ function ProfileModal({ userData, initials, onClose, onSaved }: ProfileModalProp
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 placeholder="e.g. +254712345678"
-                className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                className="w-full h-9 px-3 border border-brand-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
           </div>

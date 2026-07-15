@@ -157,12 +157,12 @@ export default function EventsPage() {
               <label className="text-xs text-foreground/60">Event Title *</label>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder="e.g. Q3 Sales Training / Annual Sports Day"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-foreground/60">Type *</label>
               <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as 'training' | 'team_building' }))}
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20">
                 <option value="training">Training Session</option>
                 <option value="team_building">Team Building</option>
               </select>
@@ -170,7 +170,7 @@ export default function EventsPage() {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-foreground/60">Audience</label>
               <select value={form.audience} onChange={e => setForm(f => ({ ...f, audience: e.target.value as 'all' | 'department' }))}
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20">
                 <option value="all">All Staff</option>
                 <option value="department">Specific Department</option>
               </select>
@@ -179,7 +179,7 @@ export default function EventsPage() {
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-foreground/60">Department</label>
                 <select value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
-                  className="h-9 border border-gray-200 rounded-xl px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  className="h-9 border border-brand-border rounded-xl px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20">
                   <option value="">— Select department —</option>
                   {departments.map(d => <option key={d._id} value={d.name}>{d.name}</option>)}
                 </select>
@@ -188,24 +188,24 @@ export default function EventsPage() {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-foreground/60">Date *</label>
               <input type="date" value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))}
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-foreground/60">End Date (optional)</label>
               <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-foreground/60">Location</label>
               <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                 placeholder="e.g. Main Hall, Zoom, Nairobi CBD"
-                className="h-9 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="h-9 border border-brand-border rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="sm:col-span-2 flex flex-col gap-1">
               <label className="text-xs text-foreground/60">Description</label>
               <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2}
                 placeholder="What will this event cover?"
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className="border border-brand-border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
           </div>
           <div className="flex justify-end gap-2">
@@ -290,7 +290,7 @@ export default function EventsPage() {
       )}
 
       {shown.length === 0 && !open && (
-        <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center text-sm text-foreground/40">
+        <div className="rounded-xl border border-dashed border-brand-border py-16 text-center text-sm text-foreground/40">
           No events scheduled yet. Click &ldquo;Schedule Event&rdquo; to add one.
         </div>
       )}

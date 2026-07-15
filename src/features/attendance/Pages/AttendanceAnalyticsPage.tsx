@@ -35,10 +35,10 @@ export default function AttendanceAnalyticsPage() {
   const { overview, summary, overtime, lateTrend, lateLeaderboard, absenteeism, loading } = useAttendanceAnalytics(groupBy);
 
   const kpis = [
-    { label: 'Present Today', value: overview?.present ?? 0, color: 'text-emerald-400', icon: UserCheck },
-    { label: 'Absent Today', value: overview?.absent ?? 0, color: 'text-red-400', icon: UserX },
-    { label: 'Late Today', value: overview?.late ?? 0, color: 'text-amber-400', icon: Clock },
-    { label: 'On Leave Today', value: overview?.onLeave ?? 0, color: 'text-blue-400', icon: CalendarOff },
+    { label: 'Present Today', value: overview?.present ?? 0, color: 'text-emerald-600', icon: UserCheck },
+    { label: 'Absent Today', value: overview?.absent ?? 0, color: 'text-red-600', icon: UserX },
+    { label: 'Late Today', value: overview?.late ?? 0, color: 'text-amber-600', icon: Clock },
+    { label: 'On Leave Today', value: overview?.onLeave ?? 0, color: 'text-blue-600', icon: CalendarOff },
     { label: 'Not Clocked In', value: overview?.notClockedIn ?? 0, color: 'text-brand-text-secondary', icon: HelpCircle },
   ];
 

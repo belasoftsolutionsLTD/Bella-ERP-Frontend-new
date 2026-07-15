@@ -285,9 +285,9 @@ export default function OrgChartPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
                 { label: 'Total Employees', value: data.total, color: 'text-brand-text' },
-                { label: 'Departments', value: data.departments.length, color: 'text-violet-400' },
-                { label: 'Active', value: data.departments.flatMap(d => d.employees).filter(e => e.status === 'active').length, color: 'text-emerald-400' },
-                { label: 'On Leave', value: data.departments.flatMap(d => d.employees).filter(e => e.status === 'on_leave').length, color: 'text-blue-400' },
+                { label: 'Departments', value: data.departments.length, color: 'text-indigo-600' },
+                { label: 'Active', value: data.departments.flatMap(d => d.employees).filter(e => e.status === 'active').length, color: 'text-emerald-600' },
+                { label: 'On Leave', value: data.departments.flatMap(d => d.employees).filter(e => e.status === 'on_leave').length, color: 'text-blue-600' },
               ].map(stat => (
                 <div key={stat.label} className="bg-brand-bg-soft rounded-xl border border-brand-border/60 p-4 text-center">
                   <p className={cn('text-2xl font-black leading-none', stat.color)}>{stat.value}</p>

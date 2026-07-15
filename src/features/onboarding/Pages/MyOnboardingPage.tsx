@@ -9,7 +9,7 @@ import { useMyOnboarding } from '../Hooks/useMyOnboarding';
 import type { OnboardingTask } from '../types';
 
 const TASK_STATUS_ICON: Record<string, JSX.Element> = {
-  pending:    <Circle className="h-5 w-5 text-slate-300" />,
+  pending:    <Circle className="h-5 w-5 text-brand-text-secondary" />,
   inProgress: <Clock className="h-5 w-5 text-amber-500" />,
   completed:  <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
   overdue:    <AlertTriangle className="h-5 w-5 text-red-500" />,
@@ -67,7 +67,7 @@ export default function MyOnboardingPage() {
   if (!record) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-        <CheckCircle2 className="h-12 w-12 text-slate-300" />
+        <CheckCircle2 className="h-12 w-12 text-brand-text-secondary" />
         <p className="text-sm font-medium text-slate-600">No onboarding record found.</p>
         <p className="text-xs text-slate-400">You don't have an active onboarding checklist right now.</p>
       </div>
@@ -79,7 +79,7 @@ export default function MyOnboardingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">My Onboarding</h1>
+        <h1 className="text-xl font-semibold text-brand-text">My Onboarding</h1>
         <p className="text-sm text-slate-400">Welcome aboard! Here's everything you need to get started.</p>
       </div>
 

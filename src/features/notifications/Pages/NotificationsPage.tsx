@@ -210,7 +210,7 @@ export default function NotificationsPage() {
   const unreadCount = data?.records.filter(n => !n.isRead).length || 0;
 
   return (
-    <div className="min-h-full" style={{ background: '#0f172a' }}>
+    <div className="min-h-full" style={{ background: '#ffffff' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
