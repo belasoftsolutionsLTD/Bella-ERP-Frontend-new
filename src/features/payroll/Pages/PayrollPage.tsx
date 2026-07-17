@@ -716,7 +716,6 @@ export default function PayrollPage() {
               <a href="/en/payroll/employees" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Compensations</a>
               <a href="/en/payroll/concepts"  className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Concepts</a>
               <a href="/en/payroll/analytics" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Analytics</a>
-              <a href="/en/payroll/loans"     className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Loans</a>
               <a href="/en/employees/settings" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Settings</a>
               <button onClick={() => setReadyOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">
                 <ShieldCheck className="h-4 w-4" /> Check Readiness

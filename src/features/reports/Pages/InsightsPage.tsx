@@ -6,7 +6,7 @@ import { useLocale } from 'next-intl';
 import { AlertTriangle, DollarSign, Building2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, LoadingBlock, ExportCSVButton } from '../Components/shared';
+import { ChartCard, LoadingBlock, ErrorBlock, ExportCSVButton } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface AttritionRisk { employeeId: string; employeeName: string; department: string; managerName: string; riskSignals: string[]; daysSinceLastCheckIn: number | null; }
@@ -28,11 +28,13 @@ function healthColor(value: number | null, goodMin: number, warnMin: number, inv
 export default function InsightsPage() {
   const locale = useLocale();
   const [department, setDepartment] = useState('');
-  const { data: attrition, loading: aLoading } = useReportQuery<AttritionRisk[]>('/insights/attrition-risk');
-  const { data: cost, loading: cLoading } = useReportQuery<CostPerEmployee[]>('/insights/cost-per-employee', department ? { department } : undefined);
-  const { data: deptHealth, loading: dLoading } = useReportQuery<DeptHealth[]>('/insights/dept-health');
-  const { data: managers, loading: mLoading } = useReportQuery<ManagerEffectiveness[]>('/insights/manager-effectiveness');
+  const { data: attrition, loading: aLoading, error: aError, refetch: aRefetch } = useReportQuery<AttritionRisk[]>('/insights/attrition-risk');
+  const { data: cost, loading: cLoading, error: cError, refetch: cRefetch } = useReportQuery<CostPerEmployee[]>('/insights/cost-per-employee', department ? { department } : undefined);
+  const { data: deptHealth, loading: dLoading, error: dError, refetch: dRefetch } = useReportQuery<DeptHealth[]>('/insights/dept-health');
+  const { data: managers, loading: mLoading, error: mError, refetch: mRefetch } = useReportQuery<ManagerEffectiveness[]>('/insights/manager-effectiveness');
   const loading = aLoading || cLoading || dLoading || mLoading;
+  const error = aError || cError || dError || mError;
+  const refetch = () => { aRefetch(); cRefetch(); dRefetch(); mRefetch(); };
 
   return (
     <div className="space-y-6">
@@ -42,7 +44,7 @@ export default function InsightsPage() {
       </div>
       <ReportsNav active="insights" />
 
-      {loading ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading ? <LoadingBlock /> : (
         <>
           {/* Attrition Risk */}
           <ChartCard title="Attrition Risk" action={<ExportCSVButton rows={attrition ?? []} filename="attrition-risk.csv" />}>

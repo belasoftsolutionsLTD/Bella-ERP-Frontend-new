@@ -51,6 +51,7 @@ export function HrSidebar() {
   // ── Nav definitions ──────────────────────────────────────────────────────────
   const youItems: NavItem[] = [
     { href: `/${locale}/staff-portal`,  label: 'Staff Portal',  icon: UserCircle, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] },
+    { href: `/${locale}/department-portal`, label: 'My Department', icon: Users, roles: ['department_head'] },
     { href: `/${locale}/tasks`,         label: 'Tasks',         icon: ListTodo,   roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/inbox`,         label: 'Inbox',         icon: Inbox,      roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/training`,      label: 'Training',      icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },

@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, LoadingBlock, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, LoadingBlock, ErrorBlock, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface Breakdown {
@@ -21,9 +21,11 @@ const fmtKES = (n: number) => `KES ${Math.round(n).toLocaleString()}`;
 
 export default function PayrollReportsPage() {
   const locale = useLocale();
-  const { data: breakdown, loading: bLoading } = useReportQuery<Breakdown>('/payroll/breakdown');
-  const { data: overtime, loading: oLoading } = useReportQuery<OvertimeCost>('/payroll/overtime');
+  const { data: breakdown, loading: bLoading, error: bError, refetch: bRefetch } = useReportQuery<Breakdown>('/payroll/breakdown');
+  const { data: overtime, loading: oLoading, error: oError, refetch: oRefetch } = useReportQuery<OvertimeCost>('/payroll/overtime');
   const loading = bLoading || oLoading;
+  const error = bError || oError;
+  const refetch = () => { bRefetch(); oRefetch(); };
 
   const breakdownData = breakdown ? [
     { name: 'Earnings', Gross: breakdown.gross },
@@ -48,7 +50,7 @@ export default function PayrollReportsPage() {
         <ArrowUpRight className="h-4 w-4 text-indigo-400" />
       </Link>
 
-      {loading ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading ? <LoadingBlock /> : (
         <>
           {breakdown && (
             <ChartCard title={`Earnings vs Deductions vs Net — ${breakdown.month}/${breakdown.year} (${breakdown.headcount} employees)`}>

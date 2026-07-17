@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, StatTile, LoadingBlock, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface Pipeline { byDepartment: { department: string; openPositions: number; applicants: number }[]; totalOpenPositions: number; totalApplicants: number; avgTimeToHireDays: number | null; }
@@ -14,10 +14,12 @@ interface Funnel { totalApplicants: number; funnel: { stageName: string; count: 
 
 export default function RecruitmentReportsPage() {
   const locale = useLocale();
-  const { data: pipeline, loading: pLoading } = useReportQuery<Pipeline>('/recruitment/pipeline');
-  const { data: source, loading: sLoading } = useReportQuery<Source[]>('/recruitment/source');
-  const { data: funnel, loading: fLoading } = useReportQuery<Funnel>('/recruitment/funnel');
+  const { data: pipeline, loading: pLoading, error: pError, refetch: pRefetch } = useReportQuery<Pipeline>('/recruitment/pipeline');
+  const { data: source, loading: sLoading, error: sError, refetch: sRefetch } = useReportQuery<Source[]>('/recruitment/source');
+  const { data: funnel, loading: fLoading, error: fError, refetch: fRefetch } = useReportQuery<Funnel>('/recruitment/funnel');
   const loading = pLoading || sLoading || fLoading;
+  const error = pError || sError || fError;
+  const refetch = () => { pRefetch(); sRefetch(); fRefetch(); };
 
   return (
     <div className="space-y-6">
@@ -36,7 +38,7 @@ export default function RecruitmentReportsPage() {
         <ArrowUpRight className="h-4 w-4 text-indigo-400" />
       </Link>
 
-      {loading ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading ? <LoadingBlock /> : (
         <>
           {pipeline && (
             <>

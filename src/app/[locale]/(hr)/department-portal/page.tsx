@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
-import LoansPage from '@/features/payroll/Pages/LoansPage';
+import DepartmentPortalPage from '@/features/departmentPortal/Pages/DepartmentPortalPage';
 
 export default function Page({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
-  return <LoansPage />;
+  return <DepartmentPortalPage />;
 }

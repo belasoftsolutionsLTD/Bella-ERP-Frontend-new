@@ -37,8 +37,10 @@ const pctChange = (curr: number, prev: number) => (prev > 0 ? Math.round(((curr 
 export default function ExecutiveDashboardPage() {
   const locale = useLocale();
   const { data: summary, loading: summaryLoading, error: summaryError, refetch: refetchSummary } = useReportQuery<ExecutiveSummary>('/executive');
-  const { data: trends, loading: trendsLoading } = useReportQuery<ExecutiveTrends>('/executive/trends');
+  const { data: trends, loading: trendsLoading, error: trendsError, refetch: refetchTrends } = useReportQuery<ExecutiveTrends>('/executive/trends');
   const loading = summaryLoading || trendsLoading;
+  const error = summaryError || trendsError;
+  const refetch = () => { refetchSummary(); refetchTrends(); };
 
   const payrollDelta = summary ? pctChange(summary.payrollCost.thisMonth, summary.payrollCost.lastMonth) : null;
 
@@ -51,7 +53,7 @@ export default function ExecutiveDashboardPage() {
 
       <ReportsNav active="executive" />
 
-      {summaryError ? <ErrorBlock message={summaryError} onRetry={refetchSummary} /> : loading || !summary ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading || !summary ? <LoadingBlock /> : (
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">

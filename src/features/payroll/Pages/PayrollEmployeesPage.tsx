@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Search, Trash2, Landmark, Ban } from 'lucide-react';
+import { Plus, X, Search, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
-import { LOAN_TYPES } from '../loanTypes';
 
 interface EmpSummary {
   _id: string; fullName: string; staffNumber: string; department: string; designation: string;
@@ -24,19 +22,6 @@ interface Compensation {
 interface Concept {
   _id: string; name: string; code: string; category: string; subCategory: string; type: string; currency: string;
 }
-
-interface Loan {
-  _id: string; loanType: string; principal: number; monthlyInstallment: number;
-  balanceRemaining: number; totalRepaid: number; status: 'active' | 'completed' | 'cancelled';
-  startDate: string; completedAt: string | null; notes: string | null;
-}
-
-// A loan being 'active' means it's still an ongoing repayment obligation, not a positive
-// state — unlike an active employee, so this deliberately maps to amber, not the canonical
-// green 'active' status.
-const LOAN_STATUS_MAP: Record<string, Status> = {
-  active: 'inProgress', completed: 'completed', cancelled: 'cancelled',
-};
 
 const CATEGORY_COLOR: Record<string, string> = {
   earnings: 'bg-emerald-500/10 text-emerald-400',
@@ -136,85 +121,6 @@ function AddCompModal({ employeeId, onClose, onSaved }: { employeeId: string; on
   );
 }
 
-// ── Add Loan Modal ────────────────────────────────────────────────────────────
-
-function AddLoanModal({ employeeId, onClose, onSaved }: { employeeId: string; onClose: () => void; onSaved: () => void }) {
-  const [loanType, setLoanType] = useState('Staff Loan');
-  const [loanTypeIsOther, setLoanTypeIsOther] = useState(false);
-  const [principal, setPrincipal] = useState('');
-  const [monthlyInstallment, setInstallment] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md bg-white border border-brand-border rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
-          <h2 className="text-base font-bold text-brand-text">Add Staff Loan</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-brand-text-secondary hover:text-brand-text hover:bg-brand-bg-soft transition-colors"><X className="h-4 w-4" /></button>
-        </div>
-        <div className="px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Loan Type</label>
-            <select value={loanTypeIsOther ? 'Other' : loanType}
-              onChange={e => {
-                if (e.target.value === 'Other') { setLoanTypeIsOther(true); setLoanType(''); }
-                else { setLoanTypeIsOther(false); setLoanType(e.target.value); }
-              }}
-              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
-              {LOAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            {loanTypeIsOther && (
-              <input value={loanType} onChange={e => setLoanType(e.target.value)} placeholder="Type the loan type" autoFocus
-                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary mt-1.5" />
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Principal Amount <span className="text-red-400">*</span></label>
-              <input type="number" value={principal} onChange={e => setPrincipal(e.target.value)} min={0} placeholder="e.g. 60000"
-                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Monthly Installment <span className="text-red-400">*</span></label>
-              <input type="number" value={monthlyInstallment} onChange={e => setInstallment(e.target.value)} min={0} placeholder="e.g. 5000"
-                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
-            </div>
-          </div>
-          <p className="text-xs text-brand-text-muted">
-            Each payroll cycle deducts the installment automatically and reduces the balance — it stops on its own once fully repaid.
-          </p>
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Start Date</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Notes (optional)</label>
-            <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. approved by HR on..."
-              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
-          </div>
-        </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-brand-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-brand-text-secondary hover:text-brand-text transition-colors">Cancel</button>
-          <button disabled={!principal || !monthlyInstallment || !loanType || saving} onClick={() => {
-            setSaving(true);
-            apiCallFunction({ url: `${API_BASE_URL}/payroll/loans`, method: 'POST',
-              data: { employeeId, loanType, principal: Number(principal), monthlyInstallment: Number(monthlyInstallment), startDate, notes: notes || undefined },
-              thenFn: () => { onSaved(); onClose(); },
-              finallyFn: () => setSaving(false),
-            });
-          }} className="px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-bold disabled:opacity-50 transition-colors">
-            {saving ? 'Adding…' : 'Add Loan'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Employee Detail Drawer ────────────────────────────────────────────────────
 
 interface AuditLogEntry {
@@ -230,8 +136,6 @@ function EmployeeDrawer({ emp, onClose }: { emp: EmpSummary; onClose: () => void
   const [logOpen,  setLogOpen]  = useState(false);
   const [logs,     setLogs]     = useState<AuditLogEntry[]>([]);
   const [logLoading, setLogLoading] = useState(false);
-  const [loans,    setLoans]    = useState<Loan[]>([]);
-  const [addLoanOpen, setAddLoanOpen] = useState(false);
 
   const fetchComps = useCallback(() => {
     setLoading(true);
@@ -241,18 +145,7 @@ function EmployeeDrawer({ emp, onClose }: { emp: EmpSummary; onClose: () => void
     });
   }, [emp._id]);
 
-  const fetchLoans = useCallback(() => {
-    apiCallFunction<any>({ url: `${API_BASE_URL}/payroll/loans/${emp._id}`, showToast: false,
-      thenFn: r => setLoans(r.data ?? []),
-    });
-  }, [emp._id]);
-
-  useEffect(() => { fetchComps(); fetchLoans(); }, [fetchComps, fetchLoans]);
-
-  const cancelLoan = (id: string) => {
-    if (!confirm('Write off / cancel this loan? The remaining balance will no longer be deducted.')) return;
-    apiCallFunction({ url: `${API_BASE_URL}/payroll/loans/${id}`, method: 'PUT', data: { action: 'cancel' }, thenFn: () => fetchLoans() });
-  };
+  useEffect(() => { fetchComps(); }, [fetchComps]);
 
   const toggleLog = () => {
     if (!logOpen && logs.length === 0) {
@@ -289,9 +182,6 @@ function EmployeeDrawer({ emp, onClose }: { emp: EmpSummary; onClose: () => void
               <p className="text-xs text-brand-text-muted">{emp.designation} · {emp.department} · {emp.staffNumber}</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => setAddLoanOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-bg-soft border border-brand-border hover:bg-brand-bg-muted text-brand-text text-xs font-bold transition-colors">
-                <Landmark className="h-3.5 w-3.5" /> Add Loan
-              </button>
               <button onClick={() => setAddOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-bold transition-colors">
                 <Plus className="h-3.5 w-3.5" /> Add Item
               </button>
@@ -315,44 +205,6 @@ function EmployeeDrawer({ emp, onClose }: { emp: EmpSummary; onClose: () => void
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-            {loans.length > 0 && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide mb-2 px-1 text-amber-400">Loans</p>
-                <div className="bg-brand-bg-soft border border-brand-border rounded-xl overflow-hidden">
-                  {loans.map((loan, i) => {
-                    const pct = loan.principal > 0 ? Math.round((loan.totalRepaid / loan.principal) * 100) : 0;
-                    return (
-                      <div key={loan._id} className={cn('px-4 py-3', i < loans.length - 1 && 'border-b border-brand-border/60')}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div>
-                            <p className="text-sm font-semibold text-brand-text">{loan.loanType}</p>
-                            <p className="text-[10px] text-brand-text-muted">
-                              {fmt(loan.principal)} principal · {fmt(loan.monthlyInstallment)}/month · started {new Date(loan.startDate).toLocaleDateString('en-KE', { month: 'short', year: 'numeric' })}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <StatusBadge status={LOAN_STATUS_MAP[loan.status] ?? 'inProgress'} label={loan.status} className="py-1" />
-                            {loan.status === 'active' && (
-                              <button onClick={() => cancelLoan(loan._id)} title="Write off / cancel"
-                                className="h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
-                                <Ban className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="h-1.5 bg-brand-bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                        <p className="text-[10px] text-brand-text-muted mt-1">
-                          {fmt(loan.totalRepaid)} repaid of {fmt(loan.principal)} ({pct}%) · {fmt(loan.balanceRemaining)} remaining
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {loading ? (
               <div className="py-10 flex justify-center"><div className="h-5 w-5 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" /></div>
             ) : comps.length === 0 ? (
@@ -422,7 +274,6 @@ function EmployeeDrawer({ emp, onClose }: { emp: EmpSummary; onClose: () => void
         </div>
       </div>
       {addOpen && <AddCompModal employeeId={emp._id} onClose={() => setAddOpen(false)} onSaved={() => { fetchComps(); refreshLog(); }} />}
-      {addLoanOpen && <AddLoanModal employeeId={emp._id} onClose={() => setAddLoanOpen(false)} onSaved={fetchLoans} />}
     </>
   );
 }

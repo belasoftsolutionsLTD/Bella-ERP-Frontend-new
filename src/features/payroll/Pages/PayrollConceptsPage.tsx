@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit2, PowerOff, X, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit2, PowerOff, X, RefreshCw, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import { BracketEditor, type Bracket } from '../Components/BracketEditor';
+import { ConceptTargetPicker } from '../Components/ConceptTargetPicker';
+import { LOAN_TYPES } from '../loanTypes';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type ConceptCategory = 'earnings' | 'deductions' | 'benefits' | 'employer_contributions';
-type ConceptType     = 'fixed' | 'variable' | 'percentage' | 'formula';
+type ConceptType     = 'fixed' | 'variable' | 'percentage' | 'formula' | 'bracket';
 
 interface PayrollConcept {
   _id: string;
@@ -23,6 +26,8 @@ interface PayrollConcept {
   percentageOf?: string;
   percentageValue?: number;
   formula?: string;
+  brackets?: Bracket[] | null;
+  loanType?: string | null;
   isActive: boolean;
   isTaxable: boolean;
   isRecurring: boolean;
@@ -46,6 +51,7 @@ const TYPE_CFG: Record<ConceptType, { label: string; bg: string; text: string }>
   variable:   { label: 'Variable',   bg: 'bg-amber-100',   text: 'text-amber-600'  },
   percentage: { label: 'Percentage', bg: 'bg-brand-primary/10',  text: 'text-brand-primary' },
   formula:    { label: 'Formula',    bg: 'bg-cyan-100',    text: 'text-cyan-600'   },
+  bracket:    { label: 'Bracket',    bg: 'bg-fuchsia-100', text: 'text-fuchsia-600' },
 };
 
 const TABS: { key: ConceptCategory | 'all'; label: string }[] = [
@@ -62,11 +68,13 @@ const SUB_CATEGORY_OPTIONS: Record<ConceptCategory, { value: string; label: stri
     { value: 'variable_pay',    label: 'Variable Pay'     },
     { value: 'benefits_in_kind',label: 'Benefits in Kind' },
     { value: 'bonus',           label: 'Bonus'            },
+    { value: 'allowance',       label: 'Allowance'        },
   ],
   deductions: [
     { value: 'tax',               label: 'Tax'               },
     { value: 'social_security',   label: 'Social Security'   },
     { value: 'other_withholding', label: 'Other Withholding' },
+    { value: 'loans',             label: 'Loans'             },
   ],
   benefits: [
     { value: 'meals_transport', label: 'Meals & Transport' },
@@ -80,11 +88,31 @@ const SUB_CATEGORY_OPTIONS: Record<ConceptCategory, { value: string; label: stri
   ],
 };
 
-const PERCENTAGE_OF_OPTIONS = [
-  { value: 'gross_salary',  label: 'Gross Salary'  },
-  { value: 'basic_salary',  label: 'Basic Salary'  },
-  { value: 'custom',        label: 'Custom Formula' },
-];
+// An earnings concept can't be a percentage/formula/bracket of the very gross pay it
+// contributes to (gross is built FROM earnings) — so earnings only offers bases that
+// exist independently of gross. Everything else may reference gross freely, since it's
+// resolved after gross is already known.
+const PERCENTAGE_OF_OPTIONS_BY_CATEGORY: Record<ConceptCategory, { value: string; label: string }[]> = {
+  earnings: [
+    { value: 'basic_salary', label: 'Basic Salary' },
+    { value: 'hours_worked', label: 'Hours Worked' },
+  ],
+  deductions: [
+    { value: 'gross_salary',    label: 'Gross Salary'                  },
+    { value: 'adjusted_gross',  label: 'Adjusted Gross (incl. overtime)' },
+    { value: 'basic_salary',    label: 'Basic Salary'                  },
+  ],
+  benefits: [
+    { value: 'gross_salary',    label: 'Gross Salary'                  },
+    { value: 'adjusted_gross',  label: 'Adjusted Gross (incl. overtime)' },
+    { value: 'basic_salary',    label: 'Basic Salary'                  },
+  ],
+  employer_contributions: [
+    { value: 'gross_salary',    label: 'Gross Salary'                  },
+    { value: 'adjusted_gross',  label: 'Adjusted Gross (incl. overtime)' },
+    { value: 'basic_salary',    label: 'Basic Salary'                  },
+  ],
+};
 
 // ── Value display helper ──────────────────────────────────────────────────────
 
@@ -92,6 +120,7 @@ function formatConceptValue(c: PayrollConcept): string {
   if (c.type === 'fixed')      return c.defaultAmount != null ? `${c.currency} ${c.defaultAmount.toLocaleString()}/mo` : '—';
   if (c.type === 'percentage') return `${c.percentageValue ?? 0}% of ${c.percentageOf?.replace('_', ' ') ?? 'gross'}`;
   if (c.type === 'formula')    return c.formula ? `= ${c.formula}` : '—';
+  if (c.type === 'bracket')    return c.brackets?.length ? `${c.brackets.length} band${c.brackets.length !== 1 ? 's' : ''} of ${c.percentageOf?.replace('_', ' ') ?? 'adjusted gross'}` : '—';
   return 'Variable';
 }
 
@@ -112,8 +141,8 @@ function Chip({ active, label }: { active: boolean; label: string }) {
 // ── Concept Card ──────────────────────────────────────────────────────────────
 
 function ConceptCard({
-  concept, onEdit, onToggle,
-}: { concept: PayrollConcept; onEdit: (c: PayrollConcept) => void; onToggle: (c: PayrollConcept) => void }) {
+  concept, onEdit, onToggle, onAssign,
+}: { concept: PayrollConcept; onEdit: (c: PayrollConcept) => void; onToggle: (c: PayrollConcept) => void; onAssign: (c: PayrollConcept) => void }) {
   const cat  = CATEGORY_CFG[concept.category];
   const type = TYPE_CFG[concept.type];
 
@@ -132,6 +161,10 @@ function ConceptCard({
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <button onClick={() => onAssign(concept)}
+            className="h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-muted hover:text-indigo-400 hover:bg-brand-primary-hover/10 transition-colors" title="Assign to employees/department/job group">
+            <Users className="h-3.5 w-3.5" />
+          </button>
           <button onClick={() => onEdit(concept)}
             className="h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-muted hover:text-indigo-400 hover:bg-brand-primary-hover/10 transition-colors" title="Edit">
             <Edit2 className="h-3.5 w-3.5" />
@@ -159,6 +192,9 @@ function ConceptCard({
 
       {/* Value */}
       <p className="text-sm font-semibold text-brand-text">{formatConceptValue(concept)}</p>
+      {concept.loanType && (
+        <p className="text-[11px] text-brand-text-muted -mt-2">{concept.loanType}</p>
+      )}
 
       {/* Toggles */}
       <div className="flex flex-wrap gap-1.5">
@@ -180,7 +216,10 @@ function ConceptCard({
 interface DrawerProps {
   concept?: PayrollConcept | null;
   onClose: () => void;
-  onSaved: () => void;
+  // Passes back the just-created concept's id + the fields the target picker needs,
+  // so the caller can offer to assign it immediately — undefined on an edit (nothing
+  // new to assign).
+  onSaved: (created?: { _id: string; name: string; type: ConceptType; subCategory: string }) => void;
 }
 
 function codeFromName(name: string): string {
@@ -198,9 +237,11 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
   const [type,             setType]             = useState<ConceptType>(concept?.type ?? 'fixed');
   const [defaultAmount,    setDefaultAmount]    = useState(concept?.defaultAmount?.toString() ?? '');
   const [currency,         setCurrency]         = useState(concept?.currency         ?? 'KES');
-  const [percentageOf,     setPercentageOf]     = useState(concept?.percentageOf     ?? 'gross_salary');
+  const [percentageOf,     setPercentageOf]     = useState(concept?.percentageOf     ?? '');
   const [percentageValue,  setPercentageValue]  = useState(concept?.percentageValue?.toString() ?? '');
   const [formula,          setFormula]          = useState(concept?.formula          ?? '');
+  const [brackets,         setBrackets]         = useState<Bracket[]>(concept?.brackets ?? []);
+  const [loanType,         setLoanType]         = useState(concept?.loanType         ?? LOAN_TYPES[0]);
   const [isTaxable,        setIsTaxable]        = useState(concept?.isTaxable        ?? false);
   const [isRecurring,      setIsRecurring]      = useState(concept?.isRecurring      ?? true);
   const [appearsOnPayslip, setAppearsOnPayslip] = useState(concept?.appearsOnPayslip ?? true);
@@ -217,6 +258,22 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
     if (!isEdit) setSubCategory(SUB_CATEGORY_OPTIONS[category]?.[0]?.value ?? '');
   }, [category, isEdit]);
 
+  // A "percentage of"/bracket base valid for one category (e.g. gross_salary for
+  // deductions) may not be valid for another (earnings can't reference gross — see the
+  // circularity note by the Type selector). Reset to the new category's first option
+  // whenever the current selection would no longer be valid.
+  useEffect(() => {
+    const valid = PERCENTAGE_OF_OPTIONS_BY_CATEGORY[category].map(o => o.value);
+    if (!valid.includes(percentageOf)) setPercentageOf(valid[0] ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
+
+  // A loan can't use the bracket type (backend rejects it) — steer away from it
+  // automatically rather than letting the save fail with a validation error.
+  useEffect(() => {
+    if (subCategory === 'loans' && type === 'bracket') setType('fixed');
+  }, [subCategory, type]);
+
   const handleSubmit = () => {
     if (!name.trim() || !code.trim() || !subCategory) return;
     setSaving(true);
@@ -229,12 +286,17 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
     if (type === 'fixed')      body.defaultAmount   = Number(defaultAmount)   || 0;
     if (type === 'percentage') { body.percentageOf  = percentageOf; body.percentageValue = Number(percentageValue) || 0; }
     if (type === 'formula')    body.formula = formula;
+    if (type === 'bracket')    { body.percentageOf  = percentageOf; body.brackets = brackets; }
+    if (subCategory === 'loans') body.loanType = loanType;
 
-    apiCallFunction({
+    apiCallFunction<any>({
       url:    isEdit ? `${API_BASE_URL}/payroll/concepts/${concept!._id}` : `${API_BASE_URL}/payroll/concepts`,
       method: isEdit ? 'PUT' : 'POST',
       data:   body,
-      thenFn: () => { onSaved(); onClose(); },
+      thenFn: (r) => {
+        onSaved(isEdit ? undefined : { _id: r?.data?._id, name, type, subCategory });
+        onClose();
+      },
       finallyFn: () => setSaving(false),
     });
   };
@@ -313,25 +375,45 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
             </select>
           </div>
 
+          {/* Loan type — only for deductions/loans */}
+          {subCategory === 'loans' && (
+            <div>
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Loan Type</label>
+              <select value={loanType} onChange={e => setLoanType(e.target.value)}
+                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+                {LOAN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          )}
+
           {/* Type */}
           <div>
             <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-2">
               Type <span className="text-red-400">*</span>
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {(['fixed', 'variable', 'percentage', 'formula'] as ConceptType[]).map(t => {
+            <div className="grid grid-cols-3 gap-2">
+              {(['fixed', 'variable', 'percentage', 'formula', 'bracket'] as ConceptType[]).map(t => {
                 const cfg = TYPE_CFG[t];
+                const disabled = t === 'bracket' && subCategory === 'loans';
                 return (
-                  <button key={t} type="button" onClick={() => setType(t)}
+                  <button key={t} type="button" onClick={() => !disabled && setType(t)} disabled={disabled}
+                    title={disabled ? 'A loan cannot use the bracket type — choose fixed, percentage, or formula.' : undefined}
                     className={cn(
                       'py-2 rounded-xl border text-xs font-semibold transition-all',
-                      type === t ? 'border-brand-primary bg-brand-primary/10 text-indigo-300' : 'border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:border-brand-border-strong',
+                      disabled
+                        ? 'border-brand-border bg-brand-bg-muted/40 text-brand-text-muted/50 cursor-not-allowed'
+                        : type === t
+                          ? 'border-brand-primary bg-brand-primary/10 text-indigo-300'
+                          : 'border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:border-brand-border-strong',
                     )}>
                     {cfg.label}
                   </button>
                 );
               })}
             </div>
+            {category === 'earnings' && (type === 'percentage' || type === 'formula' || type === 'bracket') && (
+              <p className="mt-1.5 text-[11px] text-amber-600">Earnings can only reference basic salary or hours worked — not gross pay, since gross pay is built from earnings and referencing it back would be circular.</p>
+            )}
           </div>
 
           {/* Conditional value input */}
@@ -365,7 +447,7 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
                 <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Percentage of</label>
                 <select value={percentageOf} onChange={e => setPercentageOf(e.target.value)}
                   className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
-                  {PERCENTAGE_OF_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {PERCENTAGE_OF_OPTIONS_BY_CATEGORY[category].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             </div>
@@ -377,7 +459,23 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
               <input value={formula} onChange={e => setFormula(e.target.value)}
                 placeholder="e.g. basic_salary * 0.05 + 500"
                 className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm font-mono text-cyan-300 placeholder:text-brand-text-muted focus:outline-none focus:border-cyan-500" />
-              <p className="mt-1 text-[11px] text-brand-text-muted">Variables: basic_salary, gross_salary, hours_worked</p>
+              <p className="mt-1 text-[11px] text-brand-text-muted">
+                Variables: basic_salary, hours_worked{category !== 'earnings' && ', gross_salary, adjusted_gross'}
+              </p>
+            </div>
+          )}
+
+          {type === 'bracket' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Applies to</label>
+                <select value={percentageOf} onChange={e => setPercentageOf(e.target.value)}
+                  className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+                  {PERCENTAGE_OF_OPTIONS_BY_CATEGORY[category].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <BracketEditor brackets={brackets} onChange={setBrackets} />
+              <p className="text-[11px] text-brand-text-muted">Each band covers a slice of the amount above, taxed/deducted at its own rate — not a cumulative ceiling. The band with no width limit catches the remainder.</p>
             </div>
           )}
 
@@ -432,6 +530,7 @@ export default function PayrollConceptsPage() {
   const [search,      setSearch]      = useState('');
   const [drawerOpen,  setDrawerOpen]  = useState(false);
   const [editTarget,  setEditTarget]  = useState<PayrollConcept | null>(null);
+  const [assignTarget, setAssignTarget] = useState<{ _id: string; name: string; type: ConceptType; subCategory: string } | null>(null);
 
   const fetchConcepts = useCallback(() => {
     setLoading(true);
@@ -472,6 +571,13 @@ export default function PayrollConceptsPage() {
   const openAdd  = ()                        => { setEditTarget(null); setDrawerOpen(true); };
   const openEdit = (c: PayrollConcept)       => { setEditTarget(c);   setDrawerOpen(true); };
   const closeDrawer = ()                     => { setDrawerOpen(false); setEditTarget(null); };
+
+  // After creating a concept, offer to assign it right away (skippable — HR can always
+  // use the per-card Assign button later). Editing an existing concept doesn't trigger this.
+  const handleConceptSaved = (created?: { _id: string; name: string; type: ConceptType; subCategory: string }) => {
+    fetchConcepts();
+    if (created) setAssignTarget(created);
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -544,7 +650,7 @@ export default function PayrollConceptsPage() {
           /* Single category grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map(c => (
-              <ConceptCard key={c._id} concept={c} onEdit={openEdit} onToggle={toggleActive} />
+              <ConceptCard key={c._id} concept={c} onEdit={openEdit} onToggle={toggleActive} onAssign={setAssignTarget} />
             ))}
           </div>
         ) : (
@@ -563,7 +669,7 @@ export default function PayrollConceptsPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {items.map(c => (
-                      <ConceptCard key={c._id} concept={c} onEdit={openEdit} onToggle={toggleActive} />
+                      <ConceptCard key={c._id} concept={c} onEdit={openEdit} onToggle={toggleActive} onAssign={setAssignTarget} />
                     ))}
                   </div>
                 </div>
@@ -578,7 +684,16 @@ export default function PayrollConceptsPage() {
         <ConceptDrawer
           concept={editTarget}
           onClose={closeDrawer}
-          onSaved={fetchConcepts}
+          onSaved={handleConceptSaved}
+        />
+      )}
+
+      {/* Assign (targeting) picker */}
+      {assignTarget && (
+        <ConceptTargetPicker
+          concept={assignTarget}
+          onClose={() => setAssignTarget(null)}
+          onAssigned={fetchConcepts}
         />
       )}
     </div>

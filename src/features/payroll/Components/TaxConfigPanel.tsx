@@ -4,6 +4,7 @@ import { Plus, Trash2, Save, RotateCcw } from 'lucide-react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { cn } from '@/lib/utils';
+import { BracketEditor } from './BracketEditor';
 
 interface Bracket  { limit: number | null; rate: number }
 interface Tier     { limit: number; rate: number }
@@ -238,19 +239,6 @@ export function TaxConfigPanel() {
 
   const setBrackets = (brackets: Bracket[]) => patchIT({ brackets });
 
-  const updateBracket = (i: number, key: keyof Bracket, val: string) => {
-    if (!cfg) return;
-    const next = cfg.incomeTax.brackets.map((b, idx) =>
-      idx === i ? { ...b, [key]: key === 'limit' ? (val === '' ? null : parseFloat(val)) : parseFloat(val) } : b
-    );
-    setBrackets(next);
-  };
-
-  const addBracket = () => setBrackets([...(cfg?.incomeTax.brackets ?? []), { limit: null, rate: 0 }]);
-
-  const removeBracket = (i: number) =>
-    setBrackets((cfg?.incomeTax.brackets ?? []).filter((_, idx) => idx !== i));
-
   const updateDed = (i: number, partial: Partial<StatDed>) =>
     setCfg(prev => {
       if (!prev) return prev;
@@ -384,61 +372,14 @@ export function TaxConfigPanel() {
         />
 
         <div className="mt-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-foreground/60 uppercase tracking-wide">Tax Brackets</p>
-            <button onClick={addBracket}
-              className="flex items-center gap-1 text-xs text-primary font-medium hover:underline">
-              <Plus className="h-3 w-3" /> Add bracket
-            </button>
-          </div>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-foreground/60">Taxable width of this band</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-foreground/60">Applies to (income range)</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-foreground/60">Rate (%)</th>
-                  <th className="w-10" />
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {(() => {
-                  let runningFrom = 0;
-                  return cfg.incomeTax.brackets.map((b, i) => {
-                    const from = runningFrom;
-                    const to = b.limit ? from + b.limit : null;
-                    runningFrom = to ?? from;
-                    return (
-                      <tr key={i}>
-                        <td className="px-3 py-2">
-                          <input type="number" value={b.limit ?? ''} onChange={e => updateBracket(i, 'limit', e.target.value)}
-                            placeholder="No limit (top bracket)"
-                            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
-                        </td>
-                        <td className="px-3 py-2 text-xs text-foreground/60 whitespace-nowrap">
-                          {from === 0
-                            ? (to != null ? `Up to ${to.toLocaleString()}` : 'All income')
-                            : (to != null ? `Over ${from.toLocaleString()}, up to ${to.toLocaleString()}` : `Over ${from.toLocaleString()}`)}
-                        </td>
-                        <td className="px-3 py-2">
-                          <input type="number" value={b.rate} onChange={e => updateBracket(i, 'rate', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-brand-primary/30" />
-                        </td>
-                        <td className="px-3 py-2">
-                          <button onClick={() => removeBracket(i)} className="text-red-400 hover:text-red-600">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  });
-                })()}
-                {cfg.incomeTax.brackets.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-foreground/30 text-xs">No brackets — add one above.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <BracketEditor
+            brackets={cfg.incomeTax.brackets}
+            onChange={setBrackets}
+            title="Tax Brackets"
+            widthLabel="Taxable width of this band"
+            addLabel="Add bracket"
+            emptyLabel="No brackets — add one above."
+          />
           <p className="text-xs text-foreground/40 mt-1.5">Each band's number is <em>how much income</em> is taxed at that rate, not a cumulative ceiling — e.g. the first band taxes the first 24,000 at 10%, the next band taxes the next 8,333 at 25%, and so on. The &quot;Applies to&quot; column shows the actual income range so this is easier to read at a glance. The bracket with no limit catches the remainder.</p>
         </div>
       </Section>

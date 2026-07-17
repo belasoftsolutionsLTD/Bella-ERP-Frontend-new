@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight, TrendingUp, Repeat, DollarSign } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface Movement {
@@ -17,7 +17,7 @@ interface Movement {
 
 export default function WorkforceReportsPage() {
   const locale = useLocale();
-  const { data, loading } = useReportQuery<Movement>('/workforce/movement');
+  const { data, loading, error, refetch } = useReportQuery<Movement>('/workforce/movement');
 
   return (
     <div className="space-y-6">
@@ -36,7 +36,7 @@ export default function WorkforceReportsPage() {
         <ArrowUpRight className="h-4 w-4 text-indigo-400" />
       </Link>
 
-      {loading || !data ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading || !data ? <LoadingBlock /> : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <StatTile icon={TrendingUp} label="Promotions this year" value={data.promotionsByDept.reduce((s, d) => s + d.count, 0)} colorCls="text-emerald-400" />

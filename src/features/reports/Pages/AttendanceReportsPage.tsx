@@ -2,7 +2,7 @@
 
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface SummaryGroup { key: string; label: string; present: number; late: number; absent: number; halfDay: number; totalDays: number; }
@@ -13,10 +13,12 @@ interface Punctuality {
 }
 
 export default function AttendanceReportsPage() {
-  const { data: summary, loading: sLoading } = useReportQuery<SummaryGroup[]>('/attendance/summary', { groupBy: 'department' });
-  const { data: overtime, loading: oLoading } = useReportQuery<OvertimeGroup[]>('/attendance/overtime', { groupBy: 'department' });
-  const { data: punctuality, loading: pLoading } = useReportQuery<Punctuality>('/attendance/punctuality');
+  const { data: summary, loading: sLoading, error: sError, refetch: sRefetch } = useReportQuery<SummaryGroup[]>('/attendance/summary', { groupBy: 'department' });
+  const { data: overtime, loading: oLoading, error: oError, refetch: oRefetch } = useReportQuery<OvertimeGroup[]>('/attendance/overtime', { groupBy: 'department' });
+  const { data: punctuality, loading: pLoading, error: pError, refetch: pRefetch } = useReportQuery<Punctuality>('/attendance/punctuality');
   const loading = sLoading || oLoading || pLoading;
+  const error = sError || oError || pError;
+  const refetch = () => { sRefetch(); oRefetch(); pRefetch(); };
 
   const totalPresent = summary?.reduce((s, r) => s + r.present, 0) ?? 0;
   const totalAbsent = summary?.reduce((s, r) => s + r.absent, 0) ?? 0;
@@ -30,7 +32,7 @@ export default function AttendanceReportsPage() {
       </div>
       <ReportsNav active="attendance" />
 
-      {loading ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading ? <LoadingBlock /> : (
         <>
           <div className="grid grid-cols-3 gap-3">
             <StatTile label="Present" value={totalPresent} colorCls="text-emerald-400" />

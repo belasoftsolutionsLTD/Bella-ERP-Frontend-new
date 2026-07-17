@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface Liability {
@@ -25,9 +25,11 @@ const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep
 
 export default function LeaveReportsPage() {
   const locale = useLocale();
-  const { data: liability, loading: lLoading } = useReportQuery<Liability>('/leave/liability');
-  const { data: patterns, loading: pLoading } = useReportQuery<Patterns>('/leave/patterns');
+  const { data: liability, loading: lLoading, error: lError, refetch: lRefetch } = useReportQuery<Liability>('/leave/liability');
+  const { data: patterns, loading: pLoading, error: pError, refetch: pRefetch } = useReportQuery<Patterns>('/leave/patterns');
   const loading = lLoading || pLoading;
+  const error = lError || pError;
+  const refetch = () => { lRefetch(); pRefetch(); };
 
   return (
     <div className="space-y-6">
@@ -46,7 +48,7 @@ export default function LeaveReportsPage() {
         <ArrowUpRight className="h-4 w-4 text-indigo-400" />
       </Link>
 
-      {loading ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading ? <LoadingBlock /> : (
         <>
           {liability && (
             <>

@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, StatTile, LoadingBlock, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface CompletionByDept { department: string; total: number; completed: number; completionRate: number; }
@@ -20,10 +20,12 @@ interface Engagement {
 
 export default function TrainingReportsPage() {
   const locale = useLocale();
-  const { data: byDept, loading: dLoading } = useReportQuery<CompletionByDept[]>('/training/completion');
-  const { data: compliance, loading: cLoading } = useReportQuery<Compliance>('/training/compliance');
-  const { data: engagement, loading: eLoading } = useReportQuery<Engagement>('/training/engagement');
+  const { data: byDept, loading: dLoading, error: dError, refetch: dRefetch } = useReportQuery<CompletionByDept[]>('/training/completion');
+  const { data: compliance, loading: cLoading, error: cError, refetch: cRefetch } = useReportQuery<Compliance>('/training/compliance');
+  const { data: engagement, loading: eLoading, error: eError, refetch: eRefetch } = useReportQuery<Engagement>('/training/engagement');
   const loading = dLoading || cLoading || eLoading;
+  const error = dError || cError || eError;
+  const refetch = () => { dRefetch(); cRefetch(); eRefetch(); };
 
   return (
     <div className="space-y-6">
@@ -42,7 +44,7 @@ export default function TrainingReportsPage() {
         <ArrowUpRight className="h-4 w-4 text-indigo-400" />
       </Link>
 
-      {loading ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading ? <LoadingBlock /> : (
         <>
           {byDept && (
             <ChartCard title="Mandatory Course Completion Rate by Department">

@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
+import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface GoalsReport {
@@ -21,10 +21,12 @@ interface PipReport {
 
 export default function PerformanceReportsPage() {
   const locale = useLocale();
-  const { data: goals, loading: gLoading } = useReportQuery<GoalsReport>('/performance/goals');
-  const { data: feedback, loading: fLoading } = useReportQuery<FeedbackReport>('/performance/feedback');
-  const { data: pip, loading: pLoading } = useReportQuery<PipReport>('/performance/pip');
+  const { data: goals, loading: gLoading, error: gError, refetch: gRefetch } = useReportQuery<GoalsReport>('/performance/goals');
+  const { data: feedback, loading: fLoading, error: fError, refetch: fRefetch } = useReportQuery<FeedbackReport>('/performance/feedback');
+  const { data: pip, loading: pLoading, error: pError, refetch: pRefetch } = useReportQuery<PipReport>('/performance/pip');
   const loading = gLoading || fLoading || pLoading;
+  const error = gError || fError || pError;
+  const refetch = () => { gRefetch(); fRefetch(); pRefetch(); };
 
   return (
     <div className="space-y-6">
@@ -43,7 +45,7 @@ export default function PerformanceReportsPage() {
         <ArrowUpRight className="h-4 w-4 text-indigo-400" />
       </Link>
 
-      {loading ? <LoadingBlock /> : (
+      {error ? <ErrorBlock message={error} onRetry={refetch} /> : loading ? <LoadingBlock /> : (
         <>
           {goals && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

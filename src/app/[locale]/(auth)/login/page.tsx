@@ -44,6 +44,8 @@ export default function LoginPage() {
         login(res.data.token, user);
         if (user?.role === 'staff') {
           router.push(`/${locale}/staff-portal`);
+        } else if (user?.role === 'department_head') {
+          router.push(`/${locale}/department-portal`);
         } else {
           router.push(`/${locale}/dashboard`);
         }
