@@ -49,13 +49,22 @@ export function HrSidebar() {
   }, []);
 
   // ── Nav definitions ──────────────────────────────────────────────────────────
-  const youItems: NavItem[] = [
+  // "My Work" is personal self-service (your own profile, leave, attendance, tasks) —
+  // every role gets some slice of it. "My Team" is management tooling that only exists
+  // for someone with people to manage. Kept as two separate sections (not one merged
+  // list) so it's visually obvious which one you're in — the underlying pages
+  // (e.g. Staff Portal's "My Leave" vs the org-wide "Leave" dashboard under Time &
+  // Performance) are genuinely different views, not a UI duplication to collapse.
+  const myWorkItems: NavItem[] = [
     { href: `/${locale}/staff-portal`,  label: 'Staff Portal',  icon: UserCircle, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] },
-    { href: `/${locale}/department-portal`, label: 'My Department', icon: Users, roles: ['department_head'] },
     { href: `/${locale}/tasks`,         label: 'Tasks',         icon: ListTodo,   roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/inbox`,         label: 'Inbox',         icon: Inbox,      roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/training`,      label: 'Training',      icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/my/training`,   label: 'My Training',   icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
+  ];
+
+  const myTeamItems: NavItem[] = [
+    { href: `/${locale}/department-portal`, label: 'My Department', icon: Users, roles: ['department_head'] },
   ];
 
   const overviewItems: NavItem[] = [
@@ -102,7 +111,8 @@ export function HrSidebar() {
       ? items.filter(i => i.label.toLowerCase().includes(search.toLowerCase()))
       : items;
 
-  const visibleYou      = filterSearch(filter(youItems));
+  const visibleMyWork   = filterSearch(filter(myWorkItems));
+  const visibleMyTeam   = filterSearch(filter(myTeamItems));
   const visibleOverview = filterSearch(filter(overviewItems));
   const visibleHrPeople = filterSearch(filter(hrPeopleItems));
   const visibleTimeWork = filterSearch(filter(timeWorkItems));
@@ -199,11 +209,20 @@ export function HrSidebar() {
           </>
         )}
 
-        {/* You */}
-        {visibleYou.length > 0 && (
+        {/* My Team — management tooling, shown above My Work so it isn't mistaken for
+            "more personal stuff" when both sections are visible */}
+        {visibleMyTeam.length > 0 && (
           <>
-            <SectionLabel label="You" />
-            {visibleYou.map(item => <NavLink key={item.href} {...item} />)}
+            <SectionLabel label="My Team" />
+            {visibleMyTeam.map(item => <NavLink key={item.href} {...item} />)}
+          </>
+        )}
+
+        {/* My Work — personal self-service, distinct from My Team above */}
+        {visibleMyWork.length > 0 && (
+          <>
+            <SectionLabel label="My Work" />
+            {visibleMyWork.map(item => <NavLink key={item.href} {...item} />)}
           </>
         )}
 
@@ -215,7 +234,7 @@ export function HrSidebar() {
                   <SectionLabel label="Results" />
                   {allSearchResults.map(item => <NavLink key={item.href} {...item} />)}
                 </>)
-              : visibleYou.length === 0 && visibleOverview.length === 0 && (
+              : visibleMyWork.length === 0 && visibleMyTeam.length === 0 && visibleOverview.length === 0 && (
                   <p className="text-xs text-brand-text-muted text-center py-6">No results for &ldquo;{search}&rdquo;</p>
                 )
             }

@@ -28,6 +28,10 @@ interface PayrollConcept {
   formula?: string;
   brackets?: Bracket[] | null;
   loanType?: string | null;
+  cap?: number | null;
+  flatCredit?: number | null;
+  deductConceptCodesFromBase?: string[] | null;
+  statutoryKey?: 'paye' | 'nssf' | 'sha' | 'ahl' | null;
   isActive: boolean;
   isTaxable: boolean;
   isRecurring: boolean;
@@ -113,6 +117,14 @@ const PERCENTAGE_OF_OPTIONS_BY_CATEGORY: Record<ConceptCategory, { value: string
     { value: 'basic_salary',    label: 'Basic Salary'                  },
   ],
 };
+
+const STATUTORY_KEY_OPTIONS: { value: '' | 'paye' | 'nssf' | 'sha' | 'ahl'; label: string }[] = [
+  { value: '',     label: 'None — not a statutory line' },
+  { value: 'paye', label: 'PAYE (Income Tax)'            },
+  { value: 'nssf', label: 'NSSF (Pension)'                },
+  { value: 'sha',  label: 'SHA (Health Insurance)'        },
+  { value: 'ahl',  label: 'AHL (Affordable Housing Levy)' },
+];
 
 // ── Value display helper ──────────────────────────────────────────────────────
 
@@ -215,6 +227,9 @@ function ConceptCard({
 
 interface DrawerProps {
   concept?: PayrollConcept | null;
+  // All concepts currently loaded on the page — reused (no new endpoint) to populate the
+  // "deduct from base" picker and to disable already-claimed statutory keys client-side.
+  allConcepts: PayrollConcept[];
   onClose: () => void;
   // Passes back the just-created concept's id + the fields the target picker needs,
   // so the caller can offer to assign it immediately — undefined on an edit (nothing
@@ -226,7 +241,7 @@ function codeFromName(name: string): string {
   return name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
-function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
+function ConceptDrawer({ concept, allConcepts, onClose, onSaved }: DrawerProps) {
   const isEdit = Boolean(concept);
   const [saving, setSaving] = useState(false);
 
@@ -246,7 +261,21 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
   const [isRecurring,      setIsRecurring]      = useState(concept?.isRecurring      ?? true);
   const [appearsOnPayslip, setAppearsOnPayslip] = useState(concept?.appearsOnPayslip ?? true);
   const [alertIfUndefined, setAlertIfUndefined] = useState(concept?.alertIfUndefined ?? false);
+  const [cap,               setCap]             = useState(concept?.cap?.toString()        ?? '');
+  const [flatCredit,        setFlatCredit]      = useState(concept?.flatCredit?.toString() ?? '');
+  const [deductBase,        setDeductBase]      = useState<string[]>(concept?.deductConceptCodesFromBase ?? []);
+  const [statutoryKey,      setStatutoryKey]    = useState(concept?.statutoryKey ?? '');
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(isEdit);
+
+  // Depth-1 only — a concept already depending on another can't itself be picked as a
+  // base-deduction source (mirrors the backend's reverse-chaining guard exactly).
+  const deductBaseOptions = allConcepts.filter(c =>
+    c.category === 'deductions' && c.isActive && c._id !== concept?._id &&
+    (!c.deductConceptCodesFromBase || c.deductConceptCodesFromBase.length === 0)
+  );
+  const claimedStatutoryKeys = new Set(
+    allConcepts.filter(c => c._id !== concept?._id && c.statutoryKey).map(c => c.statutoryKey)
+  );
 
   // Auto-generate code from name (only when not manually edited)
   useEffect(() => {
@@ -288,6 +317,11 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
     if (type === 'formula')    body.formula = formula;
     if (type === 'bracket')    { body.percentageOf  = percentageOf; body.brackets = brackets; }
     if (subCategory === 'loans') body.loanType = loanType;
+
+    if (type === 'percentage' || type === 'bracket') body.cap = cap.trim() === '' ? null : Number(cap);
+    if (type === 'percentage' || type === 'bracket' || type === 'formula') body.flatCredit = flatCredit.trim() === '' ? null : Number(flatCredit);
+    if (category === 'deductions' && (type === 'percentage' || type === 'bracket')) body.deductConceptCodesFromBase = deductBase;
+    if (category === 'deductions') body.statutoryKey = statutoryKey || null;
 
     apiCallFunction<any>({
       url:    isEdit ? `${API_BASE_URL}/payroll/concepts/${concept!._id}` : `${API_BASE_URL}/payroll/concepts`,
@@ -482,6 +516,73 @@ function ConceptDrawer({ concept, onClose, onSaved }: DrawerProps) {
           {type === 'variable' && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
               <p className="text-xs text-amber-300">Variable concepts have no fixed default. The amount is entered per payroll cycle.</p>
+            </div>
+          )}
+
+          {/* Cap / flat credit — statutory-style calculations (e.g. NSSF's contribution
+              ceiling, PAYE's personal relief) layered on top of percentage/bracket/formula */}
+          {(type === 'percentage' || type === 'bracket' || type === 'formula') && (
+            <div className="grid grid-cols-2 gap-3">
+              {(type === 'percentage' || type === 'bracket') && (
+                <div>
+                  <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Cap (max amount)</label>
+                  <input type="number" value={cap} onChange={e => setCap(e.target.value)} min={0}
+                    placeholder="No cap"
+                    className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Flat credit</label>
+                <input type="number" value={flatCredit} onChange={e => setFlatCredit(e.target.value)} min={0}
+                  placeholder="e.g. 2400"
+                  className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+                <p className="mt-1 text-[11px] text-brand-text-muted">Subtracted after the amount is computed, floored at zero (e.g. personal tax relief).</p>
+              </div>
+            </div>
+          )}
+
+          {/* Deduct-from-base — depth-1 dependency on another deduction's already-resolved
+              amount (e.g. PAYE's taxable base excludes NSSF) */}
+          {category === 'deductions' && (type === 'percentage' || type === 'bracket') && (
+            <div>
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Deduct from base</label>
+              {deductBaseOptions.length === 0 ? (
+                <p className="text-[11px] text-brand-text-muted">No eligible deduction concepts yet — a concept must itself have no base dependency to be selectable here.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {deductBaseOptions.map(o => {
+                    const active = deductBase.includes(o.code);
+                    return (
+                      <button key={o._id} type="button"
+                        onClick={() => setDeductBase(prev => active ? prev.filter(c => c !== o.code) : [...prev, o.code])}
+                        className={cn(
+                          'text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors',
+                          active ? 'border-brand-primary bg-brand-primary/10 text-indigo-300' : 'border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:border-brand-border-strong',
+                        )}>
+                        {o.name} ({o.code})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="mt-1.5 text-[11px] text-brand-text-muted">The selected concepts&apos; already-resolved amounts are subtracted from this concept&apos;s base before it&apos;s evaluated.</p>
+            </div>
+          )}
+
+          {/* Statutory key — claims this concept as the live PAYE/NSSF/SHA/AHL line,
+              taking over from the legacy tax-config engine for this org */}
+          {category === 'deductions' && (
+            <div>
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Statutory line</label>
+              <select value={statutoryKey} onChange={e => setStatutoryKey(e.target.value as typeof statutoryKey)}
+                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+                {STATUTORY_KEY_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value} disabled={o.value !== '' && claimedStatutoryKeys.has(o.value)}>
+                    {o.label}{o.value !== '' && claimedStatutoryKeys.has(o.value) ? ' — already claimed' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-[11px] text-brand-text-muted">Claiming a statutory line makes this concept the live PAYE/NSSF/SHA/AHL calculation for the unified engine, replacing the legacy tax-config value for that line.</p>
             </div>
           )}
 
@@ -683,6 +784,7 @@ export default function PayrollConceptsPage() {
       {drawerOpen && (
         <ConceptDrawer
           concept={editTarget}
+          allConcepts={concepts}
           onClose={closeDrawer}
           onSaved={handleConceptSaved}
         />
