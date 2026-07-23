@@ -44,10 +44,13 @@ export function useApplications(requisitionId?: string) {
     thenFn: () => mutate(),
   });
 
-  const assignInterviewer = (applicationId: string, stageId: string, interviewerId: string, scheduledAt: string) => apiCallFunction({
+  const assignInterviewer = (
+    applicationId: string, stageId: string, interviewerId: string, scheduledAt: string,
+    details?: { meetingLink?: string; location?: string; requiredDocuments?: string },
+  ) => apiCallFunction({
     url: `${API_BASE_URL}/recruitment/applications/${applicationId}/interviewers`,
     method: 'POST',
-    data: { stageId, interviewerId, scheduledAt },
+    data: { stageId, interviewerId, scheduledAt, ...details },
     thenFn: () => mutate(),
   });
 
@@ -60,6 +63,19 @@ export function useApplications(requisitionId?: string) {
   const sendInterviewReminder = (applicationId: string, stageId: string) => apiCallFunction({
     url: `${API_BASE_URL}/recruitment/applications/${applicationId}/interviewers/${stageId}/remind`,
     method: 'POST',
+  });
+
+  const bulkAction = (
+    action: 'shortlist' | 'reject' | 'hire',
+    applicationIds: string[],
+    extra?: { stageId?: string; rejectionReason?: string },
+    onDone?: (result: { succeeded: string[]; failed: { id: string; reason: string }[] }) => void,
+  ) => apiCallFunction<{ data: { succeeded: string[]; failed: { id: string; reason: string }[] } }>({
+    url: `${API_BASE_URL}/recruitment/requisitions/${requisitionId}/applications/bulk-action`,
+    method: 'POST',
+    data: { action, applicationIds, ...extra },
+    showToast: false,
+    thenFn: (r) => { mutate(); onDone?.(r.data); },
   });
 
   return {
@@ -75,5 +91,6 @@ export function useApplications(requisitionId?: string) {
     assignInterviewer,
     unassignInterviewer,
     sendInterviewReminder,
+    bulkAction,
   };
 }

@@ -72,7 +72,19 @@ export function useMyLeaveRequests(status?: string) {
       thenFn: () => { fetch(); onSuccess?.(); },
     });
 
-  return { requests, loading, refetch: fetch, apply, cancel, dispute };
+  const acceptCounter = (id: string, onSuccess?: () => void) =>
+    apiCallFunction({
+      url: `${API_BASE_URL}/leave/requests/${id}/accept-counter`, method: 'POST',
+      thenFn: () => { fetch(); onSuccess?.(); },
+    });
+
+  const disputeCounter = (id: string, reason: string, onSuccess?: () => void) =>
+    apiCallFunction({
+      url: `${API_BASE_URL}/leave/requests/${id}/dispute-counter`, method: 'POST', data: { reason },
+      thenFn: () => { fetch(); onSuccess?.(); },
+    });
+
+  return { requests, loading, refetch: fetch, apply, cancel, dispute, acceptCounter, disputeCounter };
 }
 
 export function useMyLeaveRequestDetail(id: string | null) {

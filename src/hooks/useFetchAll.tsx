@@ -29,13 +29,13 @@ export function useFetchAll<T = unknown>({
 
     const controller = new AbortController();
 
-    apiCallFunction({
+    apiCallFunction<any>({
       url,
       method: 'GET',
       signal: controller.signal,
       showToast: false,
       thenFn: (res) => setData(res.data ?? res),
-      catchFn: (err) => setError(err?.message || 'Error'),
+      catchFn: (err) => setError((err as Error)?.message || 'Error'),
       finallyFn: () => setLoading(false),
     });
 

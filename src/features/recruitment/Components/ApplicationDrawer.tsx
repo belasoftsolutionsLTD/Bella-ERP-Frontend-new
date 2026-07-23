@@ -21,7 +21,7 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
   onMoveStage: (stageId: string) => void;
   onUpdateStatus: (status: string, rejectionReason?: string) => void;
   onExtendOffer: (payload: { salary: number; currency: string; startDate: string; expiresAt: string }) => void;
-  onAssignInterviewer: (stageId: string, interviewerId: string, scheduledAt: string) => void;
+  onAssignInterviewer: (stageId: string, interviewerId: string, scheduledAt: string, details?: { meetingLink?: string; location?: string; requiredDocuments?: string }) => void;
   onUnassignInterviewer: (stageId: string, interviewerId: string) => void;
   onSendInterviewReminder: (stageId: string) => void;
 }) {
@@ -31,6 +31,9 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
   const [offerForm, setOfferForm] = useState({ salary: '', currency: 'KES', startDate: '', expiresAt: '' });
   const [pickedInterviewer, setPickedInterviewer] = useState('');
   const [pickedSchedule, setPickedSchedule] = useState('');
+  const [pickedMeetingLink, setPickedMeetingLink] = useState('');
+  const [pickedLocation, setPickedLocation] = useState('');
+  const [pickedDocuments, setPickedDocuments] = useState('');
   const [pendingStatus, setPendingStatus] = useState<{ status: string; reason?: string; title: string; message: string } | null>(null);
   const candidate = application.candidate;
   const currentStage = requisition.pipelineStages.find((s) => s.id === application.currentStageId);
@@ -142,11 +145,43 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
                       onChange={(e) => setPickedSchedule(e.target.value)}
                       className="rounded-md border border-slate-300 px-2 py-1.5 text-xs"
                     />
+                  </div>
+                  {/* Candidate-facing logistics — sent to the candidate by email, never
+                      including who's interviewing them (see backend assignInterviewer). */}
+                  <div className="flex flex-col gap-1.5">
+                    <input
+                      type="text"
+                      value={pickedMeetingLink}
+                      onChange={(e) => setPickedMeetingLink(e.target.value)}
+                      placeholder="Meeting link (optional, e.g. Zoom/Meet URL)"
+                      className="rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={pickedLocation}
+                      onChange={(e) => setPickedLocation(e.target.value)}
+                      placeholder="Location (optional, e.g. office address)"
+                      className="rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={pickedDocuments}
+                      onChange={(e) => setPickedDocuments(e.target.value)}
+                      placeholder="Documents to bring (optional, e.g. ID, certificates)"
+                      className="rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+                    />
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={!pickedInterviewer || !pickedSchedule}
-                      onClick={() => { onAssignInterviewer(currentStage.id, pickedInterviewer, pickedSchedule); setPickedInterviewer(''); setPickedSchedule(''); }}
+                      onClick={() => {
+                        onAssignInterviewer(currentStage.id, pickedInterviewer, pickedSchedule, {
+                          meetingLink: pickedMeetingLink || undefined,
+                          location: pickedLocation || undefined,
+                          requiredDocuments: pickedDocuments || undefined,
+                        });
+                        setPickedInterviewer(''); setPickedSchedule(''); setPickedMeetingLink(''); setPickedLocation(''); setPickedDocuments('');
+                      }}
                     >
                       Assign
                     </Button>

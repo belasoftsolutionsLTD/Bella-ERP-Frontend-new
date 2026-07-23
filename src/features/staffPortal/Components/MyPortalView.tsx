@@ -31,7 +31,7 @@ import { AttendanceGrid } from '@/features/attendance/Components/AttendanceGrid'
 import { ClockInWidget } from '@/features/attendance/Components/ClockInWidget';
 import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
 
-type Section = 'profile' | 'payslips' | 'attendance' | 'timesheets' | 'shifts' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'jd' | 'terms' | 'expenses' | 'requests' | 'projects' | 'jobs' | 'skills';
+type Section = 'profile' | 'payslips' | 'welfare' | 'attendance' | 'timesheets' | 'shifts' | 'tasks' | 'payment' | 'messages' | 'inbox' | 'documents' | 'performance' | 'awards' | 'events' | 'jd' | 'terms' | 'expenses' | 'requests' | 'projects' | 'jobs' | 'skills';
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-600',
@@ -69,6 +69,7 @@ const NAV: { key: Section | 'my-training' | 'my-onboarding' | 'my-offboarding' |
   { key: 'projects',     label: 'My Projects',          icon: Briefcase,     description: 'Projects you are a member of', group: 'My Work' },
   // ── Finance ──
   { key: 'payslips',     label: 'Payslips',             icon: DollarSign,    description: 'Monthly payroll history', group: 'Finance' },
+  { key: 'welfare',      label: 'My Welfare',           icon: Heart,         description: 'Welfare scheme memberships', group: 'Finance' },
   { key: 'expenses',     label: 'My Expenses',          icon: DollarSign,    description: 'Submit & track claims', group: 'Finance' },
   { key: 'requests',     label: 'My Requests',          icon: ShoppingCart,  description: 'Purchase requests & approvals', group: 'Finance' },
   { key: 'payment',      label: 'Payment Methods',      icon: CreditCard,    description: 'Bank & M-Pesa details', group: 'Finance' },
@@ -154,7 +155,7 @@ export function MyPortalView() {
   const router = useRouter();
   const locale = useLocale();
   const {
-    profile, payslips, attendance,
+    profile, payslips, welfare, attendance,
     notifications, announcements, documents, appraisals, reviewResults, events, myTasks, myProjects, loading,
     updateProfile,
     markNotifRead, markAllNotifsRead,
@@ -408,6 +409,30 @@ export function MyPortalView() {
               payslips.length > 0
                 ? <MyPayslipsPanel payslips={payslips} />
                 : <EmptyState icon={DollarSign} text="No payslips yet." sub="Your payslips will appear here once payroll is processed." />
+            )}
+            {active === 'welfare'    && (
+              welfare.length > 0 ? (
+                <div className="space-y-3">
+                  {welfare.map((w, i) => (
+                    <div key={w.schemeId ?? i} className="bg-white border border-brand-border rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-brand-text">{w.schemeName}</p>
+                          {w.description && <p className="text-xs text-brand-text-secondary mt-0.5">{w.description}</p>}
+                        </div>
+                        <span className="text-sm font-bold text-brand-text shrink-0">
+                          {w.contributionType === 'percentage' ? `${w.amount}%` : `KES ${(w.amount || 0).toLocaleString('en-KE')}`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-brand-text-muted mt-2">
+                        Member since {new Date(w.effectiveFrom).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={Heart} text="No welfare scheme memberships." sub="You'll see any welfare fund you're enrolled in here." />
+              )
             )}
             {active === 'attendance' && (
               <div className="space-y-6">
@@ -2667,7 +2692,6 @@ const APP_STATUS_MAP: Record<string, { status: Status; label: string }> = {
 };
 
 function InternalJobsPanel() {
-  const token = typeof window !== 'undefined' ? (sessionStorage.getItem('token') ?? '') : '';
   const [positions, setPositions] = useState<InternalPosition[]>([]);
   const [myApps, setMyApps] = useState<MyApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2678,11 +2702,11 @@ function InternalJobsPanel() {
   const load = async () => {
     setLoading(true);
     const [posRes, appRes] = await Promise.all([
-      apiCallFunction(`${API_BASE_URL}/me/jobs`, 'GET', null, token),
-      apiCallFunction(`${API_BASE_URL}/me/jobs/applications`, 'GET', null, token),
+      apiCallFunction<any>({ url: `${API_BASE_URL}/me/jobs`, method: 'GET', showToast: false, returnResponse: true }),
+      apiCallFunction<any>({ url: `${API_BASE_URL}/me/jobs/applications`, method: 'GET', showToast: false, returnResponse: true }),
     ]);
-    if (posRes.status) setPositions(posRes.data ?? []);
-    if (appRes.status) setMyApps(appRes.data ?? []);
+    if (posRes?.success) setPositions(posRes.data ?? []);
+    if (appRes?.success) setMyApps(appRes.data ?? []);
     setLoading(false);
   };
 
@@ -2692,12 +2716,12 @@ function InternalJobsPanel() {
 
   const handleApply = async (positionId: string) => {
     setApplying(positionId);
-    const res = await apiCallFunction(`${API_BASE_URL}/me/jobs/${positionId}/apply`, 'POST', {}, token);
-    if (res.status) {
+    const res = await apiCallFunction<any>({ url: `${API_BASE_URL}/me/jobs/${positionId}/apply`, method: 'POST', data: {}, showToast: false, returnResponse: true });
+    if (res?.success) {
       await load();
       setTab('mine');
     } else {
-      alert(res.message || 'Failed to submit application.');
+      alert(res?.message || 'Failed to submit application.');
     }
     setApplying(null);
   };

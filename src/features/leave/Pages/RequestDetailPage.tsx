@@ -19,9 +19,12 @@ const fmtDateTime = (d?: string) => d ? new Date(d).toLocaleString('en-KE', { da
 
 export default function RequestDetailPage({ requestId }: { requestId: string }) {
   const locale = useLocale();
-  const { request, loading, approve, reject, cancel, revoke, resolveDispute } = useLeaveRequest(requestId);
+  const { request, loading, approve, reject, cancel, revoke, resolveDispute, counterOffer } = useLeaveRequest(requestId);
   const [rejectReason, setRejectReason] = useState('');
   const [showReject, setShowReject] = useState(false);
+  const [showCounter, setShowCounter] = useState(false);
+  const [proposedDays, setProposedDays] = useState('');
+  const [counterOfferReason, setCounterOfferReason] = useState('');
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-indigo-400" /></div>;
   if (!request) return <p className="text-sm text-brand-text-muted text-center py-16">Request not found.</p>;
@@ -57,22 +60,33 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
         </div>
       </div>
 
-      {request.status === 'disputed' && request.disputeReason && (
-        <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
-          <p className="text-xs font-semibold text-purple-300 mb-1">Dispute Reason</p>
-          <p className="text-sm text-purple-200">{request.disputeReason}</p>
-          <div className="flex items-center gap-2 mt-3">
-            <button onClick={() => resolveDispute('overturned', undefined, () => toast.success('Dispute overturned — leave approved.'))}
-              className="h-8 px-3 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 text-xs font-semibold rounded-lg transition-colors">
-              Overturn (Approve)
-            </button>
-            <button onClick={() => resolveDispute('upheld', undefined, () => toast.success('Original rejection upheld.'))}
-              className="h-8 px-3 bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs font-semibold rounded-lg transition-colors">
-              Uphold (Keep Rejected)
-            </button>
+      {request.status === 'disputed' && request.disputeReason && (() => {
+        // A counter-offer dispute resolves to an approval either way (at the original
+        // days if overturned, at the previously-proposed days if upheld) — it never had
+        // a flat rejection to "keep", unlike a straight rejection dispute.
+        const isCounterDispute = request.proposedDays != null;
+        return (
+          <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+            <p className="text-xs font-semibold text-purple-300 mb-1">Dispute Reason</p>
+            <p className="text-sm text-purple-200">{request.disputeReason}</p>
+            {isCounterDispute && (
+              <p className="text-xs text-purple-200/70 mt-1">
+                Employee disputed HR's counter-offer of {request.proposedDays} day(s) instead of the {request.totalDays} originally requested.
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-3">
+              <button onClick={() => resolveDispute('overturned', undefined, () => toast.success(isCounterDispute ? `Approved at the original ${request.totalDays} day(s).` : 'Dispute overturned — leave approved.'))}
+                className="h-8 px-3 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 text-xs font-semibold rounded-lg transition-colors">
+                {isCounterDispute ? `Overturn (Approve ${request.totalDays} days)` : 'Overturn (Approve)'}
+              </button>
+              <button onClick={() => resolveDispute('upheld', undefined, () => toast.success(isCounterDispute ? `Counter-offer upheld — approved at ${request.proposedDays} day(s).` : 'Original rejection upheld.'))}
+                className="h-8 px-3 bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs font-semibold rounded-lg transition-colors">
+                {isCounterDispute ? `Uphold Counter-Offer (${request.proposedDays} days)` : 'Uphold (Keep Rejected)'}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="bg-brand-bg-soft border border-brand-border/60 rounded-xl p-5">
         <h3 className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-3">Approval Chain</h3>
@@ -97,6 +111,14 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
         )}
       </div>
 
+      {request.status === 'counter_offered' && (
+        <div className="bg-sky-500/10 border border-sky-500/30 rounded-xl p-4">
+          <p className="text-xs font-semibold text-sky-300 mb-1">Counter-Offer Sent</p>
+          <p className="text-sm text-sky-200">Proposed {request.proposedDays} day(s) instead of {request.totalDays}.</p>
+          {request.counterOfferReason && <p className="text-xs text-sky-200/80 italic mt-1">"{request.counterOfferReason}"</p>}
+          <p className="text-xs text-sky-200/60 mt-2">Awaiting the employee's response.</p>
+        </div>
+      )}
       {request.status === 'pending' && (
         <div className="flex items-center gap-2">
           <button onClick={() => approve(undefined, () => toast.success('Approved.'))}
@@ -107,6 +129,30 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
             className="flex items-center gap-1.5 h-9 px-4 bg-brand-danger hover:bg-brand-danger/90 text-white text-sm font-semibold rounded-lg transition-colors">
             <X className="h-4 w-4" /> Reject
           </button>
+          <button onClick={() => setShowCounter(true)}
+            className="flex items-center gap-1.5 h-9 px-4 border border-sky-600 text-sky-400 hover:text-sky-300 text-sm font-semibold rounded-lg transition-colors">
+            Counter Offer
+          </button>
+        </div>
+      )}
+      {showCounter && (
+        <div className="bg-brand-bg-soft border border-brand-border rounded-xl p-4 space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Proposed Days (of {request.totalDays} requested)</label>
+            <input type="number" min={1} max={request.totalDays - 1} value={proposedDays} onChange={e => setProposedDays(e.target.value)}
+              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-sky-500" />
+          </div>
+          <textarea value={counterOfferReason} onChange={e => setCounterOfferReason(e.target.value)} rows={2} placeholder="Reason for the counter-offer…"
+            className="w-full px-3 py-2 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-sky-500 resize-none" />
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowCounter(false)} className="text-xs text-brand-text-secondary hover:text-brand-text px-3 py-1.5">Cancel</button>
+            <button
+              onClick={() => counterOffer(Number(proposedDays), counterOfferReason, () => { toast.success('Counter-offer sent.'); setShowCounter(false); })}
+              disabled={!proposedDays || Number(proposedDays) <= 0 || Number(proposedDays) >= request.totalDays}
+              className="h-8 px-4 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition-colors">
+              Send Counter-Offer
+            </button>
+          </div>
         </div>
       )}
       {showReject && (

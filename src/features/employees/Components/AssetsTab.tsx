@@ -45,7 +45,7 @@ export function AssetsTab({ employeeId }: { employeeId: string }) {
   useEffect(() => {
     if (!employeeId) { setLoading(false); return; }
     setLoading(true);
-    apiCallFunction({
+    apiCallFunction<any>({
       url: `${API_BASE_URL}/it/devices?employeeId=${employeeId}&limit=50`,
       method: 'GET',
       thenFn: (r) => setDevices(r.data?.data ?? []),

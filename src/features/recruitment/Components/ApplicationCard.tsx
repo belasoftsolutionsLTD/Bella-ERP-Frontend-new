@@ -6,10 +6,12 @@ import { FileCheck, FileX } from 'lucide-react';
 import type { Application } from '../types';
 import { SOURCE_LABELS } from '../constants';
 
-export function ApplicationCard({ application, requiresScorecard, onClick }: {
+export function ApplicationCard({ application, requiresScorecard, onClick, selected, onToggleSelect }: {
   application: Application;
   requiresScorecard?: boolean;
   onClick: () => void;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: application._id });
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
@@ -26,9 +28,20 @@ export function ApplicationCard({ application, requiresScorecard, onClick }: {
       {...listeners}
       {...attributes}
       onClick={onClick}
-      className={`bg-white rounded-lg border border-slate-200 p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition ${isDragging ? 'opacity-40' : ''}`}
+      className={`relative bg-white rounded-lg border p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition ${isDragging ? 'opacity-40' : ''} ${selected ? 'border-primary ring-1 ring-primary/40' : 'border-slate-200'}`}
     >
-      <p className="text-sm font-medium text-slate-900 truncate">
+      {onToggleSelect && (
+        <input
+          type="checkbox"
+          checked={!!selected}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onChange={() => onToggleSelect(application._id)}
+          className="absolute top-2 right-2 h-3.5 w-3.5 accent-brand-primary cursor-pointer"
+          aria-label="Select candidate"
+        />
+      )}
+      <p className="text-sm font-medium text-slate-900 truncate pr-5">
         {application.candidate ? `${application.candidate.firstName} ${application.candidate.lastName}` : 'Candidate'}
       </p>
       <div className="mt-1 flex items-center justify-between text-xs text-slate-500">

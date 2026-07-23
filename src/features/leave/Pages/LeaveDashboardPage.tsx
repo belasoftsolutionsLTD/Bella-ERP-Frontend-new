@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
@@ -11,8 +11,40 @@ import { useLeaveCalendar } from '../Hooks/useLeaveCalendar';
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '—';
 
+// Reason capture as a proper modal, not a native browser prompt() popup — matches the
+// RejectModal pattern already used in SpendingPage.tsx for vendor/invoice rejection.
+function RejectReasonModal({ employeeName, onClose, onConfirm }: { employeeName: string; onClose: () => void; onConfirm: (reason: string) => void }) {
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
+          <h2 className="font-bold text-brand-text">Reject — {employeeName}</h2>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="px-6 py-5">
+          <label className="block text-xs text-brand-text-secondary mb-1">Reason <span className="text-red-400">*</span></label>
+          <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} autoFocus
+            placeholder="Explain why this leave request is being rejected…"
+            className="w-full px-3 py-2 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-red-500 resize-none" />
+        </div>
+        <div className="flex gap-3 px-6 pb-5">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
+          <button disabled={!reason.trim() || saving} onClick={() => { setSaving(true); onConfirm(reason.trim()); }}
+            className="flex-1 h-10 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-colors disabled:opacity-50">
+            {saving ? 'Rejecting…' : 'Confirm Reject'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ApprovalRow({ requestId, onDone }: { requestId: string; onDone: () => void }) {
   const { request, approve, reject } = useLeaveRequest(requestId);
+  const [rejecting, setRejecting] = useState(false);
   if (!request) return null;
 
   return (
@@ -31,11 +63,18 @@ function ApprovalRow({ requestId, onDone }: { requestId: string; onDone: () => v
           className="flex items-center gap-1 h-8 px-3 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 text-xs font-semibold rounded-lg transition-colors">
           <Check className="h-3.5 w-3.5" /> Approve
         </button>
-        <button onClick={() => { const reason = window.prompt('Rejection reason:'); if (reason) reject(reason, () => { toast.success('Rejected.'); onDone(); }); }}
+        <button onClick={() => setRejecting(true)}
           className="flex items-center gap-1 h-8 px-3 bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs font-semibold rounded-lg transition-colors">
           <X className="h-3.5 w-3.5" /> Reject
         </button>
       </div>
+      {rejecting && (
+        <RejectReasonModal
+          employeeName={request.employee?.fullName ?? 'this request'}
+          onClose={() => setRejecting(false)}
+          onConfirm={(reason) => reject(reason, () => { toast.success('Rejected.'); setRejecting(false); onDone(); })}
+        />
+      )}
     </div>
   );
 }

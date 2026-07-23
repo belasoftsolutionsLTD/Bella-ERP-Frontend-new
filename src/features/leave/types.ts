@@ -61,7 +61,7 @@ export interface LeaveBalance {
   employee?: { fullName: string; staffNumber: string; department: string };
 }
 
-export type LeaveRequestStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'disputed';
+export type LeaveRequestStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'disputed' | 'counter_offered';
 
 export interface ApprovalStep {
   level: number;
@@ -100,6 +100,8 @@ export interface LeaveRequest {
   disputeReason?: string;
   disputeResolvedAt?: string;
   disputeResolvedBy?: string;
+  proposedDays?: number;
+  counterOfferReason?: string;
   payrollRunId?: string;
   createdAt: string;
   updatedAt: string;
@@ -130,7 +132,8 @@ export interface LeaveBlackoutPeriod {
 
 export type LeaveAuditAction =
   | 'created' | 'submitted' | 'approved' | 'rejected' | 'cancelled'
-  | 'revoked' | 'disputed' | 'disputeResolved' | 'balanceAdjusted';
+  | 'revoked' | 'disputed' | 'disputeResolved' | 'balanceAdjusted'
+  | 'counterOffered' | 'counterAccepted' | 'counterDisputed';
 
 export interface LeaveAuditLogEntry {
   _id: string;

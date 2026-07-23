@@ -79,5 +79,15 @@ export function useOnboardingRecord(id: string | null) {
     });
   };
 
-  return { record, loading, refetch: fetch, updateTask, updateWelcome, addTask, uploadDocument };
+  const setCompensation = (
+    data: { grossPay: number; paymentMethod: string; bankName?: string; bankAccountNumber?: string; mpesaNumber?: string },
+    onSuccess?: () => void,
+    onError?: (message: string) => void,
+  ) => apiCallFunction({
+    url: `${API_BASE_URL}/onboarding/records/${id}/compensation`, method: 'PATCH', data, showToast: false,
+    thenFn: () => { fetch(); onSuccess?.(); },
+    catchFn: (err: any) => onError?.(err?.response?.data?.message ?? 'Failed to set compensation.'),
+  });
+
+  return { record, loading, refetch: fetch, updateTask, updateWelcome, addTask, uploadDocument, setCompensation };
 }

@@ -53,6 +53,7 @@ export const CreateRequisitionSchema = z.object({
     currency: z.string().min(1).default('KES'),
   }).refine((s) => s.max >= s.min, { message: 'Max salary must be >= min salary', path: ['max'] }),
   description: z.string().min(10, 'Description is required'),
+  applicationDeadline: z.string().min(1, 'Application deadline is required'),
   competencies: z.array(competencySchema).default([]),
   pipelineStages: z.array(pipelineStageSchema).min(1, 'At least one pipeline stage is required'),
   screeningQuestions: z.array(screeningQuestionSchema).default([]),

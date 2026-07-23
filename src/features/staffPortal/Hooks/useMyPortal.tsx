@@ -129,9 +129,19 @@ export interface ScheduledEvent {
   department?: string;
 }
 
+export interface MyWelfareMembership {
+  schemeId: string | null;
+  schemeName: string;
+  description: string;
+  contributionType: 'fixed' | 'percentage' | null;
+  amount: number;
+  effectiveFrom: string;
+}
+
 interface MyPortalState {
   profile: StaffEmployee | null;
   payslips: MyPayslip[];
+  welfare: MyWelfareMembership[];
   attendance: AttendanceGroup[];
   notifications: Notification[];
   announcements: Announcement[];
@@ -150,7 +160,7 @@ interface Envelope { data: any }
 
 export function useMyPortal() {
   const [state, setState] = useState<MyPortalState>({
-    profile: null, payslips: [],
+    profile: null, payslips: [], welfare: [],
     attendance: [], notifications: [], announcements: [],
     documents: [], appraisals: [], goals: [], reviewResults: [], awards: [], events: [], myTasks: [], myProjects: [], loading: true,
   });
@@ -163,6 +173,7 @@ export function useMyPortal() {
     Promise.all([
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/profile`,       showToast: false, thenFn: r => set({ profile: r.data ?? null }),       catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/payslips`,      showToast: false, thenFn: r => set({ payslips: r.data ?? [] }),         catchFn: () => {} }),
+      apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/welfare`,       showToast: false, thenFn: r => set({ welfare: r.data ?? [] }),          catchFn: () => {} }),
       apiCallFunction<Envelope>({ url: `${API_BASE_URL}/me/attendance`,    showToast: false, thenFn: r => set({ attendance: r.data ?? [] }),       catchFn: () => {} }),
       apiCallFunction<any>({
         url: `${API_BASE_URL}/notifications?limit=10&unread=true`,

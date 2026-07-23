@@ -67,7 +67,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
     defaultValues: {
       title: '', department: '', location: '', employmentType: 'fullTime', headcount: 1,
       salaryRange: { min: 0, max: 0, currency: 'KES' },
-      description: '', competencies: [], pipelineStages: [], screeningQuestions: [], approvalChain: [], hiringManagerId: '',
+      description: '', applicationDeadline: '', competencies: [], pipelineStages: [], screeningQuestions: [], approvalChain: [], hiringManagerId: '',
     },
   });
 
@@ -81,6 +81,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
         headcount: existingRequisition.headcount,
         salaryRange: existingRequisition.salaryRange,
         description: existingRequisition.description,
+        applicationDeadline: existingRequisition.applicationDeadline ? String(existingRequisition.applicationDeadline).slice(0, 10) : '',
         competencies: existingRequisition.competencies,
         pipelineStages: existingRequisition.pipelineStages,
         screeningQuestions: existingRequisition.screeningQuestions || [],
@@ -100,7 +101,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
     .map((a) => ({ value: a._id, label: `${a.name} (${a.role.replace('_', ' ')})` }));
 
   const stepFields: (keyof CreateRequisitionFormValues)[][] = [
-    ['title', 'department', 'location', 'employmentType', 'headcount', 'salaryRange', 'description', 'hiringManagerId'],
+    ['title', 'department', 'location', 'employmentType', 'headcount', 'salaryRange', 'description', 'applicationDeadline', 'hiringManagerId'],
     ['competencies'],
     ['pipelineStages'],
     ['approvalChain'],
@@ -171,6 +172,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
               <CustomInput component="text" name="salaryRange.currency" control={control} label="Currency" placeholder="KES" />
             </div>
             <CustomInput component="textarea" name="description" control={control} label="Job Description" />
+            <CustomInput component="date" name="applicationDeadline" control={control} label="Application Deadline" />
             <CustomInput component="select" name="hiringManagerId" control={control} label="Hiring Manager" options={managerOptions} />
 
             <div className="pt-2 border-t border-slate-100 space-y-2">

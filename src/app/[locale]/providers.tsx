@@ -1,13 +1,13 @@
 'use client';
 
-import { NextIntlClientProvider } from 'next-intl';
+import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeLoader } from '@/components/ThemeLoader';
 
 interface ProvidersProps {
   children: React.ReactNode;
   locale: string;
-  messages: Record<string, unknown>;
+  messages: AbstractIntlMessages;
 }
 
 export default function Providers({ children, locale, messages }: ProvidersProps) {

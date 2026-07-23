@@ -75,5 +75,11 @@ export function useLeaveRequest(id: string | null) {
       thenFn: () => { fetch(); onSuccess?.(); },
     });
 
-  return { request, loading, refetch: fetch, approve, reject, cancel, revoke, resolveDispute };
+  const counterOffer = (proposedDays: number, counterOfferReason: string, onSuccess?: () => void) =>
+    apiCallFunction({
+      url: `${API_BASE_URL}/leave/requests/${id}/counter-offer`, method: 'POST', data: { proposedDays, counterOfferReason },
+      thenFn: () => { fetch(); onSuccess?.(); },
+    });
+
+  return { request, loading, refetch: fetch, approve, reject, cancel, revoke, resolveDispute, counterOffer };
 }

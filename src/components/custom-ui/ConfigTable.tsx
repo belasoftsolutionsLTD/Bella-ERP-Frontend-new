@@ -17,13 +17,26 @@ interface Props {
   onUpdate: (id: string, data: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
   defaultForm: Record<string, string>;
+  // Optional — when provided, a selection checkbox column and a bulk-delete bar appear.
+  // Omitted entirely for every other ConfigTable usage, so this is a no-op elsewhere.
+  onBulkDelete?: (ids: string[]) => void;
 }
 
-export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate, onDelete, defaultForm }: Props) {
+export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate, onDelete, defaultForm, onBulkDelete }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>(defaultForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+
+  const toggleSelect = (id: string) => setSelectedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const toggleSelectAll = () => setSelectedIds((prev) =>
+    prev.size === items.length ? new Set() : new Set(items.map((i) => i._id)));
 
   const resetForm = () => { setForm(defaultForm); setShowForm(false); setEditId(null); };
 
@@ -112,6 +125,31 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
         </div>
       )}
 
+      {onBulkDelete && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border-b">
+          <span className="text-xs font-medium text-foreground/70">{selectedIds.size} selected</span>
+          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-foreground/40 hover:text-foreground/70">Clear</button>
+          <div className="flex-1" />
+          {confirmBulkDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground/50">Delete {selectedIds.size} item(s)?</span>
+              <button
+                onClick={() => { onBulkDelete([...selectedIds]); setSelectedIds(new Set()); setConfirmBulkDelete(false); }}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+              >Yes, delete</button>
+              <button onClick={() => setConfirmBulkDelete(false)} className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-brand-border hover:bg-gray-50 transition-colors">Cancel</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmBulkDelete(true)}
+              className="flex items-center gap-1.5 text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete Selected
+            </button>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="p-8 text-center text-sm text-foreground/50">Loading…</div>
       ) : items.length === 0 ? (
@@ -120,6 +158,11 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-xs text-foreground/60 uppercase">
             <tr>
+              {onBulkDelete && (
+                <th className="px-4 py-2.5 text-left w-8">
+                  <input type="checkbox" checked={items.length > 0 && selectedIds.size === items.length} onChange={toggleSelectAll} className="accent-brand-primary cursor-pointer" />
+                </th>
+              )}
               {columns.map(({ key, label }) => (
                 <th key={key as string} className="px-4 py-2.5 text-left font-medium">{label}</th>
               ))}
@@ -129,6 +172,11 @@ export function ConfigTable({ title, items, columns, loading, onCreate, onUpdate
           <tbody className="divide-y">
             {items.map((item) => (
               <tr key={item._id} className="hover:bg-gray-50/50">
+                {onBulkDelete && (
+                  <td className="px-4 py-3">
+                    <input type="checkbox" checked={selectedIds.has(item._id)} onChange={() => toggleSelect(item._id)} className="accent-brand-primary cursor-pointer" />
+                  </td>
+                )}
                 {columns.map(({ key, type }) => {
                   const val = (item as any)[key];
                   return (

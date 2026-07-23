@@ -99,6 +99,19 @@ function NewCycleModal({ onClose, onCreated, offCycle, presetEmployeeIds, preset
   const [offCycleReason, setOffCycleReason] = useState(presetReason || '');
   const [payDate, setPayDate] = useState('');
   const [saving, setSaving]   = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [departmentId, setDepartmentId] = useState('');
+  const [jobGroupId, setJobGroupId] = useState('');
+  const [employmentType, setEmploymentType] = useState('');
+  const [departments, setDepartments] = useState<{ _id: string; name: string }[]>([]);
+  const [jobGroups, setJobGroups] = useState<{ _id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/config/departments?limit=200`, showToast: false,
+      thenFn: r => setDepartments(r.data?.data ?? r.data ?? []) });
+    apiCallFunction<any>({ url: `${API_BASE_URL}/config/job-groups?limit=200`, showToast: false,
+      thenFn: r => setJobGroups(r.data?.data ?? r.data ?? []) });
+  }, []);
   const mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const needsExplicitRange = offCycle || payFrequency !== 'monthly';
   const name = offCycle
@@ -108,6 +121,15 @@ function NewCycleModal({ onClose, onCreated, offCycle, presetEmployeeIds, preset
       : `${mNames[parseInt(month)-1]} ${year} Payroll`;
 
   const canSubmit = needsExplicitRange ? (startDate && endDate) : true;
+
+  // Payroll can't be generated ahead of the current period — keep the selected month in
+  // sync if switching to the current year leaves a future month selected.
+  useEffect(() => {
+    if (parseInt(year) === now.getFullYear() && parseInt(month) > now.getMonth() + 1) {
+      setMonth(String(now.getMonth() + 1));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -152,13 +174,17 @@ function NewCycleModal({ onClose, onCreated, offCycle, presetEmployeeIds, preset
               <div>
                 <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Month</label>
                 <select value={month} onChange={e => setMonth(e.target.value)} className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
-                  {mNames.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                  {mNames.map((m, i) => {
+                    const monthNum = i + 1;
+                    const disabled = parseInt(year) === now.getFullYear() && monthNum > now.getMonth() + 1;
+                    return <option key={i} value={monthNum} disabled={disabled}>{m}</option>;
+                  })}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Year</label>
                 <select value={year} onChange={e => setYear(e.target.value)} className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
-                  {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y} value={y}>{y}</option>)}
+                  {[now.getFullYear()-1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
             </div>
@@ -187,6 +213,44 @@ function NewCycleModal({ onClose, onCreated, offCycle, presetEmployeeIds, preset
             <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Pay Date (optional)</label>
             <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
           </div>
+
+          {!offCycle && (
+            <div className="border-t border-brand-border pt-3">
+              <button type="button" onClick={() => setShowAdvanced(v => !v)}
+                className="text-xs font-semibold text-brand-primary hover:text-brand-primary-hover transition-colors">
+                {showAdvanced ? '− Hide advanced filters' : '+ Advanced filters'}
+              </button>
+              {showAdvanced && (
+                <div className="space-y-3 mt-3">
+                  <p className="text-[11px] text-brand-text-muted">Filter employees by (all optional):</p>
+                  <div>
+                    <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Department</label>
+                    <select value={departmentId} onChange={e => setDepartmentId(e.target.value)} className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+                      <option value="">Any department</option>
+                      {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Job Group</label>
+                    <select value={jobGroupId} onChange={e => setJobGroupId(e.target.value)} className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+                      <option value="">Any job group</option>
+                      {jobGroups.map(jg => <option key={jg._id} value={jg._id}>{jg.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Employment Type</label>
+                    <select value={employmentType} onChange={e => setEmploymentType(e.target.value)} className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+                      <option value="">Any employment type</option>
+                      <option value="permanent">Permanent</option>
+                      <option value="contract">Contract</option>
+                      <option value="part-time">Part-time</option>
+                      <option value="intern">Intern</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-brand-border">
           <button onClick={onClose} className="px-4 py-2 text-sm text-brand-text-secondary hover:text-brand-text transition-colors">Cancel</button>
@@ -200,6 +264,9 @@ function NewCycleModal({ onClose, onCreated, offCycle, presetEmployeeIds, preset
                 runType: offCycle ? 'off_cycle' : 'regular',
                 offCycleReason: offCycle ? offCycleReason : undefined,
                 employeeIds: presetEmployeeIds?.length ? presetEmployeeIds : undefined,
+                departmentId: departmentId || undefined,
+                jobGroupId: jobGroupId || undefined,
+                employmentType: employmentType || undefined,
                 ...(needsExplicitRange ? { startDate, endDate } : { month, year }),
               },
               thenFn: () => { onCreated(); onClose(); },
@@ -643,6 +710,7 @@ export default function PayrollPage() {
   const [detailR,      setDetailR]      = useState<PayrollResult | null>(null);
   const [advancing,    setAdvancing]    = useState(false);
   const [emailing,     setEmailing]     = useState(false);
+  const [zipping,      setZipping]      = useState(false);
   const [readyOpen,    setReadyOpen]    = useState(false);
 
   const fetchCycles = useCallback(() => {
@@ -716,6 +784,7 @@ export default function PayrollPage() {
               <a href="/en/payroll/employees" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Compensations</a>
               <a href="/en/payroll/concepts"  className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Concepts</a>
               <a href="/en/payroll/analytics" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Analytics</a>
+              <a href="/en/payroll/welfare" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Welfare</a>
               <a href="/en/employees/settings" className="px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">Settings</a>
               <button onClick={() => setReadyOpen(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-border bg-brand-bg-soft text-sm font-semibold text-brand-text-secondary hover:text-brand-text transition-colors">
                 <ShieldCheck className="h-4 w-4" /> Check Readiness
@@ -842,6 +911,16 @@ export default function PayrollPage() {
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-primary/40 bg-brand-primary/10 text-indigo-400 text-sm font-semibold hover:bg-brand-primary-hover/20 disabled:opacity-50 transition-colors">
                       {emailing ? <span className="h-4 w-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> : <Mail className="h-4 w-4" />}
                       {emailing ? 'Sending…' : 'Email Payslips'}
+                    </button>
+                  )}
+                  {ac.status === 'closed' && (
+                    <button onClick={() => { setZipping(true);
+                      downloadFile(`${API_BASE_URL}/payroll/cycles/${ac._id}/payslips/zip`, `payslips-${ac._id}.zip`)
+                        .catch(err => alert(err.message)).finally(() => setZipping(false)); }}
+                      disabled={zipping}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border-strong text-brand-text-secondary text-sm font-semibold hover:text-brand-text disabled:opacity-50 transition-colors">
+                      {zipping ? <span className="h-4 w-4 border-2 border-brand-text-secondary border-t-transparent rounded-full animate-spin" /> : <FileText className="h-4 w-4" />}
+                      {zipping ? 'Zipping…' : 'Download All Payslips'}
                     </button>
                   )}
                 </div>

@@ -66,6 +66,7 @@ export interface JobRequisition {
   headcount: number;
   salaryRange: SalaryRange;
   description: string;
+  applicationDeadline: string | null;
   competencies: Competency[];
   pipelineStages: PipelineStage[];
   screeningQuestions: ScreeningQuestion[];
@@ -124,6 +125,9 @@ export interface InterviewAssignment {
   interviewerId: string;
   interviewerName: string;
   scheduledAt: string;
+  meetingLink: string | null;
+  location: string | null;
+  requiredDocuments: string | null;
   assignedAt: string;
 }
 

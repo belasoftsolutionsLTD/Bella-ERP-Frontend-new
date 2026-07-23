@@ -1,10 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Megaphone, Plus, Trash2, Loader2, Users, Building2, ShieldCheck, Newspaper, Bell, Rocket, X, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAnnouncements, type Announcement } from '../Hooks/useAnnouncements';
 import { ChatPanel } from '@/features/staffPortal/Components/ChatPanel';
+import { apiCallFunction } from '@/functions/apiCallFunction';
+import { API_BASE_URL } from '@/configs/constants';
+
+const EMPLOYMENT_TYPE_OPTS = [
+  { value: 'permanent',  label: 'Permanent' },
+  { value: 'contract',   label: 'Contract' },
+  { value: 'part-time',  label: 'Part-time' },
+  { value: 'intern',     label: 'Intern' },
+] as const;
 
 // ── Type options ──────────────────────────────────────────────────────────────
 const TYPE_OPTS = [
@@ -37,11 +46,50 @@ export default function CommunicationsPage() {
   const [deptChips, setDeptChips]       = useState<string[]>([]);
   const [deletingId, setDeletingId]     = useState<string | null>(null);
 
+  // Job group / employee targeting — fetched once for the pickers below.
+  const [jobGroups, setJobGroups]   = useState<{ _id: string; name: string }[]>([]);
+  const [employees, setEmployees]   = useState<{ _id: string; fullName: string }[]>([]);
+  const [jobGroupChips, setJobGroupChips]           = useState<{ id: string; name: string }[]>([]);
+  const [employeeChips, setEmployeeChips]           = useState<{ id: string; name: string }[]>([]);
+  const [employmentTypeChips, setEmploymentTypeChips] = useState<string[]>([]);
+  const [jobGroupPick, setJobGroupPick]             = useState('');
+  const [employeePick, setEmployeePick]             = useState('');
+
+  useEffect(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/config/job-groups?limit=200`, showToast: false,
+      thenFn: r => setJobGroups(r.data?.data ?? r.data ?? []) });
+    apiCallFunction<any>({ url: `${API_BASE_URL}/employees?limit=500`, showToast: false,
+      thenFn: r => setEmployees(r.data?.data ?? r.data ?? []) });
+  }, []);
+
   const reset = () => {
     setTitle(''); setBody(''); setType('news');
     setAudiences(['all']); setDeptInput(''); setDeptChips([]);
+    setJobGroupChips([]); setEmployeeChips([]); setEmploymentTypeChips([]);
+    setJobGroupPick(''); setEmployeePick('');
     setShowForm(false);
   };
+
+  const addJobGroup = () => {
+    if (!jobGroupPick || jobGroupChips.some(c => c.id === jobGroupPick)) return;
+    const jg = jobGroups.find(j => j._id === jobGroupPick);
+    if (!jg) return;
+    setJobGroupChips(prev => [...prev, { id: jg._id, name: jg.name }]);
+    setJobGroupPick('');
+  };
+  const removeJobGroup = (id: string) => setJobGroupChips(prev => prev.filter(c => c.id !== id));
+
+  const addEmployee = () => {
+    if (!employeePick || employeeChips.some(c => c.id === employeePick)) return;
+    const e = employees.find(emp => emp._id === employeePick);
+    if (!e) return;
+    setEmployeeChips(prev => [...prev, { id: e._id, name: e.fullName }]);
+    setEmployeePick('');
+  };
+  const removeEmployee = (id: string) => setEmployeeChips(prev => prev.filter(c => c.id !== id));
+
+  const toggleEmploymentType = (val: string) => setEmploymentTypeChips(prev =>
+    prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
 
   const toggleAudience = (val: string) => {
     if (val === 'all') { setAudiences(['all']); return; }
@@ -71,6 +119,9 @@ export default function CommunicationsPage() {
     const finalAudiences = [
       ...audiences.filter(a => !a.startsWith('department:')),
       ...deptChips.map(d => `department:${d}`),
+      ...jobGroupChips.map(jg => `jobGroup:${jg.id}`),
+      ...employeeChips.map(e => `employee:${e.id}`),
+      ...employmentTypeChips.map(et => `employmentType:${et}`),
     ];
     await createAnnouncement({ title: title.trim(), body: body.trim(), type, audiences: finalAudiences });
     reset();
@@ -92,6 +143,18 @@ export default function CommunicationsPage() {
       if (v === 'department_head') return 'Dept Heads';
       if (v === 'hr_only') return 'HR Only';
       if (v.startsWith('department:')) return v.replace('department:', '') + ' dept';
+      if (v.startsWith('jobGroup:')) {
+        const id = v.replace('jobGroup:', '');
+        return (jobGroups.find(j => j._id === id)?.name ?? 'Job Group') + ' job group';
+      }
+      if (v.startsWith('employee:')) {
+        const id = v.replace('employee:', '');
+        return employees.find(e => e._id === id)?.fullName ?? 'an employee';
+      }
+      if (v.startsWith('employmentType:')) {
+        const et = v.replace('employmentType:', '');
+        return (EMPLOYMENT_TYPE_OPTS.find(o => o.value === et)?.label ?? et) + ' staff';
+      }
       return v;
     }).join(', ');
   };
@@ -217,6 +280,75 @@ export default function CommunicationsPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Specific job groups */}
+          {!audiences.includes('all') && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide">Add Specific Job Groups</label>
+              <div className="flex gap-2">
+                <select value={jobGroupPick} onChange={e => setJobGroupPick(e.target.value)}
+                  className="flex-1 bg-brand-bg-soft border border-brand-border text-brand-text rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-primary">
+                  <option value="">Select a job group…</option>
+                  {jobGroups.map(jg => <option key={jg._id} value={jg._id}>{jg.name}</option>)}
+                </select>
+                <button onClick={addJobGroup} className="px-3 py-2 bg-brand-bg-muted hover:bg-brand-border-strong text-brand-text rounded-xl text-sm transition-colors">Add</button>
+              </div>
+              {jobGroupChips.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {jobGroupChips.map(jg => (
+                    <span key={jg.id} className="flex items-center gap-1 text-xs bg-amber-500/10 text-amber-500 border border-amber-500/30 px-2 py-1 rounded-full">
+                      {jg.name}
+                      <button onClick={() => removeJobGroup(jg.id)}><X className="h-3 w-3" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Specific employees */}
+          {!audiences.includes('all') && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide">Add Specific Employees</label>
+              <div className="flex gap-2">
+                <select value={employeePick} onChange={e => setEmployeePick(e.target.value)}
+                  className="flex-1 bg-brand-bg-soft border border-brand-border text-brand-text rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-primary">
+                  <option value="">Select an employee…</option>
+                  {employees.map(e => <option key={e._id} value={e._id}>{e.fullName}</option>)}
+                </select>
+                <button onClick={addEmployee} className="px-3 py-2 bg-brand-bg-muted hover:bg-brand-border-strong text-brand-text rounded-xl text-sm transition-colors">Add</button>
+              </div>
+              {employeeChips.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {employeeChips.map(e => (
+                    <span key={e.id} className="flex items-center gap-1 text-xs bg-blue-500/10 text-blue-500 border border-blue-500/30 px-2 py-1 rounded-full">
+                      {e.name}
+                      <button onClick={() => removeEmployee(e.id)}><X className="h-3 w-3" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Specific employment types */}
+          {!audiences.includes('all') && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide">Add Specific Employment Types</label>
+              <div className="flex gap-2 flex-wrap">
+                {EMPLOYMENT_TYPE_OPTS.map(({ value, label }) => {
+                  const active = employmentTypeChips.includes(value);
+                  return (
+                    <button key={value} onClick={() => toggleEmploymentType(value)}
+                      className={cn('px-3 py-1.5 rounded-xl border text-sm font-medium transition-all',
+                        active ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 ring-1 ring-emerald-500/30' : 'bg-brand-bg-soft text-brand-text-secondary hover:bg-brand-bg-muted border-brand-border')}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

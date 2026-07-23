@@ -61,6 +61,7 @@ export default function PeopleSettingsPage() {
           onCreate={(d) => departments.create(d)}
           onUpdate={(id, d) => departments.update(id, d)}
           onDelete={(id) => departments.remove(id)}
+          onBulkDelete={(ids) => departments.bulkRemove(ids)}
         />
       )}
 

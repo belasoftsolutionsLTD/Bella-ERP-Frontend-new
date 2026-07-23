@@ -15,7 +15,15 @@ import { useOnboardingRecord } from '../Hooks/useOnboardingRecords';
 import { useOnboardingRecordDocuments } from '../Hooks/useOnboardingDocuments';
 import type { OnboardingTask } from '../types';
 
-const TABS = ['Overview', 'Tasks', 'Documents', 'Activity'] as const;
+const TABS = ['Overview', 'Compensation', 'Tasks', 'Documents', 'Activity'] as const;
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'mpesa',         label: 'M-Pesa' },
+  { value: 'cash',          label: 'Cash' },
+  { value: 'paypal',        label: 'PayPal' },
+  { value: 'crypto',        label: 'Crypto' },
+];
 
 const RECORD_STATUS_MAP: Record<string, Status> = {
   preboarding: 'preboarding', active: 'active', completed: 'completed', stalled: 'atRisk',
@@ -162,11 +170,111 @@ function TaskRow({ task, onUpdate, onUpload }: { task: OnboardingTask; onUpdate:
   );
 }
 
+function CompensationPanel({ record, onSave }: {
+  record: NonNullable<ReturnType<typeof useOnboardingRecord>['record']>;
+  onSave: (data: { grossPay: number; paymentMethod: string; bankName?: string; bankAccountNumber?: string; mpesaNumber?: string }, onSuccess?: () => void, onError?: (m: string) => void) => void;
+}) {
+  const existing = record.employeeCompensation;
+  const [grossPay, setGrossPay] = useState(String(existing?.grossPay ?? ''));
+  const [paymentMethod, setPaymentMethod] = useState(existing?.paymentMethod ?? 'bank_transfer');
+  const [bankName, setBankName] = useState(existing?.bankName ?? '');
+  const [bankAccountNumber, setBankAccountNumber] = useState(existing?.bankAccountNumber ?? '');
+  const [mpesaNumber, setMpesaNumber] = useState(existing?.mpesaNumber ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const canSubmit = Number(grossPay) > 0
+    && (paymentMethod !== 'bank_transfer' || (bankName.trim() && bankAccountNumber.trim()))
+    && (paymentMethod !== 'mpesa' || mpesaNumber.trim());
+
+  const handleSave = () => {
+    setSaving(true);
+    onSave(
+      { grossPay: Number(grossPay), paymentMethod, bankName, bankAccountNumber, mpesaNumber },
+      () => { toast.success('Compensation set up.'); setSaving(false); },
+      (msg) => { toast.error(msg); setSaving(false); },
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {record.compensationSetup && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2.5 text-xs text-emerald-400">
+          Set up {fmtDateTime(record.compensationSetup.setAt)}
+        </div>
+      )}
+
+      <div className="bg-brand-bg-soft border border-brand-border/60 rounded-xl p-5 space-y-4">
+        <h3 className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide">Salary & Payment Method</h3>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Gross Pay (KES)</label>
+            <input type="number" min={0} value={grossPay} onChange={e => setGrossPay(e.target.value)}
+              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Payment Method</label>
+            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+              className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+              {PAYMENT_METHOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          {paymentMethod === 'bank_transfer' && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Bank Name</label>
+                <input value={bankName} onChange={e => setBankName(e.target.value)}
+                  className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Account Number</label>
+                <input value={bankAccountNumber} onChange={e => setBankAccountNumber(e.target.value)}
+                  className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
+              </div>
+            </>
+          )}
+          {paymentMethod === 'mpesa' && (
+            <div>
+              <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">M-Pesa Number</label>
+              <input value={mpesaNumber} onChange={e => setMpesaNumber(e.target.value)} placeholder="254712345678"
+                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary" />
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end">
+          <button onClick={handleSave} disabled={!canSubmit || saving}
+            className="px-5 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-bold disabled:opacity-50 transition-colors">
+            {saving ? 'Saving…' : 'Save Compensation'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-brand-bg-soft border border-brand-border/60 rounded-xl p-5">
+        <h3 className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1">Allowances & Benefits</h3>
+        <p className="text-[11px] text-brand-text-muted mb-3">Pulled automatically from this employee's job group — no separate action needed, these apply at the next payroll run.</p>
+        {!record.employeeCompensation?.jobGroupId ? (
+          <p className="text-sm text-brand-text-muted">No job group assigned yet — set one on the employee's profile to see applicable allowances.</p>
+        ) : (record.groupAllowancesPreview?.length ?? 0) === 0 ? (
+          <p className="text-sm text-brand-text-muted">No group-wide allowances or benefits configured for this job group.</p>
+        ) : (
+          <div className="space-y-2">
+            {record.groupAllowancesPreview!.map(a => (
+              <div key={a.conceptId} className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg text-sm">
+                <span className="text-brand-text-secondary">{a.conceptName} <span className="text-[10px] text-brand-text-muted capitalize">({a.category})</span></span>
+                <span className="font-semibold text-brand-text">{a.amount ? `KES ${a.amount.toLocaleString('en-KE')}` : '—'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function RecordDetailPage({ recordId }: { recordId: string }) {
   const locale = useLocale();
   const [tab, setTab] = useState<typeof TABS[number]>('Overview');
   const [showAddTask, setShowAddTask] = useState(false);
-  const { record, loading, updateTask, updateWelcome, addTask, uploadDocument } = useOnboardingRecord(recordId);
+  const { record, loading, updateTask, updateWelcome, addTask, uploadDocument, setCompensation } = useOnboardingRecord(recordId);
   const { documents, loading: docsLoading, verify } = useOnboardingRecordDocuments(tab === 'Documents' ? recordId : null);
 
   const activityItems = useMemo(() => {
@@ -252,6 +360,8 @@ export default function RecordDetailPage({ recordId }: { recordId: string }) {
           </div>
         </div>
       )}
+
+      {tab === 'Compensation' && <CompensationPanel record={record} onSave={setCompensation} />}
 
       {tab === 'Tasks' && (
         <div className="space-y-4">

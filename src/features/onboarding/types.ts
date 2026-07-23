@@ -93,6 +93,12 @@ export interface OnboardingRecord {
   createdAt: string;
   updatedAt: string;
   employee?: { _id: string; fullName: string; staffNumber: string; department: string; designation?: string };
+  compensationSetup?: { grossPay: number; paymentMethod: string; setAt: string; setBy?: string } | null;
+  employeeCompensation?: {
+    jobGroupId?: string; grossPay?: number; paymentMethod?: string;
+    bankName?: string; bankAccountNumber?: string; mpesaNumber?: string;
+  } | null;
+  groupAllowancesPreview?: { conceptId: string; conceptName: string; category: string; subCategory: string; amount: number }[];
 }
 
 export type OnboardingDocumentType = 'upload' | 'esign' | 'form';

@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
+import { toast } from 'sonner';
 import { Search, X, ArrowRight, ArrowLeft } from 'lucide-react';
 import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
-import { useLeaveRequests } from '../Hooks/useLeaveRequests';
+import { useLeaveRequests, useLeaveRequest } from '../Hooks/useLeaveRequests';
 import { useLeaveTypes } from '../Hooks/useLeaveTypes';
 
 const LEAVE_STATUS_MAP: Record<string, Status> = {
@@ -15,12 +16,31 @@ const LEAVE_STATUS_MAP: Record<string, Status> = {
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
+// Quick Overturn/Uphold actions right on the list, so HR doesn't have to click into
+// every disputed request's detail page just to resolve it — same resolveDispute action
+// RequestDetailPage.tsx already uses, just surfaced one level up.
+function DisputeQuickActions({ requestId, onDone }: { requestId: string; onDone: () => void }) {
+  const { resolveDispute } = useLeaveRequest(requestId);
+  return (
+    <div className="flex items-center gap-1.5">
+      <button onClick={() => resolveDispute('overturned', undefined, () => { toast.success('Dispute overturned — leave approved.'); onDone(); })}
+        className="h-7 px-2.5 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 text-[11px] font-semibold rounded-lg transition-colors">
+        Overturn
+      </button>
+      <button onClick={() => resolveDispute('upheld', undefined, () => { toast.success('Original rejection upheld.'); onDone(); })}
+        className="h-7 px-2.5 bg-red-500/15 text-red-400 hover:bg-red-500/25 text-[11px] font-semibold rounded-lg transition-colors">
+        Uphold
+      </button>
+    </div>
+  );
+}
+
 export default function LeaveRequestsPage() {
   const locale = useLocale();
   const [status, setStatus] = useState('');
   const [leaveTypeId, setLeaveTypeId] = useState('');
   const [search, setSearch] = useState('');
-  const { requests, loading } = useLeaveRequests({ status, leaveTypeId, search });
+  const { requests, loading, refetch } = useLeaveRequests({ status, leaveTypeId, search });
   const { leaveTypes } = useLeaveTypes();
 
   return (
@@ -62,14 +82,14 @@ export default function LeaveRequestsPage() {
         <p className="text-sm text-brand-text-muted text-center py-16">No leave requests found.</p>
       ) : (
         <div className="bg-brand-bg-soft border border-brand-border/60 rounded-2xl overflow-hidden">
-          <div className="grid border-b border-brand-border bg-brand-bg-soft/60" style={{ gridTemplateColumns: '1fr 130px 140px 90px 110px 90px' }}>
+          <div className="grid border-b border-brand-border bg-brand-bg-soft/60" style={{ gridTemplateColumns: '1fr 130px 140px 90px 110px 210px' }}>
             {['Employee', 'Department', 'Leave Type', 'Days', 'Dates', ''].map(h => (
               <div key={h} className="px-4 py-2.5 text-[11px] font-semibold text-brand-text-muted uppercase tracking-wide">{h}</div>
             ))}
           </div>
           {requests.map(r => {
             return (
-              <div key={r._id} style={{ gridTemplateColumns: '1fr 130px 140px 90px 110px 90px' }}
+              <div key={r._id} style={{ gridTemplateColumns: '1fr 130px 140px 90px 110px 210px' }}
                 className="grid border-b border-brand-border/60 last:border-0 hover:bg-brand-bg-soft/30 transition-colors items-center">
                 <div className="px-4 py-3">
                   <p className="text-sm font-medium text-brand-text">{r.employee?.fullName ?? 'Unknown'}</p>
@@ -83,8 +103,9 @@ export default function LeaveRequestsPage() {
                 </div>
                 <div className="px-4 py-3 text-xs text-brand-text-secondary">{r.totalDays}d</div>
                 <div className="px-4 py-3 text-xs text-brand-text-secondary">{fmtDate(r.startDate)}</div>
-                <div className="px-4 py-3 flex items-center justify-between gap-2">
+                <div className="px-4 py-3 flex items-center justify-end gap-2 flex-wrap">
                   <StatusBadge status={LEAVE_STATUS_MAP[r.status] ?? 'inactive'} label={r.status} className="capitalize" />
+                  {r.status === 'disputed' && <DisputeQuickActions requestId={r._id} onDone={refetch} />}
                   <Link href={`/${locale}/leave/requests/${r._id}`} className="text-brand-primary hover:text-brand-primary-hover transition-colors"><ArrowRight className="h-3.5 w-3.5" /></Link>
                 </div>
               </div>

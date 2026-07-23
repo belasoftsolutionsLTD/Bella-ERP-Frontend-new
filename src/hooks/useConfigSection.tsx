@@ -71,5 +71,13 @@ export function useConfigSection(path: string) {
       thenFn: () => fetch(),
     });
 
-  return { items, loading, error, refetch: fetch, create, update, remove };
+  const bulkRemove = (ids: string[]) =>
+    apiCallFunction({
+      url: `${API_BASE_URL}/config/${path}/bulk-delete`,
+      method: 'POST',
+      data: { ids },
+      thenFn: () => fetch(),
+    });
+
+  return { items, loading, error, refetch: fetch, create, update, remove, bulkRemove };
 }
