@@ -18,6 +18,90 @@ import { CATEGORY_OPTIONS, DIFFICULTY_OPTIONS, MODULE_TYPE_OPTIONS } from '../co
 import { AddModuleForm, QuizBuilder } from '../Components/ModuleEditor';
 import { SessionsManager } from '../Components/SessionsManager';
 
+// Suggested starting points per department — HR still types anything custom via the
+// "Other" input below; this just saves re-typing the same handful of obvious skills
+// for every course in a given department. Keyed to the canonical DEPARTMENTS list
+// (falls back to a generic set for a custom org-specific department name that isn't
+// in that list, or when no target department is selected yet).
+const DEPARTMENT_SKILLS: Record<string, string[]> = {
+  'Administration': ['Office Administration', 'Records Management', 'Calendar Management', 'Business Correspondence', 'Data Entry'],
+  'Human Resources': ['Recruitment & Selection', 'Employee Relations', 'Performance Management', 'HR Policy & Compliance', 'Payroll Administration'],
+  'Finance & Accounts': ['Financial Reporting', 'Budgeting & Forecasting', 'Bookkeeping', 'Tax Compliance', 'Accounts Reconciliation'],
+  'Information Technology': ['Networking', 'Cybersecurity Fundamentals', 'System Administration', 'Technical Support', 'Software Development'],
+  'Operations': ['Process Improvement', 'Quality Control', 'Inventory Management', 'Standard Operating Procedures', 'Project Coordination'],
+  'Sales & Marketing': ['Sales Negotiation', 'Digital Marketing', 'Customer Relationship Management', 'Market Research', 'Brand Management'],
+  'Customer Service': ['Customer Communication', 'Conflict Resolution', 'Complaint Handling', 'Product Knowledge', 'Service Recovery'],
+  'Legal & Compliance': ['Regulatory Compliance', 'Contract Review', 'Risk Assessment', 'Corporate Governance', 'Legal Research'],
+  'Procurement': ['Vendor Management', 'Contract Negotiation', 'Purchase Order Processing', 'Supplier Evaluation', 'Cost Analysis'],
+  'Logistics & Supply Chain': ['Inventory Management', 'Warehouse Operations', 'Fleet Management', 'Supply Chain Planning', 'Distribution Management'],
+  'Research & Development': ['Product Research', 'Data Analysis', 'Prototyping', 'Innovation Management', 'Technical Documentation'],
+  'Communications': ['Public Relations', 'Content Writing', 'Media Relations', 'Internal Communications', 'Crisis Communication'],
+  'Health & Safety': ['Workplace Safety', 'Risk Assessment', 'Incident Investigation', 'Emergency Response', 'Safety Compliance Auditing'],
+  'Facilities Management': ['Facility Maintenance', 'Vendor Coordination', 'Space Planning', 'Health & Safety Compliance', 'Asset Management'],
+  'Executive': ['Strategic Planning', 'Leadership', 'Decision Making', 'Stakeholder Management', 'Business Development'],
+};
+const GENERIC_SKILLS = ['Communication', 'Time Management', 'Teamwork', 'Problem Solving', 'Attention to Detail'];
+
+function SkillsPicker({ value, onChange, targetDepartments }: {
+  value: string[]; onChange: (next: string[]) => void; targetDepartments: string[];
+}) {
+  const [customInput, setCustomInput] = useState('');
+  const suggestions = targetDepartments.length
+    ? [...new Set(targetDepartments.flatMap((d) => DEPARTMENT_SKILLS[d] || []))]
+    : GENERIC_SKILLS;
+  const available = suggestions.filter((s) => !value.includes(s));
+
+  const addSkill = (skill: string) => {
+    const trimmed = skill.trim();
+    if (trimmed && !value.includes(trimmed)) onChange([...value, trimmed]);
+  };
+  const removeSkill = (skill: string) => onChange(value.filter((s) => s !== skill));
+
+  return (
+    <div>
+      <label className="text-sm text-brand-text-muted block mb-1">Skills Taught</label>
+      {available.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {available.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => addSkill(s)}
+              className="px-2.5 py-1 rounded-full text-xs font-medium border border-dashed border-slate-300 text-brand-text-secondary hover:border-brand-primary hover:text-brand-primary transition-colors"
+            >
+              + {s}
+            </button>
+          ))}
+        </div>
+      )}
+      <input
+        value={customInput}
+        onChange={(e) => setCustomInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addSkill(customInput);
+            setCustomInput('');
+          }
+        }}
+        placeholder="Other (type a skill and press Enter)"
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+      />
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {value.map((s) => (
+            <span key={s} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-brand-primary text-white">
+              {s}
+              <button type="button" onClick={() => removeSkill(s)} className="hover:opacity-70"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-brand-text-muted mt-1">{value.length === 0 ? 'Click a suggestion or type your own, then press Enter.' : `${value.length} selected.`}</p>
+    </div>
+  );
+}
+
 const TARGET_ROLE_OPTIONS = [
   { value: 'super_admin', label: 'Super Admin' },
   { value: 'hr_manager', label: 'HR Manager' },
@@ -205,14 +289,7 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
             control={control}
             name="skillsTaught"
             render={({ field }) => (
-              <div>
-                <label className="text-sm text-brand-text-muted block mb-1">Skills Taught (comma separated)</label>
-                <input
-                  defaultValue={field.value.join(', ')}
-                  onBlur={(e) => field.onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
+              <SkillsPicker value={field.value} onChange={field.onChange} targetDepartments={watch('targetDepartments') || []} />
             )}
           />
           <div className="flex gap-6">

@@ -30,10 +30,19 @@ function ContentTab({ courseId, locale }: { courseId: string; locale: string }) 
   );
 }
 
-function EnrollmentsTab({ courseId }: { courseId: string }) {
+function EnrollmentsTab({ courseId, locale }: { courseId: string; locale: string }) {
   const { enrollments, waiveEnrollment } = useEnrollments({ courseId });
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Link
+          href={`/${locale}/training/assignments?courseId=${courseId}`}
+          className="px-3 py-2 rounded-md bg-brand-primary text-white text-sm font-medium"
+        >
+          Assign Employees
+        </Link>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-slate-50 text-brand-text-muted text-xs uppercase">
           <tr>
@@ -65,6 +74,7 @@ function EnrollmentsTab({ courseId }: { courseId: string }) {
           {enrollments.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-brand-text-secondary">No enrollments yet.</td></tr>}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -144,7 +154,7 @@ export function CourseDetailAdminPage({ id, locale }: { id: string; locale: stri
       </div>
 
       {tab === 'content' && <ContentTab courseId={id} locale={locale} />}
-      {tab === 'enrollments' && <EnrollmentsTab courseId={id} />}
+      {tab === 'enrollments' && <EnrollmentsTab courseId={id} locale={locale} />}
       {tab === 'analytics' && <AnalyticsTab courseId={id} />}
       {tab === 'settings' && <SettingsTab courseId={id} locale={locale} />}
     </div>

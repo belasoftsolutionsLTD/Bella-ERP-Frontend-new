@@ -102,6 +102,9 @@ export default function LeaveDashboardPage() {
           <Link href={`/${locale}/leave/types`} className="flex items-center gap-2 h-9 px-4 border border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:text-brand-text text-sm font-semibold rounded-lg transition-colors">
             <Settings className="h-4 w-4" /> Leave Types
           </Link>
+          <Link href={`/${locale}/leave/accrual-policies`} className="flex items-center gap-2 h-9 px-4 border border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:text-brand-text text-sm font-semibold rounded-lg transition-colors">
+            <TrendingUp className="h-4 w-4" /> Accrual Policies
+          </Link>
           <Link href={`/${locale}/leave/analytics`} className="flex items-center gap-2 h-9 px-4 border border-brand-border bg-brand-bg-soft text-brand-text-secondary hover:text-brand-text text-sm font-semibold rounded-lg transition-colors">
             <BarChart2 className="h-4 w-4" /> Analytics
           </Link>

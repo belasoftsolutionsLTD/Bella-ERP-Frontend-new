@@ -3,14 +3,28 @@
 import { useState } from 'react';
 import { CourseCard } from '../Components/CourseCard';
 import { useCatalog } from '../Hooks/useCatalog';
+import { useAuth } from '@/contexts/AuthContext';
 import { CATEGORY_OPTIONS, DIFFICULTY_OPTIONS, ENROLLMENT_STATUS_MAP, ENROLLMENT_STATUS_LABELS } from '../constants';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import type { Course } from '../types';
+
+// Mirrors the backend's isEligibleForSelfEnroll (trainingFunctions.js) — only used here
+// to decide whether to show "Enroll" vs "Not assigned", the server re-checks this for real.
+function isEligibleForSelfEnroll(course: Course, role: string, department: string) {
+  if (course.isMandatory) return false;
+  if (course.targetRoles?.length && !course.targetRoles.includes(role)) return false;
+  if (course.targetDepartments?.length && !course.targetDepartments.includes(department)) return false;
+  return true;
+}
 
 export function MyCatalogPage({ locale }: { locale: string }) {
   const [category, setCategory] = useState('');
   const [difficultyLevel, setDifficultyLevel] = useState('');
   const [search, setSearch] = useState('');
-  const { courses, isLoading } = useCatalog({ category: category || undefined, difficultyLevel: difficultyLevel || undefined });
+  const { userData } = useAuth();
+  const { courses, isLoading, enrollInCourse } = useCatalog({ category: category || undefined, difficultyLevel: difficultyLevel || undefined });
+  const role = userData?.role ?? '';
+  const department = String(userData?.department ?? '');
 
   const filtered = courses.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -36,9 +50,11 @@ export function MyCatalogPage({ locale }: { locale: string }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((c) => {
           const enrolled = !!c.myEnrollment;
+          const selfEnrollEligible = !enrolled && c.deliveryMethod !== 'instructor_led' && isEligibleForSelfEnroll(c, role, department);
           // Instructor-led courses are self-registration — a learner can browse and sign up
           // for a session without HR pre-assigning them first (that's what creates the
-          // enrollment). Self-paced courses still require HR to assign before it's openable.
+          // enrollment). Self-paced courses need either an assignment/rule OR (for eligible,
+          // non-mandatory ones) a self-enroll click before they're openable.
           const canOpen = enrolled || c.deliveryMethod === 'instructor_led';
           const href = canOpen ? `/${locale}/my/training/courses/${c._id}/learn` : `#`;
           return (
@@ -57,6 +73,13 @@ export function MyCatalogPage({ locale }: { locale: string }) {
                     </div>
                   ) : c.deliveryMethod === 'instructor_led' ? (
                     <p className="text-xs text-brand-primary">View sessions & register →</p>
+                  ) : selfEnrollEligible ? (
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); enrollInCourse(c._id); }}
+                      className="text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary-hover rounded-md px-3 py-1.5 transition-colors"
+                    >
+                      Enroll
+                    </button>
                   ) : (
                     <p className="text-xs text-brand-text-secondary">Not assigned — contact HR to enroll.</p>
                   )}

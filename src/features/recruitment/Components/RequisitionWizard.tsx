@@ -62,7 +62,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
   const { templates } = useEmailTemplates();
   const [step, setStep] = useState(0);
 
-  const { control, register, handleSubmit, watch, trigger, setValue, reset, formState: { errors, isSubmitting } } = useForm<CreateRequisitionFormValues>({
+  const { control, register, handleSubmit, watch, trigger, setValue, getValues, reset, formState: { errors, isSubmitting } } = useForm<CreateRequisitionFormValues>({
     resolver: zodResolver(CreateRequisitionSchema),
     defaultValues: {
       title: '', department: '', location: '', employmentType: 'fullTime', headcount: 1,
@@ -114,7 +114,20 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
   };
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
-  const onSubmit = async (values: CreateRequisitionFormValues) => {
+  const onSubmit = async (rawValues: CreateRequisitionFormValues) => {
+    // Interview/assessment stages can't carry a generic onEnter "email candidate" auto-action —
+    // dragging a candidate into one would fire it immediately, with no scheduled time, meeting
+    // link, or location, since those only get set later via "Assign Interviewer". The checkbox
+    // is already disabled for these stage types in the UI below; this is a belt-and-suspenders
+    // strip in case a stage's type was changed after the action was turned on for a prior type.
+    const values = {
+      ...rawValues,
+      pipelineStages: rawValues.pipelineStages.map((s) => (
+        (s.type === 'interview' || s.type === 'assessment')
+          ? { ...s, autoActions: (s.autoActions || []).filter((a) => !(a.trigger === 'onEnter' && a.action === 'emailCandidate')) }
+          : s
+      )),
+    };
     if (isEditMode) {
       const result = await updateRequisition(values);
       if (result !== undefined) router.push(`/${locale}/recruitment/requisitions/${requisitionId}`);
@@ -231,7 +244,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Pipeline Stages</h2>
-              <Button type="button" size="sm" variant="outline" onClick={() => pipelineStages.append({ id: uid(), name: '', type: 'screening', requiresScorecard: false, autoActions: [] })}>
+              <Button type="button" size="sm" variant="outline" onClick={() => pipelineStages.append({ id: uid(), name: 'Screening', type: 'screening', requiresScorecard: false, autoActions: [] })}>
                 <Plus className="h-4 w-4 mr-1" /> Add Stage
               </Button>
             </div>
@@ -247,7 +260,25 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                       control={control}
                       name={`pipelineStages.${i}.type`}
                       render={({ field: f }) => (
-                        <select {...f} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        <select
+                          {...f}
+                          onChange={(e) => {
+                            const newType = e.target.value;
+                            f.onChange(newType);
+                            // Type drives behavior (which automation applies), name is just the
+                            // display label — most stages don't need a custom one, so picking a
+                            // type fills in a sensible name for free. Only autofill when the name
+                            // is still blank or still matches the PREVIOUS type's default label —
+                            // a name the user actually typed themselves is never overwritten.
+                            const currentName = getValues(`pipelineStages.${i}.name`);
+                            const prevTypeLabel = STAGE_TYPE_OPTIONS.find((o) => o.value === f.value)?.label;
+                            if (!currentName || currentName === prevTypeLabel) {
+                              const newLabel = STAGE_TYPE_OPTIONS.find((o) => o.value === newType)?.label;
+                              if (newLabel) setValue(`pipelineStages.${i}.name`, newLabel);
+                            }
+                          }}
+                          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                        >
                           {STAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                       )}
@@ -279,6 +310,12 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                   name={`pipelineStages.${i}.autoActions`}
                   render={({ field: f }) => {
                     const actions = f.value || [];
+                    const stageType = watch(`pipelineStages.${i}.type`);
+                    // Interview/assessment stages get their candidate email from "Assign
+                    // Interviewer" instead (scheduledAt/meetingLink/location included) —
+                    // a generic onEnter email here would fire the moment a candidate is
+                    // dragged in, before any of those details exist.
+                    const emailBlockedForType = stageType === 'interview' || stageType === 'assessment';
                     const emailAction = actions.find((a) => a.trigger === 'onEnter' && a.action === 'emailCandidate');
                     const has = (action: 'emailCandidate' | 'notifyHiringManager') =>
                       actions.some((a) => a.trigger === 'onEnter' && a.action === action);
@@ -295,8 +332,8 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                     return (
                       <div className="pt-1 border-t border-slate-100 mt-2 space-y-2">
                         <div className="flex flex-wrap gap-4">
-                          <label className="flex items-center gap-2 text-xs text-brand-text-muted">
-                            <input type="checkbox" checked={has('emailCandidate')} onChange={() => toggle('emailCandidate')} />
+                          <label className={`flex items-center gap-2 text-xs ${emailBlockedForType ? 'text-brand-text-muted/50' : 'text-brand-text-muted'}`}>
+                            <input type="checkbox" checked={has('emailCandidate') && !emailBlockedForType} disabled={emailBlockedForType} onChange={() => toggle('emailCandidate')} />
                             Email the candidate when they enter this stage
                           </label>
                           <label className="flex items-center gap-2 text-xs text-brand-text-muted">
@@ -304,7 +341,12 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
                             Notify hiring manager when they enter this stage
                           </label>
                         </div>
-                        {emailAction && (
+                        {emailBlockedForType && (
+                          <p className="text-[11px] text-amber-600">
+                            Interview/Assessment stages don&apos;t use this generic message — assign an interviewer on the candidate instead, which emails them once the date, time, and location are actually set.
+                          </p>
+                        )}
+                        {emailAction && !emailBlockedForType && (
                           <select
                             value={emailAction.templateId ?? ''}
                             onChange={(e) => setEmailTemplateId(e.target.value)}

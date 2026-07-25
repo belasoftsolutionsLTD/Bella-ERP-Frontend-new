@@ -10,7 +10,7 @@ import {
   ArrowLeft, Users, MessageSquare, FileText, ListChecks,
   Plus, X, Check, Send, Trash2, Upload, Paperclip, Smile, Download,
   CheckCircle2, AlertCircle, Info, ChevronDown, ChevronUp,
-  Search,
+  Search, Mail,
 } from 'lucide-react';
 import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 
@@ -1101,6 +1101,16 @@ function NotesTab({ project }: { project: Project }) {
 
 // ── Team Tab ──────────────────────────────────────────────────────────────────
 
+interface ProjectInvite {
+  _id: string;
+  name: string;
+  email: string;
+  projectRole: string;
+  contractEndDate: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'revoked';
+  createdAt: string;
+}
+
 function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => void }) {
   const [showAdd, setShowAdd]         = useState(false);
   const [allEmps, setAllEmps]         = useState<Employee[]>([]);
@@ -1109,7 +1119,56 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
   const [memberRole, setMemberRole]   = useState('member');
   const [saving, setSaving]           = useState(false);
 
+  // Invite-by-email — for people not yet in the system (e.g. short-term contractors).
+  // Accepting the invite creates their employee+login record; see acceptInviteCore
+  // (backend) for why contractEndDate is required here.
+  const [showInvite, setShowInvite]           = useState(false);
+  const [invites, setInvites]                 = useState<ProjectInvite[]>([]);
+  const [inviteName, setInviteName]           = useState('');
+  const [inviteEmail, setInviteEmail]         = useState('');
+  const [inviteRole, setInviteRole]           = useState('member');
+  const [inviteEndDate, setInviteEndDate]     = useState('');
+  const [inviting, setInviting]               = useState(false);
+
   const existingIds = new Set(project.members.map(m => String(m.employeeId)));
+
+  const loadInvites = useCallback(() => {
+    if (project.myRole !== 'supervisor') return;
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/projects/${project._id}/invites`,
+      showToast: false,
+      thenFn: r => setInvites(r?.data ?? []),
+    });
+  }, [project._id, project.myRole]);
+
+  useEffect(() => { loadInvites(); }, [loadInvites]);
+
+  const sendInvite = () => {
+    if (!inviteName.trim() || !inviteEmail.trim() || !inviteEndDate) return;
+    setInviting(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/projects/${project._id}/invites`,
+      method: 'POST',
+      data: { name: inviteName.trim(), email: inviteEmail.trim(), role: inviteRole, contractEndDate: inviteEndDate },
+      thenFn: () => {
+        setShowInvite(false);
+        setInviteName(''); setInviteEmail(''); setInviteRole('member'); setInviteEndDate('');
+        loadInvites();
+      },
+      finallyFn: () => setInviting(false),
+    });
+  };
+
+  const revokeInvite = (inviteId: string) => {
+    if (!confirm('Revoke this invite? The link will stop working.')) return;
+    apiCallFunction({
+      url: `${API_BASE_URL}/projects/${project._id}/invites/${inviteId}`,
+      method: 'DELETE',
+      thenFn: loadInvites,
+    });
+  };
+
+  const pendingInvites = invites.filter(i => i.status === 'pending');
 
   useEffect(() => {
     if (!showAdd) return;
@@ -1159,14 +1218,73 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-brand-text-secondary">{project.members.length + 1} team members</p>
         {project.myRole === 'supervisor' && (
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white text-[13px] font-semibold transition-colors"
-          >
-            <Plus className="h-4 w-4" /> Add Members
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowInvite(false); setShowAdd(!showAdd); }}
+              className="flex items-center gap-2 h-9 px-4 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white text-[13px] font-semibold transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Add Members
+            </button>
+            <button
+              onClick={() => { setShowAdd(false); setShowInvite(!showInvite); }}
+              className="flex items-center gap-2 h-9 px-4 rounded-xl border border-brand-border-strong hover:bg-brand-bg-soft text-brand-text text-[13px] font-semibold transition-colors"
+            >
+              <Mail className="h-4 w-4" /> Invite by Email
+            </button>
+          </div>
         )}
       </div>
+
+      {showInvite && project.myRole === 'supervisor' && (
+        <div className="bg-brand-bg-soft border border-brand-border-strong rounded-xl p-4 space-y-3">
+          <p className="text-[12px] text-brand-text-muted">
+            For people not yet in the system — e.g. a short-term contractor. They'll get an email to accept, which creates their account automatically.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              value={inviteName}
+              onChange={e => setInviteName(e.target.value)}
+              placeholder="Full name"
+              className="h-9 px-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted focus:outline-none"
+            />
+            <input
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              type="email"
+              placeholder="Email address"
+              className="h-9 px-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text placeholder:text-brand-text-muted focus:outline-none"
+            />
+            <select
+              value={inviteRole}
+              onChange={e => setInviteRole(e.target.value)}
+              className="h-9 px-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text focus:outline-none"
+            >
+              <option value="member">Member</option>
+              <option value="team_leader">Team Leader</option>
+            </select>
+            <div>
+              <input
+                value={inviteEndDate}
+                onChange={e => setInviteEndDate(e.target.value)}
+                type="date"
+                min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                className="w-full h-9 px-3 text-[13px] bg-white border border-brand-border-strong rounded-lg text-brand-text focus:outline-none"
+              />
+              <p className="text-[10px] text-brand-text-muted mt-1">Contract end date — access ends automatically on this date.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowInvite(false)} className="px-3 h-8 text-[13px] text-brand-text-secondary border border-brand-border-strong rounded-lg hover:bg-brand-bg-muted">Cancel</button>
+            <button
+              onClick={sendInvite}
+              disabled={inviting || !inviteName.trim() || !inviteEmail.trim() || !inviteEndDate}
+              className="px-4 h-8 text-[13px] bg-brand-primary text-white rounded-lg hover:bg-brand-primary-hover disabled:opacity-50"
+            >
+              {inviting ? 'Sending…' : 'Send Invite'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showAdd && project.myRole === 'supervisor' && (
         <div className="bg-brand-bg-soft border border-brand-border-strong rounded-xl p-4 space-y-3">
@@ -1263,6 +1381,30 @@ function TeamTab({ project, onRefresh }: { project: Project; onRefresh: () => vo
           </div>
         ))}
       </div>
+
+      {pendingInvites.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <p className="text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wide">Pending Invites</p>
+          {pendingInvites.map(inv => (
+            <div key={inv._id} className="bg-brand-bg-soft border border-dashed border-brand-border-strong rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-brand-bg-muted flex items-center justify-center text-brand-text-muted shrink-0">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-brand-text">{inv.name} <span className="text-brand-text-muted font-normal">· {inv.email}</span></p>
+                <p className="text-[11px] text-brand-text-muted">Invited as {inv.projectRole.replace('_', ' ')} · access until {new Date(inv.contractEndDate).toLocaleDateString('en-KE')}</p>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-status-warning-text bg-amber-500/20">Pending</span>
+              <button
+                onClick={() => revokeInvite(inv._id)}
+                className="h-7 w-7 flex items-center justify-center text-brand-text-muted hover:text-status-danger-text hover:bg-red-500/10 rounded-lg transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

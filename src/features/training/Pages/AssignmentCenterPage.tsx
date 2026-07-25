@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserAccounts } from '../Hooks/useUserAccounts';
@@ -10,14 +11,16 @@ import { useEnrollments } from '../Hooks/useEnrollments';
 import { useRules } from '../Hooks/useRules';
 import type { RuleTrigger } from '../types';
 
-function AssignTab() {
+function AssignTab({ initialCourseId }: { initialCourseId: string | null }) {
   const { accounts } = useUserAccounts();
   const { courses } = useCourses({ status: 'published' });
   const { paths } = useLearningPaths('active');
   const { assignTraining } = useEnrollments();
 
   const [selected, setSelected] = useState<string[]>([]);
-  const [target, setTarget] = useState<{ type: 'course' | 'path'; id: string }>({ type: 'course', id: '' });
+  const [target, setTarget] = useState<{ type: 'course' | 'path'; id: string }>(
+    initialCourseId ? { type: 'course', id: initialCourseId } : { type: 'course', id: '' }
+  );
   const [dueDate, setDueDate] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
 
@@ -224,6 +227,8 @@ function QueueTab() {
 }
 
 export function AssignmentCenterPage() {
+  const searchParams = useSearchParams();
+  const initialCourseId = searchParams.get('courseId');
   const [tab, setTab] = useState<'assign' | 'rules' | 'queue'>('assign');
   return (
     <div className="p-6 space-y-4">
@@ -236,7 +241,7 @@ export function AssignmentCenterPage() {
           <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm capitalize ${tab === t ? 'text-brand-primary border-b-2 border-brand-primary font-medium' : 'text-brand-text-secondary'}`}>{t}</button>
         ))}
       </div>
-      {tab === 'assign' && <AssignTab />}
+      {tab === 'assign' && <AssignTab initialCourseId={initialCourseId} />}
       {tab === 'rules' && <RulesTab />}
       {tab === 'queue' && <QueueTab />}
     </div>

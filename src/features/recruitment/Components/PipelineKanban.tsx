@@ -17,6 +17,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
   const { applications, byStage, moveStage, updateStatus, extendOffer, assignInterviewer, unassignInterviewer, sendInterviewReminder, bulkAction } = useApplications(requisition._id);
   const [selected, setSelected] = useState<Application | null>(null);
   const [initialTab, setInitialTab] = useState<'overview' | 'offer'>('overview');
+  const [initialPendingInterviewStage, setInitialPendingInterviewStage] = useState<{ id: string; name: string } | null>(null);
   const [activeApp, setActiveApp] = useState<Application | null>(null);
   const [pendingMove, setPendingMove] = useState<{ appId: string; targetStageId: string; targetName: string; backward: boolean } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -64,6 +65,14 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
     // itself happens server-side as part of submitting the offer (see extendOffer).
     if (targetStage?.type === 'offer') {
       setInitialTab('offer');
+      setSelected(app);
+      return;
+    }
+    // Same reasoning for Interview stages — assigning an interviewer (with a real
+    // schedule/location) is what moves the candidate there, see assignInterviewer.
+    if (targetStage?.type === 'interview') {
+      setInitialTab('overview');
+      setInitialPendingInterviewStage({ id: targetStage.id, name: targetStage.name });
       setSelected(app);
       return;
     }
@@ -171,7 +180,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
                 key={stage.id}
                 stage={stage}
                 applications={byStage[stage.id] ?? []}
-                onCardClick={(app) => { setInitialTab('overview'); setSelected(app); }}
+                onCardClick={(app) => { setInitialTab('overview'); setInitialPendingInterviewStage(null); setSelected(app); }}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
               />
@@ -218,7 +227,8 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
             requisition={requisition}
             locale={locale}
             initialTab={initialTab}
-            onClose={() => { setSelected(null); setInitialTab('overview'); }}
+            initialPendingInterviewStage={initialPendingInterviewStage}
+            onClose={() => { setSelected(null); setInitialTab('overview'); setInitialPendingInterviewStage(null); }}
             onMoveStage={(stageId) => confirmedMoveStage(currentApplication, stageId)}
             onUpdateStatus={(status, reason) => { updateStatus(selected._id, status, reason); setSelected(null); }}
             onExtendOffer={(payload) => extendOffer(selected._id, payload)}

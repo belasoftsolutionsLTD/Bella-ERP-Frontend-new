@@ -12,11 +12,12 @@ import { useUserAccounts } from '../Hooks/useUserAccounts';
 import { RECOMMENDATION_LABELS } from '../constants';
 import { ConfirmDialog } from './ConfirmDialog';
 
-export function ApplicationDrawer({ application, requisition, locale, initialTab = 'overview', onClose, onMoveStage, onUpdateStatus, onExtendOffer, onAssignInterviewer, onUnassignInterviewer, onSendInterviewReminder }: {
+export function ApplicationDrawer({ application, requisition, locale, initialTab = 'overview', initialPendingInterviewStage = null, onClose, onMoveStage, onUpdateStatus, onExtendOffer, onAssignInterviewer, onUnassignInterviewer, onSendInterviewReminder }: {
   application: Application;
   requisition: JobRequisition;
   locale: string;
   initialTab?: 'overview' | 'offer';
+  initialPendingInterviewStage?: { id: string; name: string } | null;
   onClose: () => void;
   onMoveStage: (stageId: string) => void;
   onUpdateStatus: (status: string, rejectionReason?: string) => void;
@@ -35,11 +36,19 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
   const [pickedLocation, setPickedLocation] = useState('');
   const [pickedDocuments, setPickedDocuments] = useState('');
   const [pendingStatus, setPendingStatus] = useState<{ status: string; reason?: string; title: string; message: string } | null>(null);
+  // Interview-type stages can't be entered by a plain move (see the stage-button row
+  // below) — assigning an interviewer IS what moves the candidate there, same as
+  // extendOffer already does for the Offer stage. This holds the stage the interviewer
+  // form is currently collecting details for when it isn't the candidate's current
+  // stage yet (null once assigned, since the app will have moved there for real).
+  const [pendingInterviewStage, setPendingInterviewStage] = useState<{ id: string; name: string } | null>(initialPendingInterviewStage);
   const candidate = application.candidate;
   const currentStage = requisition.pipelineStages.find((s) => s.id === application.currentStageId);
-  const assignedForCurrentStage = (application.interviewAssignments || []).filter((a) => a.stageId === application.currentStageId);
-  const submittedInterviewerIdsForCurrentStage = new Set(
-    scorecards.filter((sc) => sc.stageId === application.currentStageId).map((sc) => sc.interviewerId)
+  const assignmentStage = pendingInterviewStage || (currentStage?.requiresScorecard ? currentStage : null);
+  const assignedForAssignmentStage = assignmentStage
+    ? (application.interviewAssignments || []).filter((a) => a.stageId === assignmentStage.id) : [];
+  const submittedInterviewerIdsForAssignmentStage = new Set(
+    assignmentStage ? scorecards.filter((sc) => sc.stageId === assignmentStage.id).map((sc) => sc.interviewerId) : []
   );
 
   return (
@@ -86,7 +95,15 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
                   {requisition.pipelineStages.map((s) => (
                     <button
                       key={s.id}
-                      onClick={() => onMoveStage(s.id)}
+                      onClick={() => {
+                        // Offer/Interview stages aren't a plain move — each needs details
+                        // collected first (salary+start date / interviewer+schedule), and the
+                        // move itself happens server-side as part of submitting those (see
+                        // extendOffer / assignInterviewer on the backend).
+                        if (s.type === 'offer') { setTab('offer'); return; }
+                        if (s.type === 'interview') { setPendingInterviewStage({ id: s.id, name: s.name }); return; }
+                        onMoveStage(s.id);
+                      }}
                       disabled={s.id === application.currentStageId || application.status !== 'active'}
                       className={`text-xs px-2.5 py-1 rounded-full border ${s.id === application.currentStageId ? 'bg-brand-primary text-white border-brand-primary' : 'border-slate-300 text-slate-600 hover:bg-slate-50'} disabled:opacity-50`}
                     >
@@ -96,19 +113,25 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
                 </div>
               </div>
 
-              {currentStage?.requiresScorecard && (
+              {assignmentStage && (
                 <div className="space-y-2">
+                  {pendingInterviewStage && (
+                    <div className="flex items-center justify-between bg-amber-50 text-amber-700 text-xs rounded-md px-2.5 py-1.5">
+                      <span>Assigning an interviewer will move this candidate into &quot;{pendingInterviewStage.name}&quot;.</span>
+                      <button onClick={() => setPendingInterviewStage(null)} className="text-amber-700 hover:text-amber-900 font-medium ml-2 shrink-0">Cancel</button>
+                    </div>
+                  )}
                   <p className="text-xs text-slate-500">
-                    Assigned interviewer(s) for &quot;{currentStage.name}&quot;
-                    {assignedForCurrentStage.length > 0 && (
+                    Assigned interviewer(s) for &quot;{assignmentStage.name}&quot;
+                    {assignedForAssignmentStage.length > 0 && (
                       <span className="ml-1 text-slate-400">
-                        ({submittedInterviewerIdsForCurrentStage.size} of {assignedForCurrentStage.length} submitted)
+                        ({submittedInterviewerIdsForAssignmentStage.size} of {assignedForAssignmentStage.length} submitted)
                       </span>
                     )}
                   </p>
                   <div className="flex flex-col gap-1.5">
-                    {assignedForCurrentStage.map((a) => {
-                      const hasSubmitted = submittedInterviewerIdsForCurrentStage.has(a.interviewerId);
+                    {assignedForAssignmentStage.map((a) => {
+                      const hasSubmitted = submittedInterviewerIdsForAssignmentStage.has(a.interviewerId);
                       return (
                         <div key={a.interviewerId} className="flex items-center gap-2 flex-wrap">
                           <span
@@ -132,7 +155,7 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
                         </div>
                       );
                     })}
-                    {assignedForCurrentStage.length === 0 && <span className="text-xs text-slate-400">Unassigned — anyone can submit a scorecard.</span>}
+                    {assignedForAssignmentStage.length === 0 && <span className="text-xs text-slate-400">Unassigned — anyone can submit a scorecard.</span>}
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <select value={pickedInterviewer} onChange={(e) => setPickedInterviewer(e.target.value)} className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-xs">
@@ -175,23 +198,26 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
                       variant="outline"
                       disabled={!pickedInterviewer || !pickedSchedule}
                       onClick={() => {
-                        onAssignInterviewer(currentStage.id, pickedInterviewer, pickedSchedule, {
+                        onAssignInterviewer(assignmentStage.id, pickedInterviewer, pickedSchedule, {
                           meetingLink: pickedMeetingLink || undefined,
                           location: pickedLocation || undefined,
                           requiredDocuments: pickedDocuments || undefined,
                         });
                         setPickedInterviewer(''); setPickedSchedule(''); setPickedMeetingLink(''); setPickedLocation(''); setPickedDocuments('');
+                        setPendingInterviewStage(null);
                       }}
                     >
-                      Assign
+                      {pendingInterviewStage ? 'Assign & Move' : 'Assign'}
                     </Button>
                   </div>
-                  <Link
-                    href={`/${locale}/recruitment/requisitions/${requisition._id}/scorecards/${application._id}/new`}
-                    className="inline-block text-sm text-brand-primary hover:underline"
-                  >
-                    Submit scorecard for this stage →
-                  </Link>
+                  {assignmentStage.id === currentStage?.id && (
+                    <Link
+                      href={`/${locale}/recruitment/requisitions/${requisition._id}/scorecards/${application._id}/new`}
+                      className="inline-block text-sm text-brand-primary hover:underline"
+                    >
+                      Submit scorecard for this stage →
+                    </Link>
+                  )}
                 </div>
               )}
 

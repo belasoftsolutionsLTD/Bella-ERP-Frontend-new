@@ -172,7 +172,13 @@ export default function LeaveTypesPage() {
             <ArrowLeft className="h-3.5 w-3.5" /> Leave
           </Link>
           <h1 className="text-xl font-bold text-brand-text">Leave Types</h1>
-          <p className="text-sm text-brand-text-secondary mt-0.5">Configure the leave types employees can request</p>
+          <p className="text-sm text-brand-text-secondary mt-0.5">
+            Configure the leave types employees can request. This only defines the rules (paid, approval, carry-over) —
+            the actual number of days is set separately in{' '}
+            <Link href={`/${locale}/leave/accrual-policies`} className="text-brand-primary hover:underline font-medium">
+              Accrual Policies
+            </Link>.
+          </p>
         </div>
         <button onClick={() => { setEditing(null); setShowForm(true); }} className="flex items-center gap-2 h-9 px-4 bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold rounded-lg transition-colors">
           <Plus className="h-4 w-4" /> New Type
