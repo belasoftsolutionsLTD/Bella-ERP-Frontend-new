@@ -7,7 +7,14 @@ import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Check, X, RotateCcw, FileText, Activity as ActivityIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
+import { ConfirmDialog } from '@/components/custom-ui/ConfirmDialog';
 import { useLeaveRequest } from '../Hooks/useLeaveRequests';
+
+// Guaranteed HR-only actions (see backend/src/routes/leave/leave.js route guards) —
+// approve/reject/cancel can also be a direct manager or dept head acting as an approval-
+// chain step, so those keep showing the real approver's name (legitimate, expected
+// information). Only these three are always performed by HR/super_admin specifically.
+const HR_ONLY_ACTIONS = new Set(['revoked', 'disputeResolved', 'counterOffered']);
 
 const LEAVE_STATUS_MAP: Record<string, Status> = {
   draft: 'draft', pending: 'pending', approved: 'approved', rejected: 'rejected',
@@ -25,6 +32,7 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
   const [showCounter, setShowCounter] = useState(false);
   const [proposedDays, setProposedDays] = useState('');
   const [counterOfferReason, setCounterOfferReason] = useState('');
+  const [pendingConfirm, setPendingConfirm] = useState<'approve' | 'cancel' | 'revoke' | null>(null);
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-indigo-400" /></div>;
   if (!request) return <p className="text-sm text-brand-text-muted text-center py-16">Request not found.</p>;
@@ -50,13 +58,15 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
           <div><p className="text-brand-text-muted text-xs">End Date</p><p className="text-brand-text">{fmtDate(request.endDate)}</p></div>
           {request.halfDay && <div><p className="text-brand-text-muted text-xs">Half Day</p><p className="text-brand-text capitalize">{request.halfDay.period} of {fmtDate(request.halfDay.date)}</p></div>}
           <div className="sm:col-span-2"><p className="text-brand-text-muted text-xs">Reason</p><p className="text-brand-text">{request.reason || '—'}</p></div>
-          {request.attachmentUrl && (
-            <div className="sm:col-span-2">
+          <div className="sm:col-span-2">
+            {request.attachmentUrl ? (
               <a href={request.attachmentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
                 <FileText className="h-3.5 w-3.5" /> View attachment
               </a>
-            </div>
-          )}
+            ) : (
+              <p className="text-xs text-brand-text-muted">No attachment</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -121,7 +131,7 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
       )}
       {request.status === 'pending' && (
         <div className="flex items-center gap-2">
-          <button onClick={() => approve(undefined, () => toast.success('Approved.'))}
+          <button onClick={() => setPendingConfirm('approve')}
             className="flex items-center gap-1.5 h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-colors">
             <Check className="h-4 w-4" /> Approve
           </button>
@@ -169,16 +179,40 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
         </div>
       )}
       {(request.status === 'pending' || request.status === 'draft') && (
-        <button onClick={() => cancel(() => toast.success('Cancelled.'))}
+        <button onClick={() => setPendingConfirm('cancel')}
           className="flex items-center gap-1.5 h-9 px-4 border border-brand-border text-brand-text-secondary hover:text-brand-text text-sm font-semibold rounded-lg transition-colors">
           Cancel Request
         </button>
       )}
       {request.status === 'approved' && (
-        <button onClick={() => { if (window.confirm('Revoke this approved leave?')) revoke(() => toast.success('Revoked.')); }}
+        <button onClick={() => setPendingConfirm('revoke')}
           className="flex items-center gap-1.5 h-9 px-4 border border-amber-700 text-amber-400 hover:text-amber-300 text-sm font-semibold rounded-lg transition-colors">
           <RotateCcw className="h-4 w-4" /> Revoke Approval
         </button>
+      )}
+
+      {pendingConfirm && (
+        <ConfirmDialog
+          title={
+            pendingConfirm === 'approve' ? 'Approve this leave request?' :
+            pendingConfirm === 'cancel'  ? 'Cancel this leave request?' :
+            'Revoke this approved leave?'
+          }
+          message={
+            pendingConfirm === 'approve' ? 'The employee will be notified and their leave balance will be updated.' :
+            pendingConfirm === 'cancel'  ? "This can't be undone." :
+            "This puts the days back on the employee's balance and notifies them. This can't be undone."
+          }
+          confirmLabel={pendingConfirm === 'approve' ? 'Approve' : pendingConfirm === 'cancel' ? 'Cancel Request' : 'Revoke Approval'}
+          variant={pendingConfirm === 'approve' ? 'default' : 'danger'}
+          onCancel={() => setPendingConfirm(null)}
+          onConfirm={() => {
+            if (pendingConfirm === 'approve') approve(undefined, () => toast.success('Approved.'));
+            if (pendingConfirm === 'cancel') cancel(() => toast.success('Cancelled.'));
+            if (pendingConfirm === 'revoke') revoke(() => toast.success('Revoked.'));
+            setPendingConfirm(null);
+          }}
+        />
       )}
 
       {request.auditLog && request.auditLog.length > 0 && (
@@ -189,7 +223,10 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
               <div key={i} className="flex items-start gap-2 text-sm">
                 <span className="text-brand-text-muted text-xs shrink-0 w-32">{fmtDateTime(entry.timestamp)}</span>
                 <div>
-                  <p className="text-brand-text-secondary capitalize">{entry.action.replace(/([A-Z])/g, ' $1')} {entry.performedByName ? `by ${entry.performedByName}` : ''}</p>
+                  <p className="text-brand-text-secondary capitalize">
+                    {entry.action.replace(/([A-Z])/g, ' $1')}
+                    {entry.performedByName ? ` by ${HR_ONLY_ACTIONS.has(entry.action) ? 'HR' : entry.performedByName}` : ''}
+                  </p>
                   {entry.comment && <p className="text-xs text-brand-text-muted italic">"{entry.comment}"</p>}
                 </div>
               </div>

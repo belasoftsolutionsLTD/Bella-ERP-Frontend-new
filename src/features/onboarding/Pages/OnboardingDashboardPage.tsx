@@ -260,9 +260,15 @@ export default function OnboardingDashboardPage() {
                 </div>
                 <div className="px-4 py-3"><span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>{cfg.label}</span></div>
                 <div className="px-4 py-3">
-                  <Link href={`/${locale}/onboarding/${r._id}`} className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-primary-hover transition-colors">
-                    Start Onboarding <ArrowRight className="h-3 w-3" />
-                  </Link>
+                  {r.status === 'completed' ? (
+                    <Link href={`/${locale}/onboarding/${r._id}?tab=Compensation`} className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-primary-hover transition-colors">
+                      Update Compensation <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  ) : (
+                    <Link href={`/${locale}/onboarding/${r._id}`} className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-primary-hover transition-colors">
+                      Start Onboarding <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
               </div>
             );

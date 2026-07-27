@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Search, Mail, Phone, Briefcase, CalendarDays,
   ChevronRight, Loader2, Users, UserCheck, Clock,
@@ -56,6 +56,21 @@ function HrStaffPortalView() {
 
   const activeCount = employees.filter(e => e.status === 'active').length;
   const onLeaveCount = employees.filter(e => e.status === 'on_leave').length;
+
+  // Grouped by department so a large org's employee list isn't just one long flat
+  // scroll — departments sorted alphabetically, "No Department" bucket last.
+  const groupedByDept = useMemo(() => {
+    const groups: Record<string, StaffEmployee[]> = {};
+    for (const emp of employees) {
+      const key = emp.department?.trim() || 'No Department';
+      (groups[key] ??= []).push(emp);
+    }
+    return Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'No Department') return 1;
+      if (b === 'No Department') return -1;
+      return a.localeCompare(b);
+    });
+  }, [employees]);
 
   return (
     <div className="flex flex-col gap-4 h-[calc(100vh-80px)]">
@@ -119,29 +134,36 @@ function HrStaffPortalView() {
                 <p className="text-xs">No employees found.</p>
               </div>
             ) : (
-              employees.map((emp) => {
-                const isSelected = selectedId === emp._id;
-                return (
-                  <button
-                    key={emp._id}
-                    onClick={() => { selectEmployee(emp); setDetailTab('profile'); }}
-                    className={cn(
-                      'w-full text-left px-3 py-2.5 flex items-center gap-3 transition-all duration-150 border-b border-gray-50 hover:bg-gray-50',
-                      isSelected && 'bg-primary/5 border-l-3 border-l-primary'
-                    )}
-                  >
-                    <Avatar name={emp.fullName} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className={cn('text-sm font-medium truncate', isSelected ? 'text-primary' : 'text-foreground')}>
-                        {emp.fullName}
-                      </p>
-                      <p className="text-xs text-foreground/50 truncate">{emp.designation}</p>
-                      <StatusBadge status={EMPLOYEE_STATUS_MAP[emp.status] ?? 'inactive'} className="mt-0.5" />
-                    </div>
-                    <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 transition-transform', isSelected ? 'text-primary translate-x-0.5' : 'text-foreground/20')} />
-                  </button>
-                );
-              })
+              groupedByDept.map(([dept, deptEmployees]) => (
+                <div key={dept}>
+                  <div className="sticky top-0 px-3 py-1.5 bg-gray-100/90 backdrop-blur-sm border-b border-gray-200">
+                    <p className="text-[11px] font-bold text-foreground/50 uppercase tracking-wide">{dept} <span className="font-normal normal-case text-foreground/35">({deptEmployees.length})</span></p>
+                  </div>
+                  {deptEmployees.map((emp) => {
+                    const isSelected = selectedId === emp._id;
+                    return (
+                      <button
+                        key={emp._id}
+                        onClick={() => { selectEmployee(emp); setDetailTab('profile'); }}
+                        className={cn(
+                          'w-full text-left px-3 py-2.5 flex items-center gap-3 transition-all duration-150 border-b border-gray-50 hover:bg-gray-50',
+                          isSelected && 'bg-primary/5 border-l-3 border-l-primary'
+                        )}
+                      >
+                        <Avatar name={emp.fullName} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-sm font-medium truncate', isSelected ? 'text-primary' : 'text-foreground')}>
+                            {emp.fullName}
+                          </p>
+                          <p className="text-xs text-foreground/50 truncate">{emp.designation}</p>
+                          <StatusBadge status={EMPLOYEE_STATUS_MAP[emp.status] ?? 'inactive'} className="mt-0.5" />
+                        </div>
+                        <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 transition-transform', isSelected ? 'text-primary translate-x-0.5' : 'text-foreground/20')} />
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
             )}
           </div>
 

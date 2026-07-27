@@ -16,7 +16,7 @@ export interface HrDocument {
   uploadedAt: string;
 }
 
-export function useDocuments(docType?: string, search?: string) {
+export function useDocuments(docType?: string, search?: string, department?: string, staffNumber?: string) {
   const [documents, setDocuments] = useState<HrDocument[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -26,8 +26,10 @@ export function useDocuments(docType?: string, search?: string) {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
-    if (docType) params.set('docType', docType);
-    if (search)  params.set('search', search);
+    if (docType)     params.set('docType', docType);
+    if (search)      params.set('search', search);
+    if (department)  params.set('department', department);
+    if (staffNumber) params.set('staffNumber', staffNumber);
     apiCallFunction<{ data: { documents: HrDocument[]; total: number } }>({
       url: `${API_BASE_URL}/hr/documents?${params.toString()}`,
       method: 'GET',
@@ -40,7 +42,7 @@ export function useDocuments(docType?: string, search?: string) {
       catchFn: (e: any) => setError(e?.message || 'Failed to load documents'),
       finallyFn: () => setLoading(false),
     });
-  }, [docType, search]);
+  }, [docType, search, department, staffNumber]);
 
   useEffect(() => { fetch(); }, [fetch]);
   return { documents, total, loading, error, refetch: fetch };

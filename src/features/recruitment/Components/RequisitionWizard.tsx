@@ -157,7 +157,14 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        // A single text field with no submit button in the DOM still implicitly submits
+        // the form on Enter per the HTML spec — this blocks that on every step except
+        // the last (Review), where Enter submitting is exactly what should happen.
+        onKeyDown={(e) => { if (e.key === 'Enter' && step < STEPS.length - 1) e.preventDefault(); }}
+        className="bg-white rounded-xl border border-slate-200 p-6 space-y-5"
+      >
         {step === 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Basic Details</h2>

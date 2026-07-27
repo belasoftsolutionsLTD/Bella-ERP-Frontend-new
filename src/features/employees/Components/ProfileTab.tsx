@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Trash2, Loader2, Users } from 'lucide-react';
+import { Plus, Trash2, Loader2, Users, Landmark, HeartHandshake } from 'lucide-react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { useAuth } from '@/contexts/AuthContext';
@@ -106,6 +106,25 @@ export function ProfileTab({ employee }: { employee: Employee }) {
   const address = employee.address;
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>(employee.emergencyContacts ?? []);
 
+  // Active loan / welfare membership — surfaced here so HR doesn't have to dig into the
+  // Payroll Concepts module just to see whether this person has an active loan deduction
+  // or welfare scheme membership running.
+  const [activeLoan, setActiveLoan] = useState<{ conceptName: string; amount: number; balanceRemaining?: number } | null>(null);
+  const [activeWelfare, setActiveWelfare] = useState<{ conceptName: string }[]>([]);
+  useEffect(() => {
+    if (!isHR) return;
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/payroll/compensations/${employee._id}`,
+      showToast: false,
+      thenFn: (r) => {
+        const comps: any[] = r?.data ?? [];
+        const loan = comps.find((c) => c.concept?.subCategory === 'loans');
+        setActiveLoan(loan ? { conceptName: loan.concept.name, amount: loan.amount, balanceRemaining: loan.balanceRemaining } : null);
+        setActiveWelfare(comps.filter((c) => c.concept?.subCategory === 'welfare').map((c) => ({ conceptName: c.concept.name })));
+      },
+    });
+  }, [employee._id, isHR]);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-xl border bg-white p-5">
@@ -128,6 +147,29 @@ export function ProfileTab({ employee }: { employee: Employee }) {
         {employee.passportNumber && <Field label="Passport Number" value={employee.passportNumber} />}
         {employee.passportNumber && <Field label="Passport Expiry" value={passportExpiry} />}
       </div>
+
+      {isHR && (activeLoan || activeWelfare.length > 0) && (
+        <div className="rounded-xl border bg-white p-5">
+          <h3 className="font-semibold mb-3">Benefits & Deductions</h3>
+          <div className="flex flex-wrap gap-3">
+            {activeLoan && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 text-sm">
+                <Landmark className="h-4 w-4 text-amber-600 shrink-0" />
+                <span className="text-amber-800">
+                  Active loan: {activeLoan.conceptName}
+                  {activeLoan.balanceRemaining != null ? ` — balance KES ${activeLoan.balanceRemaining.toLocaleString()}` : ` — KES ${activeLoan.amount.toLocaleString()}/cycle`}
+                </span>
+              </div>
+            )}
+            {activeWelfare.map((w) => (
+              <div key={w.conceptName} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100 text-sm">
+                <HeartHandshake className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="text-emerald-800">Welfare member: {w.conceptName}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {address && (address.street || address.city || address.state || address.country || address.postalCode) && (
         <div className="rounded-xl border bg-white p-5">

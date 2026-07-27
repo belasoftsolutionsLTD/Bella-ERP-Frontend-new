@@ -6,7 +6,7 @@ import type { Task, TaskStatus } from '../types';
 
 const COLUMNS: { status: TaskStatus; label: string; icon: React.ElementType; color: string; headerBg: string }[] = [
   { status: 'not_started', label: 'Not Started', icon: Circle,        color: 'text-brand-text-secondary',   headerBg: 'border-brand-border-strong' },
-  { status: 'in_progress', label: 'In Progress', icon: Clock,         color: 'text-brand-primary',  headerBg: 'border-brand-primary' },
+  { status: 'in_progress', label: 'In Progress', icon: Clock,         color: 'text-blue-600',  headerBg: 'border-blue-500' },
   { status: 'completed',   label: 'Completed',   icon: CheckCircle2,  color: 'text-status-success-text', headerBg: 'border-emerald-500' },
   { status: 'blocked',     label: 'Blocked',     icon: Ban,           color: 'text-brand-text-muted',   headerBg: 'border-brand-border' },
 ];

@@ -3,10 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, FileText, Activity as ActivityIcon, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, Activity as ActivityIcon, Printer, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { openFile, resolveUploadUrl } from '@/functions/downloadFile';
+import { ConfirmDialog } from '@/components/custom-ui/ConfirmDialog';
 import { useMyLeaveRequestDetail, useMyLeaveRequests } from '../Hooks/useMyLeave';
+
+// Guaranteed HR-only actions (see backend/src/routes/leave/leave.js route guards) —
+// approve/reject/cancel can also be a direct manager or dept head acting as an approval-
+// chain step, so those keep showing the real approver's name (legitimate, expected
+// information). Only these three are always performed by HR/super_admin specifically.
+const HR_ONLY_ACTIONS = new Set(['revoked', 'disputeResolved', 'counterOffered']);
 
 const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
   draft:     { label: 'Draft',     bg: 'bg-slate-100', text: 'text-slate-500' },
@@ -28,6 +35,7 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
   const [disputeReason, setDisputeReason] = useState('');
   const [showCounterDispute, setShowCounterDispute] = useState(false);
   const [counterDisputeReason, setCounterDisputeReason] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-primary/40" /></div>;
   if (!request) return <p className="text-sm text-slate-400 text-center py-16">Request not found.</p>;
@@ -36,7 +44,9 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
 
   const handlePrint = () => window.print();
 
-  const handleDownloadPdf = async () => {
+  // Opens the PDF in a new tab instead of forcing an immediate download — the browser's
+  // own PDF viewer already lets someone download/save from there if they actually want to.
+  const handleViewPdf = async () => {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const employeeName = request.employee?.fullName ?? 'Employee';
@@ -54,6 +64,9 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
     }
     if (request.status === 'rejected' && request.rejectionReason) lines.push(['Rejection Reason', request.rejectionReason]);
     if (request.status === 'disputed' && request.disputeReason) lines.push(['Dispute Reason', request.disputeReason]);
+    // A revoke also results in status:'cancelled' (same as a self-cancel), which the PDF
+    // otherwise can't tell apart — this makes that distinction explicit on paper too.
+    if (request.revokedAt) lines.push(['Revoked', fmtDateTime(request.revokedAt)]);
 
     doc.setFontSize(16);
     doc.text('Leave Request', 14, 18);
@@ -66,7 +79,7 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
       doc.text(String(value), 70, y, { maxWidth: 125 });
       y += 10;
     }
-    doc.save(`leave-request-${request._id}.pdf`);
+    doc.output('dataurlnewwindow', { filename: `leave-request-${request._id}.pdf` });
   };
 
   return (
@@ -98,9 +111,9 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
           className="flex items-center gap-1.5 h-8 px-3 border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-semibold rounded-lg transition-colors">
           <Printer className="h-3.5 w-3.5" /> Print
         </button>
-        <button onClick={() => handleDownloadPdf().catch(() => toast.error('Failed to generate PDF.'))}
+        <button onClick={() => handleViewPdf().catch(() => toast.error('Failed to generate PDF.'))}
           className="flex items-center gap-1.5 h-8 px-3 border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-semibold rounded-lg transition-colors">
-          <Download className="h-3.5 w-3.5" /> Download PDF
+          <Eye className="h-3.5 w-3.5" /> View PDF
         </button>
       </div>
 
@@ -111,14 +124,16 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
           <div><p className="text-slate-400 text-xs">Total Days</p><p className="text-slate-800 font-medium">{request.totalDays}</p></div>
           {request.halfDay && <div><p className="text-slate-400 text-xs">Half Day</p><p className="text-slate-800 capitalize">{request.halfDay.period} of {fmtDate(request.halfDay.date)}</p></div>}
           <div className="sm:col-span-2"><p className="text-slate-400 text-xs">Reason</p><p className="text-slate-800">{request.reason || '—'}</p></div>
-          {request.attachmentUrl && (
-            <div className="sm:col-span-2">
+          <div className="sm:col-span-2">
+            {request.attachmentUrl ? (
               <button onClick={() => openFile(resolveUploadUrl(request.attachmentUrl!)).catch(err => toast.error(err.message))}
                 className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
                 <FileText className="h-3.5 w-3.5" /> View attachment
               </button>
-            </div>
-          )}
+            ) : (
+              <p className="text-xs text-slate-400">No attachment</p>
+            )}
+          </div>
           {request.status === 'rejected' && request.rejectionReason && (
             <div className="sm:col-span-2 bg-red-50 border border-red-100 rounded-lg p-3">
               <p className="text-xs font-semibold text-red-600 mb-0.5">Rejection Reason</p>
@@ -198,10 +213,20 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
 
       <div className="flex items-center gap-2 flex-wrap no-print">
         {(request.status === 'pending' || request.status === 'draft') && (
-          <button onClick={() => { if (window.confirm('Cancel this leave request?')) cancel(request._id, () => { toast.success('Cancelled.'); refetch(); }); }}
+          <button onClick={() => setShowCancelConfirm(true)}
             className="h-9 px-4 border border-slate-200 text-slate-600 hover:text-slate-900 text-sm font-semibold rounded-lg transition-colors">
             Cancel Request
           </button>
+        )}
+        {showCancelConfirm && (
+          <ConfirmDialog
+            title="Cancel this leave request?"
+            message="This can't be undone — you'll need to submit a new request if you change your mind."
+            confirmLabel="Cancel Request"
+            variant="danger"
+            onCancel={() => setShowCancelConfirm(false)}
+            onConfirm={() => { cancel(request._id, () => { toast.success('Cancelled.'); refetch(); }); setShowCancelConfirm(false); }}
+          />
         )}
         {request.status === 'rejected' && !showDispute && (
           <button onClick={() => setShowDispute(true)}
@@ -233,7 +258,10 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
               <div key={i} className="flex items-start gap-2 text-sm">
                 <span className="text-slate-400 text-xs shrink-0 w-32">{fmtDateTime(entry.timestamp)}</span>
                 <div>
-                  <p className="text-slate-700 capitalize">{entry.action.replace(/([A-Z])/g, ' $1')} {entry.performedByName ? `by ${entry.performedByName}` : ''}</p>
+                  <p className="text-slate-700 capitalize">
+                    {entry.action.replace(/([A-Z])/g, ' $1')}
+                    {entry.performedByName ? ` by ${HR_ONLY_ACTIONS.has(entry.action) ? 'HR' : entry.performedByName}` : ''}
+                  </p>
                   {entry.comment && <p className="text-xs text-slate-400 italic">"{entry.comment}"</p>}
                 </div>
               </div>

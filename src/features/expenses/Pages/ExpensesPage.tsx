@@ -835,10 +835,68 @@ function RejectClaimModal({ onClose, onConfirm }: { onClose: () => void; onConfi
   );
 }
 
+const REIMBURSE_METHODS = [
+  { value: 'bank_transfer', label: 'Bank Transfer', refLabel: 'Bank reference' },
+  { value: 'mpesa',         label: 'M-Pesa',         refLabel: 'M-Pesa transaction code' },
+  { value: 'cash',          label: 'Cash',           refLabel: 'Reference (optional)' },
+  { value: 'cheque',        label: 'Cheque',         refLabel: 'Cheque number' },
+];
+
+// Reimbursement moves real money — this is the confirmation step itself (not a bare
+// one-click action), and requires HR to actually record how and with what evidence,
+// rather than just flipping a status. The claimant gets an email once this submits
+// (see backend markReimbursed), not just an in-app notification.
+function ReimburseClaimModal({ claim, onClose, onConfirm }: {
+  claim: ExpenseClaim; onClose: () => void; onConfirm: (data: { paymentMethod: string; reference: string; evidence: File | null }) => void;
+}) {
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [reference, setReference] = useState('');
+  const [evidence, setEvidence] = useState<File | null>(null);
+  const methodCfg = REIMBURSE_METHODS.find(m => m.value === paymentMethod)!;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-white border border-brand-border rounded-2xl shadow-2xl p-6 space-y-4">
+        <div>
+          <h3 className="text-base font-bold text-brand-text">Mark as Reimbursed</h3>
+          <p className="text-xs text-brand-text-secondary mt-0.5">{fmt(claim.amount, claim.currency)} to {claim.employee?.fullName ?? 'you'}</p>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Payment Method</label>
+          <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+            className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+            {REIMBURSE_METHODS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">{methodCfg.refLabel}</label>
+          <input value={reference} onChange={e => setReference(e.target.value)} placeholder="e.g. QGH7X8K2P1"
+            className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-1.5">Evidence (optional)</label>
+          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e => setEvidence(e.target.files?.[0] ?? null)}
+            className="w-full text-xs text-brand-text-secondary file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-brand-bg-soft file:text-brand-text file:text-xs" />
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-brand-text-secondary hover:text-brand-text transition-colors">Cancel</button>
+          <button
+            onClick={() => onConfirm({ paymentMethod, reference: reference.trim(), evidence })}
+            className="px-5 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors"
+          >
+            Confirm Reimbursement
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Claim Detail Drawer ───────────────────────────────────────────────────────
 
-function ClaimDetailDrawer({ claim, isHR, canApprove, onClose, onRefresh, onDisputeClick }: {
-  claim: ExpenseClaim; isHR: boolean; canApprove: boolean; onClose: () => void; onRefresh: () => void; onDisputeClick: () => void;
+function ClaimDetailDrawer({ claim, isHR, canApprove, onClose, onRefresh, onDisputeClick, onReimburseClick }: {
+  claim: ExpenseClaim; isHR: boolean; canApprove: boolean; onClose: () => void; onRefresh: () => void; onDisputeClick: () => void; onReimburseClick: () => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [showReject, setShowReject] = useState(false);
@@ -1037,10 +1095,10 @@ function ClaimDetailDrawer({ claim, isHR, canApprove, onClose, onRefresh, onDisp
             </>
           )}
           {isHR && claim.status === 'approved' && (
-            <button onClick={() => act('reimburse', `${API_BASE_URL}/expense-claims/${claim._id}/reimburse`, 'PUT', {})}
+            <button onClick={onReimburseClick}
               disabled={busy !== null}
               className="w-full flex items-center justify-center gap-2 h-9 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
-              {busy === 'reimburse' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />} Mark as Reimbursed
+              <Banknote className="h-4 w-4" /> Mark as Reimbursed
             </button>
           )}
           {/* Employee: delete own draft/rejected claim */}
@@ -1169,6 +1227,7 @@ export default function ExpensesPage() {
   const [editingClaim,   setEditingClaim]    = useState<ExpenseClaim | null>(null);
   const [disputingClaim, setDisputingClaim]  = useState<ExpenseClaim | null>(null);
   const [deletingId,     setDeletingId]      = useState<string | null>(null);
+  const [reimbursingClaim, setReimbursingClaim] = useState<ExpenseClaim | null>(null);
 
   const fetchClaims = useCallback(() => {
     setLoading(true);
@@ -1194,8 +1253,15 @@ export default function ExpensesPage() {
     apiCallFunction({ url: `${API_BASE_URL}/expense-claims/${id}`, method: 'DELETE',
       thenFn: fetchClaims, finallyFn: () => setDeletingId(null) });
   };
-  const doReimburse = (id: string) =>
-    apiCallFunction({ url: `${API_BASE_URL}/expense-claims/${id}/reimburse`, method: 'PUT', data: {}, thenFn: fetchClaims });
+  const doReimburse = (id: string, data: { paymentMethod: string; reference: string; evidence: File | null }) => {
+    const fd = new FormData();
+    fd.append('paymentMethod', data.paymentMethod);
+    if (data.reference) fd.append('reference', data.reference);
+    if (data.evidence) fd.append('evidence', data.evidence);
+    apiCallFunction({ url: `${API_BASE_URL}/expense-claims/${id}/reimburse`, method: 'PUT', data: fd, thenFn: fetchClaims });
+    setReimbursingClaim(null);
+    setDetailClaim(null);
+  };
 
   const filtered = claims.filter(c => !search || c.description?.toLowerCase().includes(search.toLowerCase()) || c.employee?.fullName?.toLowerCase().includes(search.toLowerCase()));
 
@@ -1323,7 +1389,7 @@ export default function ExpensesPage() {
                       )}
                       {/* Mark reimbursed */}
                       {isHR && c.status === 'approved' && (
-                        <button title="Mark as reimbursed" onClick={() => doReimburse(c._id)}
+                        <button title="Mark as reimbursed" onClick={() => setReimbursingClaim(c)}
                           className="h-7 w-7 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 hover:bg-violet-500/20 transition-colors">
                           <Banknote className="h-3.5 w-3.5" />
                         </button>
@@ -1365,6 +1431,14 @@ export default function ExpensesPage() {
           onClose={() => setDetailClaim(null)}
           onRefresh={fetchClaims}
           onDisputeClick={() => { setDisputingClaim(detailClaim); setDetailClaim(null); }}
+          onReimburseClick={() => setReimbursingClaim(detailClaim)}
+        />
+      )}
+      {reimbursingClaim && (
+        <ReimburseClaimModal
+          claim={reimbursingClaim}
+          onClose={() => setReimbursingClaim(null)}
+          onConfirm={data => doReimburse(reimbursingClaim._id, data)}
         />
       )}
       {disputingClaim && (

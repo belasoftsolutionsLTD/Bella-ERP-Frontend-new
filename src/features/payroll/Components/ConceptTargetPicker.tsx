@@ -53,16 +53,24 @@ export function ConceptTargetPicker({ concept, onClose, onAssigned }: ConceptTar
       thenFn: r => setEmployees(r.data ?? []) });
   }, []);
 
-  // A loan-like balance only makes sense against a single person's obligation, never a
-  // shared group — steer away from balance-tracking automatically if the target widens.
+  // A loan is never a shared amount — the installment and balance are personally
+  // negotiated per employee, unlike an allowance or benefit that can genuinely apply
+  // the same figure to a whole department. So loans are always assigned to exactly one
+  // employee at a time (this component's only "single-select" case), same as how
+  // welfare's addMember already works one person at a time in the backend.
   useEffect(() => {
-    if (targetType !== 'employees' && trackBalance) setTrackBalance(false);
-  }, [targetType, trackBalance]);
+    if (isLoan) { setTargetType('employees'); setTrackBalance(true); }
+  }, [isLoan]);
 
   const toggle = <T,>(set: Set<T>, setSet: (s: Set<T>) => void, val: T) => {
     const next = new Set(set);
     next.has(val) ? next.delete(val) : next.add(val);
     setSet(next);
+  };
+
+  const toggleEmployee = (id: string) => {
+    if (isLoan) { setSelectedEmpIds(new Set([id])); return; }
+    toggle(selectedEmpIds, setSelectedEmpIds, id);
   };
 
   const filteredEmployees = employees.filter(e =>
@@ -117,21 +125,27 @@ export function ConceptTargetPicker({ concept, onClose, onAssigned }: ConceptTar
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          {/* Target type */}
-          <div className="grid grid-cols-2 gap-2">
-            {TARGET_OPTIONS.map(o => (
-              <button key={o.value} type="button" onClick={() => setTargetType(o.value)}
-                title={o.hint}
-                className={cn(
-                  'px-3 py-2.5 rounded-xl border text-left transition-all',
-                  targetType === o.value ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-bg-soft hover:border-brand-border-strong',
-                )}>
-                <p className={cn('text-xs font-semibold', targetType === o.value ? 'text-indigo-300' : 'text-brand-text-secondary')}>{o.label}</p>
-              </button>
-            ))}
-          </div>
+          {/* Target type — loans skip this entirely, always one employee at a time */}
+          {isLoan ? (
+            <p className="text-xs text-brand-text-muted bg-brand-bg-soft border border-brand-border rounded-lg px-3 py-2">
+              Loans are always assigned to one employee at a time — the amount and balance are personal to them, not shared across a group.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {TARGET_OPTIONS.map(o => (
+                <button key={o.value} type="button" onClick={() => setTargetType(o.value)}
+                  title={o.hint}
+                  className={cn(
+                    'px-3 py-2.5 rounded-xl border text-left transition-all',
+                    targetType === o.value ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border bg-brand-bg-soft hover:border-brand-border-strong',
+                  )}>
+                  <p className={cn('text-xs font-semibold', targetType === o.value ? 'text-indigo-300' : 'text-brand-text-secondary')}>{o.label}</p>
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Specific employees */}
+          {/* Specific employees — single-select for loans (see toggleEmployee) */}
           {targetType === 'employees' && (
             <div>
               <div className="relative mb-1.5">
@@ -145,7 +159,7 @@ export function ConceptTargetPicker({ concept, onClose, onAssigned }: ConceptTar
                 ) : filteredEmployees.slice(0, 100).map(e => {
                   const sel = selectedEmpIds.has(e._id);
                   return (
-                    <button key={e._id} type="button" onClick={() => toggle(selectedEmpIds, setSelectedEmpIds, e._id)}
+                    <button key={e._id} type="button" onClick={() => toggleEmployee(e._id)}
                       className={cn('w-full flex items-center justify-between px-3 py-2 text-left hover:bg-brand-bg-muted/40 transition-colors', sel && 'bg-brand-primary/10')}>
                       <span className="text-sm text-brand-text truncate">{e.fullName}</span>
                       <span className="text-[10px] text-brand-text-muted">{e.department}</span>
@@ -153,7 +167,7 @@ export function ConceptTargetPicker({ concept, onClose, onAssigned }: ConceptTar
                   );
                 })}
               </div>
-              {selectedEmpIds.size > 0 && <p className="mt-1 text-[11px] text-brand-text-muted">{selectedEmpIds.size} selected</p>}
+              {selectedEmpIds.size > 0 && <p className="mt-1 text-[11px] text-brand-text-muted">{isLoan ? '1 selected' : `${selectedEmpIds.size} selected`}</p>}
             </div>
           )}
 

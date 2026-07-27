@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, Circle, PlayCircle, FileText, Link2, Box, Award, ArrowLeft, Calendar, Users, Video } from 'lucide-react';
 import { useCatalogCourse, useModuleQuiz } from '../Hooks/useCatalog';
@@ -14,6 +14,14 @@ import { resolveMediaUrl } from '../mediaUrl';
 import type { CourseModule, Enrollment } from '../types';
 
 const MODULE_ICONS: Record<string, any> = { video: PlayCircle, document: FileText, text: FileText, link: Link2, scorm: Box, quiz: Award };
+
+// Conservative average adult reading speed, used only to decide when the "Mark as
+// Complete" button on a text module becomes clickable — never to auto-complete it.
+const AVERAGE_READING_WPM = 200;
+
+function countWords(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 function LiveSessionsCourseView({ locale, courseId, courseTitle, enrollment }: {
   locale: string; courseId: string; courseTitle: string; enrollment?: Enrollment | null;
@@ -90,23 +98,51 @@ function LiveSessionsCourseView({ locale, courseId, courseTitle, enrollment }: {
   );
 }
 
-function VideoContent({ url }: { url: string }) {
+function VideoContent({ url, onEnded }: { url: string; onEnded: () => void }) {
   const embed = resolveVideoEmbed(url);
+  // Furthest point actually watched — a ref, not state, since timeupdate fires many
+  // times a second and shouldn't trigger re-renders.
+  const furthestTimeRef = useRef(0);
+
   if (!embed) return <p className="text-sm text-slate-400">No video URL configured.</p>;
   if (embed.kind === 'youtube' || embed.kind === 'vimeo') {
+    // A cross-origin iframe embed — there's no way to intercept the platform's own
+    // seek bar or detect true playback end without loading their full player SDKs, so
+    // this can't be gated the same way as a direct upload (see the duration-based
+    // fallback in MyCourseLearnerPage's gating effect instead).
     return (
       <div className="w-full rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16 / 9' }}>
         <iframe src={embed.embedUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
       </div>
     );
   }
-  return <video controls src={resolveMediaUrl(embed.url)} className="w-full rounded-lg bg-black max-h-[420px]" />;
+
+  // Direct file upload — real control over playback. Seeking past the furthest point
+  // already watched snaps back (a small grace window absorbs normal buffering jitter
+  // without allowing an actual skip-ahead), and onEnded only fires when the video
+  // genuinely finishes — the learner still has to click "Mark as Complete" themselves.
+  return (
+    <video
+      controls
+      src={resolveMediaUrl(embed.url)}
+      className="w-full rounded-lg bg-black max-h-[420px]"
+      onTimeUpdate={(e) => {
+        const t = e.currentTarget.currentTime;
+        if (t > furthestTimeRef.current) furthestTimeRef.current = t;
+      }}
+      onSeeking={(e) => {
+        const v = e.currentTarget;
+        if (v.currentTime > furthestTimeRef.current + 1.5) v.currentTime = furthestTimeRef.current;
+      }}
+      onEnded={onEnded}
+    />
+  );
 }
 
-function ModuleContentView({ module_ }: { module_: CourseModule }) {
+function ModuleContentView({ module_, onVideoEnded }: { module_: CourseModule; onVideoEnded: () => void }) {
   const c = module_.content || {};
   if (module_.type === 'video') {
-    return c.url ? <VideoContent url={c.url} /> : <p className="text-sm text-slate-400">No video URL configured.</p>;
+    return c.url ? <VideoContent url={c.url} onEnded={onVideoEnded} /> : <p className="text-sm text-slate-400">No video URL configured.</p>;
   }
   if (module_.type === 'document') {
     return c.fileUrl ? (
@@ -171,6 +207,40 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
   useEffect(() => {
     if (!activeModuleId && modules.length) setActiveModuleId(modules[0]._id);
   }, [modules, activeModuleId]);
+
+  // Gates on whether "Mark as Complete" is clickable — never on whether it's actually
+  // clicked, that always stays a manual action. Video: the real onEnded event for a
+  // direct upload, or a timer based on the module's stated duration for an embedded
+  // YouTube/Vimeo player (see VideoContent — its playback can't be controlled from here).
+  // Text: a timer based on word count at an average reading speed. Both reset whenever
+  // the learner switches to a different module.
+  const [videoGateOpen, setVideoGateOpen] = useState(false);
+  const [readGateOpen, setReadGateOpen] = useState(false);
+  const activeModuleForGating = modules.find((m) => m._id === activeModuleId);
+
+  useEffect(() => {
+    setVideoGateOpen(false);
+    setReadGateOpen(false);
+    if (!activeModuleForGating) return;
+
+    if (activeModuleForGating.type === 'text') {
+      const words = countWords(activeModuleForGating.content?.markdown || '');
+      const minMs = Math.ceil((words / AVERAGE_READING_WPM) * 60) * 1000;
+      if (minMs <= 0) { setReadGateOpen(true); return; }
+      const timer = setTimeout(() => setReadGateOpen(true), minMs);
+      return () => clearTimeout(timer);
+    }
+
+    if (activeModuleForGating.type === 'video') {
+      const rawUrl = activeModuleForGating.content?.url;
+      const embed = rawUrl ? resolveVideoEmbed(rawUrl) : null;
+      if (!embed || embed.kind === 'file') return; // gated for real by VideoContent's onEnded
+      const durationMinutes = Number(activeModuleForGating.content?.durationMinutes) || 0;
+      if (durationMinutes <= 0) { setVideoGateOpen(true); return; } // no signal to gate on — don't block indefinitely
+      const timer = setTimeout(() => setVideoGateOpen(true), durationMinutes * 60 * 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeModuleForGating]);
 
   if (isLoading) return <div className="p-6 text-sm text-slate-400">Loading course...</div>;
   if (!course) return <div className="p-6 text-sm text-slate-400">Course not found.</div>;
@@ -240,9 +310,15 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between">
               <p className="text-sm font-medium text-green-800">You've completed this course!</p>
               {course.hasCertificate && (
-                <button onClick={handleGenerateCertificate} disabled={certGenerated} className="text-sm text-brand-primary font-medium hover:underline disabled:opacity-50">
-                  {certGenerated ? 'Certificate ready — see My Certificates' : 'Get Certificate'}
-                </button>
+                certGenerated ? (
+                  <Link href={`/${locale}/my/training/certificates`} className="text-sm text-brand-primary font-medium hover:underline">
+                    Certificate ready — view it →
+                  </Link>
+                ) : (
+                  <button onClick={handleGenerateCertificate} className="text-sm text-brand-primary font-medium hover:underline">
+                    Get Certificate
+                  </button>
+                )
               )}
             </div>
           ) : null}
@@ -259,12 +335,26 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
                 />
               ) : (
                 <>
-                  <ModuleContentView module_={activeModule} />
+                  <ModuleContentView module_={activeModule} onVideoEnded={() => setVideoGateOpen(true)} />
                   <div className="pt-4 border-t border-slate-100">
                     {isComplete(activeModule._id) ? (
                       <span className="inline-flex items-center gap-1.5 text-sm text-green-700 font-medium"><CheckCircle2 className="h-4 w-4" /> Completed</span>
                     ) : (
-                      <button onClick={markComplete} className="px-3 py-2 rounded-md bg-brand-primary text-white text-sm font-medium">Mark as Complete</button>
+                      <>
+                        <button
+                          onClick={markComplete}
+                          disabled={activeModule.type === 'video' ? !videoGateOpen : activeModule.type === 'text' ? !readGateOpen : false}
+                          className="px-3 py-2 rounded-md bg-brand-primary text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Mark as Complete
+                        </button>
+                        {activeModule.type === 'video' && !videoGateOpen && (
+                          <p className="text-xs text-slate-400 mt-1.5">Finish watching the video to enable this.</p>
+                        )}
+                        {activeModule.type === 'text' && !readGateOpen && (
+                          <p className="text-xs text-slate-400 mt-1.5">Keep reading — this unlocks once enough time has passed.</p>
+                        )}
+                      </>
                     )}
                   </div>
                 </>

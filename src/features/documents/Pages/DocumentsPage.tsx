@@ -14,6 +14,7 @@ import { useDocuments } from '../Hooks/useDocuments';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { downloadFile } from '@/functions/downloadFile';
+import { useConfigSection } from '@/hooks/useConfigSection';
 
 const DOC_TYPES = [
   { value: '',            label: 'All Documents',      icon: FolderOpen },
@@ -221,6 +222,7 @@ export default function DocumentsPage() {
   const [activeFolder, setActiveFolder] = useState('');
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
+  const [staffNoFilter, setStaffNoFilter] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<{ url: string; fileName: string; downloadUrl: string } | null>(null);
 
@@ -232,10 +234,13 @@ export default function DocumentsPage() {
     return `${API_BASE_URL}/employees/${employeeId}/documents/${docId}/download`;
   }
 
-  const { documents: rawDocuments, total, loading, error, refetch } = useDocuments(activeFolder, search);
+  // Department options come from the org's own department config, not the currently
+  // loaded documents — deriving them from documents would make the dropdown collapse
+  // to just whichever department is already selected once filtering moved server-side.
+  const departmentsConfig = useConfigSection('departments');
+  const departments = useMemo(() => (departmentsConfig.items ?? []).map((d: any) => d.name).sort(), [departmentsConfig.items]);
 
-  const departments = useMemo(() => [...new Set(rawDocuments.map(d => d.department).filter(Boolean))].sort(), [rawDocuments]);
-  const documents = useMemo(() => deptFilter ? rawDocuments.filter(d => d.department === deptFilter) : rawDocuments, [rawDocuments, deptFilter]);
+  const { documents, total, loading, error, refetch } = useDocuments(activeFolder, search, deptFilter, staffNoFilter);
 
   return (
     <div className="space-y-5 pb-6">
@@ -308,6 +313,12 @@ export default function DocumentsPage() {
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             )}
+            <input
+              value={staffNoFilter}
+              onChange={e => setStaffNoFilter(e.target.value)}
+              placeholder="Staff ID…"
+              className="w-32 h-9 border border-brand-border bg-white rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+            />
           </div>
 
           <Wrapper loading={loading} error={error} onRetry={refetch}>

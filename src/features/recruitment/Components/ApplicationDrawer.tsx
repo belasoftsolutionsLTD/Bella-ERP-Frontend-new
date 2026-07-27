@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useScorecards } from '../Hooks/useScorecards';
 import { useUserAccounts } from '../Hooks/useUserAccounts';
 import { RECOMMENDATION_LABELS } from '../constants';
-import { ConfirmDialog } from './ConfirmDialog';
+import { ConfirmDialog } from '@/components/custom-ui/ConfirmDialog';
 
 export function ApplicationDrawer({ application, requisition, locale, initialTab = 'overview', initialPendingInterviewStage = null, onClose, onMoveStage, onUpdateStatus, onExtendOffer, onAssignInterviewer, onUnassignInterviewer, onSendInterviewReminder }: {
   application: Application;

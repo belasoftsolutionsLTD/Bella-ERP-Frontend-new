@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Award, Download, Plus } from 'lucide-react';
+import { Award, Eye, Plus } from 'lucide-react';
 import { CustomInput } from '@/components/custom-ui/CustomInput';
 import { Button } from '@/components/ui/button';
 import { useMyCertificates, useMyExternalCertificates } from '../Hooks/useCertificates';
@@ -73,7 +73,7 @@ export function MyCertificatesPage() {
               <p className="text-xs text-brand-text-muted">Issued {new Date(c.issuedAt).toLocaleDateString()}{c.expiresAt ? ` · Expires ${new Date(c.expiresAt).toLocaleDateString()}` : ''}</p>
               {c.pdfUrl && (
                 <a href={resolveMediaUrl(c.pdfUrl.replace(/^\/?uploads\//, ''))} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-primary text-sm hover:underline">
-                  <Download className="h-3.5 w-3.5" /> Download PDF
+                  <Eye className="h-3.5 w-3.5" /> View Certificate
                 </a>
               )}
             </div>

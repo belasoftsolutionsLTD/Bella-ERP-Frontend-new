@@ -8,7 +8,7 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type Dra
 import { KanbanColumn } from './KanbanColumn';
 import { ApplicationCard } from './ApplicationCard';
 import { ApplicationDrawer } from './ApplicationDrawer';
-import { ConfirmDialog } from './ConfirmDialog';
+import { ConfirmDialog } from '@/components/custom-ui/ConfirmDialog';
 import { useApplications } from '../Hooks/useApplications';
 import { isBackwardMove } from '../constants';
 import type { JobRequisition, Application } from '../types';

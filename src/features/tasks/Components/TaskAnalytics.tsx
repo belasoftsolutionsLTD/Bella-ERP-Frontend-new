@@ -24,7 +24,7 @@ interface AnalyticsData {
 
 const STATUS_COLORS: Record<string, string> = {
   not_started: '#64748b',
-  in_progress: '#6366f1',
+  in_progress: '#3b82f6',
   completed:   '#10b981',
   overdue:     '#ef4444',
   blocked:     '#475569',

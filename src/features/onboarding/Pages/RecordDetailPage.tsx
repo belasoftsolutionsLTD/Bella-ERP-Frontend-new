@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import {
@@ -272,7 +273,9 @@ function CompensationPanel({ record, onSave }: {
 
 export default function RecordDetailPage({ recordId }: { recordId: string }) {
   const locale = useLocale();
-  const [tab, setTab] = useState<typeof TABS[number]>('Overview');
+  const searchParams = useSearchParams();
+  const initialTab = TABS.find(t => t === searchParams.get('tab')) ?? 'Overview';
+  const [tab, setTab] = useState<typeof TABS[number]>(initialTab);
   const [showAddTask, setShowAddTask] = useState(false);
   const { record, loading, updateTask, updateWelcome, addTask, uploadDocument, setCompensation } = useOnboardingRecord(recordId);
   const { documents, loading: docsLoading, verify } = useOnboardingRecordDocuments(tab === 'Documents' ? recordId : null);

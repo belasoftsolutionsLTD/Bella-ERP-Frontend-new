@@ -14,7 +14,7 @@ import type { Task, TaskStatus, TaskPriority, TaskType, TaskComment, ActivityEnt
 // ── Style constants ───────────────────────────────────────────────────────────
 const STATUS_CFG: Record<TaskStatus, { label: string; color: string; icon: React.ElementType }> = {
   not_started: { label: 'Not Started', color: 'bg-brand-bg-muted text-brand-text-secondary',  icon: Circle },
-  in_progress: { label: 'In Progress', color: 'bg-brand-primary/10 text-brand-primary', icon: Clock },
+  in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-600', icon: Clock },
   completed:   { label: 'Completed',   color: 'bg-status-success-bg text-status-success-text',icon: CheckCircle2 },
   overdue:     { label: 'Overdue',     color: 'bg-status-danger-bg text-status-danger-text',    icon: AlertTriangle },
   blocked:     { label: 'Blocked',     color: 'bg-brand-bg-soft text-brand-text-secondary',   icon: Ban },

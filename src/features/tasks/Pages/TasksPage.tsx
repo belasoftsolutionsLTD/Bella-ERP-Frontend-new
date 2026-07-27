@@ -22,7 +22,7 @@ import TaskAnalytics from '../Components/TaskAnalytics';
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<TaskStatus, { label: string; color: string; dot: string; icon: React.ElementType }> = {
   not_started: { label: 'Not Started', color: 'text-brand-text-secondary bg-brand-bg-soft',  dot: 'bg-slate-500',   icon: Circle },
-  in_progress: { label: 'In Progress', color: 'text-brand-primary bg-brand-primary/10', dot: 'bg-brand-primary',icon: Clock },
+  in_progress: { label: 'In Progress', color: 'text-blue-600 bg-blue-100', dot: 'bg-blue-500',icon: Clock },
   completed:   { label: 'Completed',   color: 'text-status-success-text bg-status-success-bg',dot:'bg-emerald-500',icon: CheckCircle2 },
   overdue:     { label: 'Overdue',     color: 'text-status-danger-text bg-status-danger-bg',   dot: 'bg-red-500',     icon: AlertTriangle },
   blocked:     { label: 'Blocked',     color: 'text-brand-text-muted bg-brand-bg-soft',  dot: 'bg-slate-600',   icon: Ban },
@@ -338,8 +338,9 @@ function CalendarView({ tasks }: { tasks: Task[] }) {
               <div className="mt-1 space-y-0.5">
                 {dayTasks.slice(0, 3).map(t => (
                   <div key={t._id} className={cn('text-[9px] px-1 py-0.5 rounded truncate leading-tight',
-                    t.status === 'completed' ? 'bg-status-success-bg text-status-success-text' :
-                    t.status === 'overdue'   ? 'bg-status-danger-bg text-status-danger-text' :
+                    t.status === 'completed'   ? 'bg-status-success-bg text-status-success-text' :
+                    t.status === 'overdue'     ? 'bg-status-danger-bg text-status-danger-text' :
+                    t.status === 'in_progress' ? 'bg-blue-100 text-blue-600' :
                     'bg-brand-primary/10 text-brand-primary')}>
                     {t.title}
                   </div>

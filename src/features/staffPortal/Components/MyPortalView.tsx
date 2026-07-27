@@ -27,6 +27,7 @@ import CommunicationPage from '@/features/communication/Pages/CommunicationPage'
 import InboxPage from '@/features/inbox/Pages/InboxPage';
 import AwardsPage from '@/features/awards/Pages/AwardsPage';
 import { MyPayslipsPanel } from '@/features/payroll/Components/MyPayslipsPanel';
+import { ProjectChat, type ProjectChatContext } from '@/features/projects/Components/ProjectChat';
 import { AttendanceGrid } from '@/features/attendance/Components/AttendanceGrid';
 import { ClockInWidget } from '@/features/attendance/Components/ClockInWidget';
 import { TimesheetsTab } from '@/features/attendance/Components/TimesheetsTab';
@@ -539,6 +540,7 @@ function ProfilePanel({ profile, onSave, onEditPayment, onContactHR, onNavigate 
   // passport, which is genuinely optional for anyone who doesn't have one).
   const hasPaymentDetails = !!(profile.bankAccountNumber || profile.mpesaNumber || profile.paypalEmail || profile.cryptoWalletAddress);
   const completenessChecklist: { label: string; done: boolean; section: Section }[] = [
+    { label: 'Profile picture',           done: !!profile.photoPath,                           section: 'profile' },
     { label: 'Preferred name',           done: !!profile.preferredName,                       section: 'profile' },
     { label: 'Phone number',              done: !!profile.phone,                               section: 'profile' },
     { label: 'Gender',                    done: !!profile.gender,                              section: 'profile' },
@@ -1287,6 +1289,27 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
   const [saving, setSaving] = useState(false);
   const [localEntries, setLocalEntries] = useState<Record<string, MyProjectTimeEntry[]>>({});
 
+  // Chat lives on the same GET /projects/:id the HR-side Project Detail page uses (now
+  // gated by real membership on the backend — see getProject's canAccessProject fix),
+  // fetched lazily per project the first time its chat is opened, since MyProject (from
+  // /me/projects) doesn't carry the full members list a chat needs.
+  const [chatOpenFor, setChatOpenFor] = useState<string | null>(null);
+  const [chatContexts, setChatContexts] = useState<Record<string, ProjectChatContext>>({});
+  const [chatLoading, setChatLoading] = useState<string | null>(null);
+
+  const toggleChat = (projectId: string) => {
+    if (chatOpenFor === projectId) { setChatOpenFor(null); return; }
+    setChatOpenFor(projectId);
+    if (chatContexts[projectId]) return;
+    setChatLoading(projectId);
+    apiCallFunction<any>({
+      url: `${API_BASE_URL}/projects/${projectId}`,
+      showToast: false,
+      thenFn: r => { if (r?.data) setChatContexts(prev => ({ ...prev, [projectId]: r.data })); },
+      finallyFn: () => setChatLoading(null),
+    });
+  };
+
   const entries = (id: string) => localEntries[id] ?? projects.find(p => p._id === id)?.myRecentEntries ?? [];
 
   if (projects.length === 0)
@@ -1371,6 +1394,28 @@ function MyProjectsPanel({ projects }: { projects: MyProject[] }) {
                 {p.description && (
                   <p className="text-sm text-foreground/60 italic">{p.description}</p>
                 )}
+
+                {/* Chat */}
+                <div>
+                  <button
+                    onClick={() => toggleChat(p._id)}
+                    className="flex items-center gap-2 h-9 px-4 rounded-xl border bg-white text-sm font-semibold text-foreground/70 hover:bg-gray-50 transition-colors"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    {chatOpenFor === p._id ? 'Hide Chat' : 'Open Chat'}
+                  </button>
+                  {chatOpenFor === p._id && (
+                    chatLoading === p._id ? (
+                      <div className="mt-3 flex items-center justify-center h-32 rounded-xl border bg-white">
+                        <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
+                      </div>
+                    ) : chatContexts[p._id] ? (
+                      <div className="mt-3">
+                        <ProjectChat project={chatContexts[p._id]} />
+                      </div>
+                    ) : null
+                  )}
+                </div>
 
                 {/* Log time form */}
                 <div className="rounded-xl border bg-white p-4 space-y-3">
