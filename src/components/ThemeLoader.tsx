@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-const PUBLIC_THEME_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api') + '/public/theme';
+const PUBLIC_THEME_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://workfola.com/api') + '/public/theme';
 
 function hexToChannels(hex: string): string {
   const c = hex.replace('#', '').padEnd(6, '0');
