@@ -9,12 +9,14 @@ import { cn } from '@/lib/utils';
 interface TimesheetEntry {
   date: string;
   projectName: string;
+  projectEditable?: boolean;
+  venue?: string;
+  venueEditable?: boolean;
   startTime: string;
   endTime: string;
   breakMinutes: number;
   totalMinutes: number;
   description: string;
-  isLocked?: boolean;
 }
 
 interface Timesheet {
@@ -51,14 +53,8 @@ function fmtDuration(mins: number) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-function calcMins(start: string, end: string, breakMins: number): number {
-  if (!start || !end) return 0;
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  return Math.max(0, eh * 60 + em - (sh * 60 + sm) - breakMins);
-}
-
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const GRID_COLS = 'grid-cols-[70px_1fr_1fr_65px_65px_55px_1fr]';
 
 export function TimesheetsTab() {
   const [weekOffset, setWeekOffset] = useState(0);
@@ -103,45 +99,44 @@ export function TimesheetsTab() {
 
   useEffect(() => { fetchSheet(); }, [fetchSheet]);
 
-  const upsertEntry = (date: string, field: keyof TimesheetEntry, value: string | number) => {
+  // Start/End, Break and Hours are always system-captured from the clock-in/out system
+  // and can never be hand-typed. Description is always editable. Project/Venue are
+  // editable only for a day with no shift on file at all (entry.project/venueEditable —
+  // the backend refuses to persist a manual value once a shift exists for that day).
+  const updateField = (date: string, field: 'description' | 'projectName' | 'venue', value: string) => {
     setSheet(prev => {
       if (!prev) return prev;
       const existing = prev.entries.find(e => e.date === date);
-      let entries: TimesheetEntry[];
-      if (existing) {
-        entries = prev.entries.map(e => {
-          if (e.date !== date) return e;
-          const updated = { ...e, [field]: value };
-          if (field === 'startTime' || field === 'endTime' || field === 'breakMinutes') {
-            updated.totalMinutes = calcMins(
-              field === 'startTime' ? String(value) : e.startTime,
-              field === 'endTime'   ? String(value) : e.endTime,
-              field === 'breakMinutes' ? Number(value) : e.breakMinutes
-            );
-          }
-          return updated;
-        });
-      } else {
-        const newEntry: TimesheetEntry = {
-          date, projectName: 'General', startTime: '', endTime: '', breakMinutes: 0, totalMinutes: 0, description: '',
-          [field]: value,
-        };
-        entries = [...prev.entries, newEntry];
-      }
-      return { ...prev, entries, totalMinutes: entries.reduce((s, e) => s + e.totalMinutes, 0) };
+      const entries = existing
+        ? prev.entries.map(e => (e.date === date ? { ...e, [field]: value } : e))
+        : [...prev.entries, {
+            date, projectName: '', projectEditable: true, venue: '', venueEditable: true,
+            startTime: '', endTime: '', breakMinutes: 0, totalMinutes: 0, description: '',
+            [field]: value,
+          }];
+      return { ...prev, entries };
     });
   };
+  const setDescription = (date: string, description: string) => updateField(date, 'description', description);
+  const setProject = (date: string, projectName: string) => updateField(date, 'projectName', projectName);
+  const setVenue = (date: string, venue: string) => updateField(date, 'venue', venue);
 
   const saveSheet = () => {
     if (!sheet) return;
     setSaving(true);
+    const descriptions = Object.fromEntries(sheet.entries.map(e => [e.date, e.description || '']));
+    const manualEntries = Object.fromEntries(
+      sheet.entries.filter(e => e.projectEditable || e.venueEditable)
+        .map(e => [e.date, { project: e.projectEditable ? (e.projectName || '') : '', venue: e.venueEditable ? (e.venue || '') : '' }])
+    );
     apiCallFunction({
       url: `${API_BASE_URL}/attendance/timesheets`,
       method: 'POST',
       data: {
         employeeId: 'me', // backend resolves from JWT
         weekStart:  monday.toISOString(),
-        entries:    sheet.entries,
+        descriptions,
+        manualEntries,
         status:     'draft',
       },
       thenFn: () => fetchSheet(),
@@ -215,7 +210,7 @@ export function TimesheetsTab() {
       {!isLocked && sheet && (
         <p className="text-xs text-brand-text-muted flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          Click any cell to fill in your hours for the day, then hit <span className="text-brand-text-secondary font-semibold">Save Draft</span>. Submit for approval when the week is complete.
+          Hours are captured automatically from your clock in/out. Project/Venue lock to your scheduled shift when you have one — otherwise fill them in yourself, add a note for the day, then hit <span className="text-brand-text-secondary font-semibold">Save Draft</span>. Submit for approval when the week is complete.
         </p>
       )}
 
@@ -227,8 +222,8 @@ export function TimesheetsTab() {
       ) : (
         <div className="bg-brand-bg-soft border border-brand-border rounded-2xl overflow-hidden">
           {/* Column headers */}
-          <div className="grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-b border-brand-border bg-brand-bg-soft/50">
-            {['Day', 'Project', 'Start', 'End', 'Break', 'Notes'].map(h => (
+          <div className={cn('grid gap-0 border-b border-brand-border bg-brand-bg-soft/50', GRID_COLS)}>
+            {['Day', 'Project', 'Venue', 'Start', 'End', 'Break', 'Notes'].map(h => (
               <div key={h} className="px-3 py-2.5 text-[11px] font-semibold text-brand-text-muted uppercase tracking-wide">{h}</div>
             ))}
           </div>
@@ -240,6 +235,7 @@ export function TimesheetsTab() {
             const isWeekend = dayIdx >= 5;
             const isToday = date === new Date().toISOString().split('T')[0];
 
+            const readonlyCls = 'text-sm text-brand-text-secondary truncate';
             const fieldCls = cn(
               'h-8 w-full bg-brand-bg-soft/60 border border-brand-border text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:ring-1 focus:ring-brand-primary focus:border-brand-primary hover:border-slate-500 rounded px-2 transition-colors',
               (isLocked || isWeekend) ? 'opacity-40 pointer-events-none cursor-not-allowed' : 'cursor-text'
@@ -248,7 +244,8 @@ export function TimesheetsTab() {
             return (
               <div key={date}
                 className={cn(
-                  'grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-b border-brand-border/60 hover:bg-brand-bg-soft/30 transition-colors',
+                  'grid gap-0 border-b border-brand-border/60 hover:bg-brand-bg-soft/30 transition-colors',
+                  GRID_COLS,
                   isWeekend && 'bg-brand-bg-soft/20',
                   isToday && 'bg-brand-primary/5',
                 )}>
@@ -259,32 +256,39 @@ export function TimesheetsTab() {
                   <p className="text-[10px] text-brand-text-muted">{d.getDate()}</p>
                 </div>
 
-                {/* Editable cells */}
+                {/* Project + Venue: locked read-only once a shift exists for the day (system-
+                    captured from that shift/clock-in) — otherwise there's nothing to derive
+                    from, so it's an open text field instead of a permanent "—" */}
                 <div className="px-2 py-1.5 flex items-center">
-                  <input value={entry?.projectName || ''} placeholder="e.g. General"
-                    onChange={e => upsertEntry(date, 'projectName', e.target.value)}
-                    className={fieldCls} />
+                  {entry?.projectEditable === false ? (
+                    <p className={readonlyCls}>{entry.projectName || '—'}</p>
+                  ) : (
+                    <input value={entry?.projectName || ''} placeholder="Project"
+                      onChange={e => setProject(date, e.target.value)}
+                      className={fieldCls} />
+                  )}
                 </div>
                 <div className="px-2 py-1.5 flex items-center">
-                  <input type="time" value={entry?.startTime || ''} step="60"
-                    placeholder="08:00"
-                    onChange={e => upsertEntry(date, 'startTime', e.target.value)}
-                    className={fieldCls} />
+                  {entry?.venueEditable === false ? (
+                    <p className={cn(readonlyCls, 'text-brand-text-muted')}>{entry.venue || '—'}</p>
+                  ) : (
+                    <input value={entry?.venue || ''} placeholder="Venue"
+                      onChange={e => setVenue(date, e.target.value)}
+                      className={fieldCls} />
+                  )}
                 </div>
                 <div className="px-2 py-1.5 flex items-center">
-                  <input type="time" value={entry?.endTime || ''} step="60"
-                    placeholder="17:00"
-                    onChange={e => upsertEntry(date, 'endTime', e.target.value)}
-                    className={fieldCls} />
+                  <p className={readonlyCls}>{entry?.startTime || '--:--'}</p>
                 </div>
                 <div className="px-2 py-1.5 flex items-center">
-                  <input type="number" min={0} max={120} value={entry?.breakMinutes || ''} placeholder="0"
-                    onChange={e => upsertEntry(date, 'breakMinutes', Number(e.target.value))}
-                    className={cn(fieldCls, 'text-center')} />
+                  <p className={readonlyCls}>{entry?.endTime || '--:--'}</p>
+                </div>
+                <div className="px-2 py-1.5 flex items-center justify-center">
+                  <p className={readonlyCls}>{entry?.breakMinutes || 0}</p>
                 </div>
                 <div className="px-2 py-1.5 flex items-center justify-between">
                   <input value={entry?.description || ''} placeholder="What did you work on?"
-                    onChange={e => upsertEntry(date, 'description', e.target.value)}
+                    onChange={e => setDescription(date, e.target.value)}
                     className={fieldCls} />
                   {entry?.totalMinutes ? (
                     <span className="text-[11px] text-brand-text-muted shrink-0 ml-2">{fmtDuration(entry.totalMinutes)}</span>
@@ -296,9 +300,9 @@ export function TimesheetsTab() {
 
           {/* Totals row */}
           {sheet && (
-            <div className="grid grid-cols-[80px_1fr_80px_80px_60px_1fr] gap-0 border-t-2 border-brand-border-strong bg-brand-bg-soft/60">
+            <div className={cn('grid gap-0 border-t-2 border-brand-border-strong bg-brand-bg-soft/60', GRID_COLS)}>
               <div className="px-3 py-2.5 text-xs font-bold text-brand-text-secondary uppercase tracking-wide">Total</div>
-              <div className="col-span-4" />
+              <div className="col-span-5" />
               <div className="px-3 py-2.5 flex items-center justify-end">
                 <span className={cn('text-sm font-bold', totalMins > 0 ? 'text-indigo-300' : 'text-brand-text-muted')}>
                   {fmtDuration(totalMins)}

@@ -10,7 +10,7 @@ import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { DEPARTMENTS } from '@/features/employees/Components/EmployeeSchema';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
@@ -502,21 +502,20 @@ function AnalyticsTab() {
           </div>
         )}
 
-        {/* Department bar chart */}
+        {/* Department breakdown */}
         {deptData.length > 0 && (
           <div className="bg-brand-bg-soft border border-brand-border/60 rounded-2xl p-5">
             <h3 className="text-sm font-bold text-brand-text mb-4">Spend by Department</h3>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={deptData} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-                <XAxis type="number" tickFormatter={fmtAxis} tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} width={90} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="amount" radius={[0, 6, 6, 0]}>
+              <PieChart>
+                <Pie data={deptData} dataKey="amount" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={46} paddingAngle={2}>
                   {deptData.map((_: any, i: number) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={0.8} />
+                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
-                </Bar>
-              </BarChart>
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         )}
@@ -1021,7 +1020,7 @@ function ClaimDetailDrawer({ claim, isHR, canApprove, onClose, onRefresh, onDisp
                   <div key={a.level} className={cn('flex items-center justify-between gap-3 py-1.5 border-b border-brand-border last:border-0', isCurrent && 'opacity-100')}>
                     <div className="min-w-0">
                       <p className="text-xs text-brand-text truncate">
-                        Level {a.level} — {a.approverName || a.approverRole || 'Unassigned'}
+                        Level {a.level} — {isHR ? (a.approverName || a.approverRole || 'Unassigned') : (a.approverRole || 'Unassigned')}
                         {isCurrent && <span className="ml-1.5 text-[10px] text-indigo-400 font-bold">CURRENT</span>}
                       </p>
                       {a.comment && <p className="text-[11px] text-brand-text-muted truncate">{a.comment}</p>}

@@ -59,7 +59,7 @@ export function EmployeeDetailTabs({ employee, onChanged }: { employee: Employee
         {active === 'profile'     && <ProfileTab employee={employee} />}
         {active === 'work'        && <WorkTab employee={employee} />}
         {active === 'documents'   && <DocumentsTab employeeId={employee._id} documents={(employee as any).documents ?? []} />}
-        {active === 'leave'       && <LeaveTab employeeId={employee._id} />}
+        {active === 'leave'       && <LeaveTab employeeId={employee._id} employeeName={employee.fullName} staffNumber={employee.staffNumber} />}
         {active === 'payroll'     && <PayrollTab employeeId={employee._id} />}
         {active === 'performance' && <PerformanceTab employee={employee} />}
         {active === 'assets'      && <AssetsTab employeeId={employee._id} />}

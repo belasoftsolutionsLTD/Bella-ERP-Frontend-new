@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
 import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, CHART_COLORS } from '../Components/shared';
@@ -48,14 +48,15 @@ export default function TrainingReportsPage() {
         <>
           {byDept && (
             <ChartCard title="Mandatory Course Completion Rate by Department">
-              <ResponsiveContainer width="100%" height={Math.max(180, byDept.length * 34)}>
-                <BarChart data={byDept} layout="vertical" margin={{ left: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} domain={[0, 100]} />
-                  <YAxis type="category" dataKey="department" width={120} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+              <ResponsiveContainer width="100%" height={Math.max(220, byDept.length * 20)}>
+                <PieChart>
+                  <Pie data={byDept} dataKey="completionRate" nameKey="department" cx="50%" cy="50%"
+                    outerRadius={85} innerRadius={48} paddingAngle={2}>
+                    {byDept.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="completionRate" name="Completion %" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
               </ResponsiveContainer>
             </ChartCard>
           )}
@@ -70,14 +71,24 @@ export default function TrainingReportsPage() {
           {engagement && (
             <>
               <ChartCard title="Most Enrolled Courses">
-                <ResponsiveContainer width="100%" height={Math.max(180, engagement.mostEnrolled.length * 30)}>
-                  <BarChart data={engagement.mostEnrolled} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
-                    <YAxis type="category" dataKey="title" width={160} tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={(() => {
+                        const sorted = [...engagement.mostEnrolled].sort((a, b) => b.enrollments - a.enrollments);
+                        const topN = sorted.slice(0, 7);
+                        const rest = sorted.slice(7);
+                        const restTotal = rest.reduce((s, c) => s + c.enrollments, 0);
+                        return restTotal > 0 ? [...topN, { title: 'Other', enrollments: restTotal }] : topN;
+                      })()}
+                      dataKey="enrollments" nameKey="title" cx="50%" cy="50%"
+                      outerRadius={90} innerRadius={50} paddingAngle={2}
+                    >
+                      {engagement.mostEnrolled.slice(0, 8).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="enrollments" name="Enrollments" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
               <ChartCard title="Enrollment &amp; Completion Trend">

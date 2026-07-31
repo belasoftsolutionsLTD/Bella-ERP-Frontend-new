@@ -9,7 +9,7 @@ import {
   Settings, Megaphone, BarChart2, Award, ListTodo,
   Receipt, Search, LogOut, Clock, ChevronLeft, ChevronRight,
   GitBranch, FolderOpen, UserMinus, Building2, ShoppingCart,
-  Briefcase, CalendarDays, Monitor, BookOpen, Bell, Inbox,
+  Briefcase, CalendarDays, Monitor, BookOpen, Bell, Inbox, Boxes, CreditCard, Kanban, Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +29,15 @@ export function HrSidebar() {
   const [companyName, setCompanyName] = useState('');
   const [hasLogo, setHasLogo]       = useState(false);
   const [search, setSearch]         = useState('');
+  // Which nav groups are collapsed — same Set-based toggle pattern as the Staff
+  // Portal's department groups. Defaults to all-open (empty set) so nothing changes
+  // visually until a user actually collapses a group themselves.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (id: string) => setCollapsedGroups((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const locale   = useLocale();
   const pathname = usePathname();
@@ -47,6 +56,29 @@ export function HrSidebar() {
       catchFn: () => {},
     });
   }, []);
+
+  // Inventory/POS/CRM all resolve access per-request from role + explicit assignment
+  // (isInventoryClerk, posLocationIds, or just being a manager) rather than a fixed
+  // role list — admin/manager/dept_head always have SOME access so they always see the
+  // nav item, but a plain "staff" account often has none at all. Showing the item
+  // anyway and letting the page 403 was confusing ("why do I see a module I can't use
+  // and that has nothing to do with me") — so for staff specifically, ask each module
+  // directly and only show the ones they can actually get into.
+  const [staffModuleAccess, setStaffModuleAccess] = useState<{ inventory: boolean; pos: boolean; crm: boolean; logistics: boolean }>({ inventory: true, pos: true, crm: true, logistics: true });
+  useEffect(() => {
+    if (role !== 'staff') return;
+    const check = (path: string, key: 'inventory' | 'pos' | 'crm' | 'logistics') => apiCallFunction<any>({
+      url: `${API_BASE_URL}/${path}/my-access`,
+      showToast: false,
+      thenFn: (r) => setStaffModuleAccess((prev) => ({ ...prev, [key]: !!r.data?.relevant })),
+      catchFn: () => setStaffModuleAccess((prev) => ({ ...prev, [key]: false })),
+    });
+    setStaffModuleAccess({ inventory: false, pos: false, crm: false, logistics: false }); // hide until each check resolves, rather than flash-then-hide
+    check('inventory', 'inventory');
+    check('pos', 'pos');
+    check('crm', 'crm');
+    check('logistics', 'logistics');
+  }, [role]);
 
   // ── Nav definitions ──────────────────────────────────────────────────────────
   // "My Work" is personal self-service (your own profile, leave, attendance, tasks) —
@@ -89,10 +121,34 @@ export function HrSidebar() {
 
   const financeItems: NavItem[] = [
     { href: `/${locale}/payroll`,          label: 'Payroll',            icon: DollarSign, roles: ['super_admin', 'hr_manager'] },
+    // department_head gets 'viewer' access (department-scoped reports only) inside the
+    // module itself — included here, unlike Payroll, since it's a real (if limited) use.
+    { href: `/${locale}/accounting`,       label: 'Accounting',         icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/expenses`,         label: 'Expenses',           icon: Receipt,    roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/finance/workspace`,label: 'Financial Workspace',icon: Building2,  roles: ['super_admin', 'hr_manager'] },
     { href: `/${locale}/projects`,         label: 'Projects',           icon: Briefcase,  roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/spending`,         label: 'Procurement',        icon: ShoppingCart, roles: ['super_admin', 'hr_manager', 'department_head'] },
+    // super_admin/hr_manager/department_head always have SOME access level in these
+    // three modules by role alone, so they always see the item. A plain "staff" account
+    // usually doesn't (no isInventoryClerk flag, no posLocationIds, not a CRM-eligible
+    // manager) — staffModuleAccess (checked above via each module's own /my-access) hides
+    // the item entirely for a staff user who genuinely has nothing to do in that module,
+    // rather than showing it and letting the page 403.
+    ...(role !== 'staff' || staffModuleAccess.inventory
+      ? [{ href: `/${locale}/inventory`, label: 'Inventory', icon: Boxes, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] }]
+      : []),
+    ...(role !== 'staff' || staffModuleAccess.pos
+      ? [{ href: `/${locale}/pos`, label: 'Point of Sale', icon: CreditCard, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] }]
+      : []),
+    ...(role !== 'staff' || staffModuleAccess.crm
+      ? [{ href: `/${locale}/crm`, label: 'CRM', icon: Kanban, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] }]
+      : []),
+    // Same posture as Inventory/POS/CRM above — department_head always has 'manager'
+    // access (their own team's routes/shipments), a plain staff account only shows this
+    // if they're actually assigned as a vehicle's driver.
+    ...(role !== 'staff' || staffModuleAccess.logistics
+      ? [{ href: `/${locale}/logistics`, label: 'Logistics', icon: Truck, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] }]
+      : []),
   ];
 
   const companyItems: NavItem[] = [
@@ -164,6 +220,65 @@ export function HrSidebar() {
     );
   };
 
+  // Each group gets its own fixed, consistent color (never reassigned/cycled — same
+  // identity every render) so the groups are distinguishable at a glance rather than
+  // one uniform gray wall of text. Colors are the same colorblind-validated categorical
+  // set used for charts elsewhere in the app, hand-matched to each group rather than
+  // taken in raw palette order (e.g. amber for Time, emerald for Finance).
+  const GROUP_COLORS: Record<string, string> = {
+    overview: '#6366f1',
+    myTeam: '#0ea5e9',
+    myWork: '#ec4899',
+    hrPeople: '#8b5cf6',
+    timeWork: '#f59e0b',
+    finance: '#10b981',
+    company: '#ef4444',
+  };
+  // Three of the colors above (sky/amber/emerald) don't hit 3:1 contrast against a
+  // white sidebar at small text sizes — fine for a decorative dot/chevron, not fine as
+  // the label's actual reading color. Darker text-safe variants of the same hue for
+  // those three only; the rest of GROUP_COLORS already reads fine as text.
+  const GROUP_TEXT_COLORS: Record<string, string> = {
+    myTeam: '#0369a1',
+    timeWork: '#b45309',
+    finance: '#047857',
+  };
+
+  // A named group of nav items with a clickable, collapsible header — same interaction
+  // as the Staff Portal's department groups (chevron rotates 90° when open, click the
+  // header to toggle). When the whole sidebar is icon-only-collapsed, group toggling
+  // doesn't make sense, so it falls back to a plain divider + icons instead.
+  const CollapsibleSection = ({ id, label, items }: { id: string; label: string; items: NavItem[] }) => {
+    if (!items.length) return null;
+    if (collapsed) {
+      return (
+        <>
+          <div className="my-2 h-px bg-brand-border" />
+          {items.map(item => <NavLink key={item.href} {...item} />)}
+        </>
+      );
+    }
+    const isOpen = !collapsedGroups.has(id);
+    const color = GROUP_COLORS[id] ?? '#64748B';
+    const textColor = GROUP_TEXT_COLORS[id] ?? color;
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => toggleGroup(id)}
+          className="w-full flex items-center gap-1.5 px-3 pt-5 pb-1.5 select-none group"
+        >
+          <ChevronRight className="h-2.5 w-2.5 shrink-0 transition-transform" style={{ color: textColor, transform: isOpen ? 'rotate(90deg)' : undefined }} />
+          <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] transition-colors" style={{ color: textColor }}>
+            {label}
+          </span>
+        </button>
+        {isOpen && items.map(item => <NavLink key={item.href} {...item} />)}
+      </div>
+    );
+  };
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full overflow-hidden">
 
@@ -202,29 +317,14 @@ export function HrSidebar() {
       <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-300">
 
         {/* Overview — always first */}
-        {visibleOverview.length > 0 && (
-          <>
-            <SectionLabel label="Overview" />
-            {visibleOverview.map(item => <NavLink key={item.href} {...item} />)}
-          </>
-        )}
+        <CollapsibleSection id="overview" label="Overview" items={visibleOverview} />
 
         {/* My Team — management tooling, shown above My Work so it isn't mistaken for
             "more personal stuff" when both sections are visible */}
-        {visibleMyTeam.length > 0 && (
-          <>
-            <SectionLabel label="My Team" />
-            {visibleMyTeam.map(item => <NavLink key={item.href} {...item} />)}
-          </>
-        )}
+        <CollapsibleSection id="myTeam" label="My Team" items={visibleMyTeam} />
 
         {/* My Work — personal self-service, distinct from My Team above */}
-        {visibleMyWork.length > 0 && (
-          <>
-            <SectionLabel label="My Work" />
-            {visibleMyWork.map(item => <NavLink key={item.href} {...item} />)}
-          </>
-        )}
+        <CollapsibleSection id="myWork" label="My Work" items={visibleMyWork} />
 
         {/* Search mode: flat list across all categories */}
         {search.trim() ? (
@@ -241,37 +341,10 @@ export function HrSidebar() {
           </>
         ) : (
           <>
-            {/* HR & People */}
-            {visibleHrPeople.length > 0 && (
-              <>
-                <SectionLabel label="HR & People" />
-                {visibleHrPeople.map(item => <NavLink key={item.href} {...item} />)}
-              </>
-            )}
-
-            {/* Time & Performance */}
-            {visibleTimeWork.length > 0 && (
-              <>
-                <SectionLabel label="Time & Performance" />
-                {visibleTimeWork.map(item => <NavLink key={item.href} {...item} />)}
-              </>
-            )}
-
-            {/* Finance */}
-            {visibleFinance.length > 0 && (
-              <>
-                <SectionLabel label="Finance" />
-                {visibleFinance.map(item => <NavLink key={item.href} {...item} />)}
-              </>
-            )}
-
-            {/* Company */}
-            {visibleCompany.length > 0 && (
-              <>
-                <SectionLabel label="Company" />
-                {visibleCompany.map(item => <NavLink key={item.href} {...item} />)}
-              </>
-            )}
+            <CollapsibleSection id="hrPeople" label="HR & People" items={visibleHrPeople} />
+            <CollapsibleSection id="timeWork" label="Time & Performance" items={visibleTimeWork} />
+            <CollapsibleSection id="finance" label="Finance" items={visibleFinance} />
+            <CollapsibleSection id="company" label="Company" items={visibleCompany} />
           </>
         )}
       </nav>

@@ -1,12 +1,17 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+} from 'recharts';
 import { useLeaderboard } from '../Hooks/useTrainingAnalytics';
 import { useCourses } from '../Hooks/useCourses';
 import { useCourseAnalytics } from '../Hooks/useTrainingAnalytics';
 import { useComplianceReport } from '../Hooks/useTrainingAnalytics';
 import { useEnrollments } from '../Hooks/useEnrollments';
+
+const CHART_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16'];
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -59,14 +64,14 @@ function CategoryCompletion() {
 
   return (
     <ChartCard title="Avg Completion Rate by Category">
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={byCategory}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-          <XAxis dataKey="category" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+      <ResponsiveContainer width="100%" height={260}>
+        <RadarChart data={byCategory}>
+          <PolarGrid stroke="#e2e8f0" />
+          <PolarAngleAxis dataKey="category" tick={{ fontSize: 11 }} />
+          <PolarRadiusAxis tick={{ fontSize: 10 }} />
+          <Radar dataKey="avgCompletion" name="Avg Completion %" stroke={CHART_COLORS[1]} fill={CHART_COLORS[1]} fillOpacity={0.4} />
           <Tooltip />
-          <Bar dataKey="avgCompletion" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-        </BarChart>
+        </RadarChart>
       </ResponsiveContainer>
     </ChartCard>
   );

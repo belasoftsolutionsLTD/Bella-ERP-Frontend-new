@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useReportQuery } from '../Hooks/useReportQuery';
 import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
@@ -42,16 +42,17 @@ export default function AttendanceReportsPage() {
 
           {summary && (
             <ChartCard title="Present / Absent / Late by Department (this month)" action={<ExportCSVButton rows={summary} filename="attendance-summary.csv" />}>
-              <ResponsiveContainer width="100%" height={Math.max(200, summary.length * 40)}>
-                <BarChart data={summary} layout="vertical" margin={{ left: 24 }}>
+              <ResponsiveContainer width="100%" height={Math.max(220, summary.length * 40)}>
+                <AreaChart data={summary} margin={{ left: 0, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <YAxis type="category" dataKey="label" width={120} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="present" stackId="a" name="Present" fill={CHART_COLORS[2]} />
-                  <Bar dataKey="late" stackId="a" name="Late" fill={CHART_COLORS[3]} />
-                  <Bar dataKey="absent" stackId="a" name="Absent" fill={CHART_COLORS[4]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Area type="monotone" dataKey="present" stackId="a" name="Present" stroke={CHART_COLORS[2]} fill={CHART_COLORS[2]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="late" stackId="a" name="Late" stroke={CHART_COLORS[3]} fill={CHART_COLORS[3]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="absent" stackId="a" name="Absent" stroke={CHART_COLORS[4]} fill={CHART_COLORS[4]} fillOpacity={0.6} />
+                </AreaChart>
               </ResponsiveContainer>
             </ChartCard>
           )}
@@ -61,14 +62,15 @@ export default function AttendanceReportsPage() {
               {overtime.length === 0 ? (
                 <p className="text-sm text-slate-500 text-center py-10">No overtime recorded this month.</p>
               ) : (
-                <ResponsiveContainer width="100%" height={Math.max(180, overtime.length * 34)}>
-                  <BarChart data={overtime} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                    <YAxis type="category" dataKey="label" width={120} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <ResponsiveContainer width="100%" height={Math.max(220, overtime.length * 20)}>
+                  <PieChart>
+                    <Pie data={overtime} dataKey="overtimeHours" nameKey="label" cx="50%" cy="50%"
+                      outerRadius={85} innerRadius={48} paddingAngle={2}>
+                      {overtime.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="overtimeHours" name="Hours" fill={CHART_COLORS[5]} radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>

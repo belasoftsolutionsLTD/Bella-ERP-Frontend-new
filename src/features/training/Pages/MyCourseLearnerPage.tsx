@@ -19,6 +19,17 @@ const MODULE_ICONS: Record<string, any> = { video: PlayCircle, document: FileTex
 // Complete" button on a text module becomes clickable — never to auto-complete it.
 const AVERAGE_READING_WPM = 200;
 
+// Fallback minimum wait for an embedded (YouTube/Vimeo) video, used only if the
+// platform's postMessage API never becomes available (see the *VideoContent safety-net
+// timers) — real watch-progress tracking is the source of truth otherwise.
+const DEFAULT_VIDEO_GATE_MINUTES = 3;
+
+// Minimum time a PDF/document module must stay open before "Mark as Complete" unlocks.
+// There's no reliable page count to time against generically, so this is a flat floor —
+// weaker than the text module's word-count timer, but a large improvement over the
+// single click that used to unlock it instantly.
+const MIN_DOCUMENT_DWELL_MS = 20000;
+
 function countWords(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -98,24 +109,160 @@ function LiveSessionsCourseView({ locale, courseId, courseTitle, enrollment }: {
   );
 }
 
-function VideoContent({ url, onEnded }: { url: string; onEnded: () => void }) {
+// Fraction of real (not wall-clock) watch time required before an embedded video's
+// gate opens — allows normal rounding/replay-skip near the very end without letting
+// someone open the module and walk away for the fallback timer to do the work.
+const EMBED_WATCH_THRESHOLD = 0.9;
+
+function YoutubeVideoContent({ embedUrl, onGateOpen }: { embedUrl: string; onGateOpen: () => void }) {
+  const playerRef = useRef<any>(null);
+  const furthestRef = useRef(0);
+  const openedRef = useRef(false);
+  const elementId = useRef(`yt-player-${Math.random().toString(36).slice(2)}`).current;
+  // Handing an already-built <iframe> to `new YT.Player(iframeEl, {...})` ("adopt an
+  // existing element") turned out unreliable — the player never actually rendered/played
+  // for some videos. Letting YT.Player own iframe creation entirely (the pattern
+  // YouTube's own docs lead with) is the well-tested path, so this targets an empty
+  // container div by id and passes videoId instead of a pre-built src.
+  const videoId = embedUrl.match(/\/embed\/([\w-]+)/)?.[1] ?? '';
+
+  useEffect(() => {
+    openedRef.current = false;
+    furthestRef.current = 0;
+    let cancelled = false;
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+    const open = () => { if (!openedRef.current) { openedRef.current = true; onGateOpen(); } };
+
+    function attachPoll(player: any) {
+      pollTimer = setInterval(() => {
+        if (cancelled) return;
+        try {
+          const duration = player.getDuration?.();
+          const current = player.getCurrentTime?.();
+          if (typeof current === 'number' && current > furthestRef.current) furthestRef.current = current;
+          if (duration > 0 && furthestRef.current >= duration * EMBED_WATCH_THRESHOLD) open();
+        } catch { /* player not ready yet */ }
+      }, 1000);
+    }
+
+    function createPlayer() {
+      if (cancelled || !videoId || !document.getElementById(elementId)) return;
+      const YT = (window as any).YT;
+      playerRef.current = new YT.Player(elementId, {
+        videoId,
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: { enablejsapi: 1, rel: 0 },
+        events: {
+          onReady: (e: any) => attachPoll(e.target),
+          onStateChange: (e: any) => { if (e.data === YT.PlayerState.ENDED) open(); },
+        },
+      });
+    }
+
+    // Real progress tracking is the source of truth; this is only a safety net in case
+    // the IFrame API script never loads (blocked network, ad blocker) — generous enough
+    // that genuine tracking always wins first, but the module still isn't permanently
+    // stuck for a learner whose browser can't reach youtube.com's API script.
+    const fallbackTimer = setTimeout(open, DEFAULT_VIDEO_GATE_MINUTES * 60 * 1000 * 3);
+
+    if ((window as any).YT?.Player) {
+      createPlayer();
+    } else {
+      if (!document.getElementById('youtube-iframe-api-script')) {
+        const tag = document.createElement('script');
+        tag.id = 'youtube-iframe-api-script';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+      }
+      const prevCb = (window as any).onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = () => { prevCb?.(); if (!cancelled) createPlayer(); };
+    }
+
+    return () => {
+      cancelled = true;
+      clearInterval(pollTimer);
+      clearTimeout(fallbackTimer);
+      try { playerRef.current?.destroy?.(); } catch { /* already gone */ }
+    };
+  }, [videoId, elementId, onGateOpen]);
+
+  if (!videoId) return <p className="text-sm text-slate-400">Invalid YouTube URL.</p>;
+
+  return (
+    <div className="w-full rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16 / 9' }}>
+      <div id={elementId} className="w-full h-full" />
+    </div>
+  );
+}
+
+function VimeoVideoContent({ embedUrl, onGateOpen }: { embedUrl: string; onGateOpen: () => void }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const furthestRef = useRef(0);
+  const openedRef = useRef(false);
+
+  useEffect(() => {
+    openedRef.current = false;
+    furthestRef.current = 0;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const open = () => { if (!openedRef.current) { openedRef.current = true; onGateOpen(); } };
+    const post = (method: string, value?: unknown) =>
+      iframe.contentWindow?.postMessage(JSON.stringify({ method, value }), 'https://player.vimeo.com');
+
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== 'https://player.vimeo.com') return;
+      let data: any;
+      try { data = JSON.parse(e.data); } catch { return; }
+      if (data.event === 'ready') {
+        post('addEventListener', 'timeupdate');
+        post('addEventListener', 'ended');
+      } else if (data.event === 'timeupdate' && data.data) {
+        const { seconds, duration } = data.data;
+        if (typeof seconds === 'number' && seconds > furthestRef.current) furthestRef.current = seconds;
+        if (duration > 0 && furthestRef.current >= duration * EMBED_WATCH_THRESHOLD) open();
+      } else if (data.event === 'ended') {
+        open();
+      }
+    }
+
+    window.addEventListener('message', onMessage);
+    // Nudge in case the player's own 'ready' postMessage fired before this listener
+    // attached (Vimeo's protocol doesn't replay it on request otherwise).
+    post('addEventListener', 'ready');
+
+    // Same safety-net rationale as the YouTube branch — real tracking wins first.
+    const fallbackTimer = setTimeout(open, DEFAULT_VIDEO_GATE_MINUTES * 60 * 1000 * 3);
+
+    return () => {
+      window.removeEventListener('message', onMessage);
+      clearTimeout(fallbackTimer);
+    };
+  }, [embedUrl, onGateOpen]);
+
+  return (
+    <div className="w-full rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16 / 9' }}>
+      <iframe
+        ref={iframeRef}
+        src={`${embedUrl}${embedUrl.includes('?') ? '&' : '?'}api=1`}
+        className="w-full h-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    </div>
+  );
+}
+
+function VideoContent({ url, onGateOpen }: { url: string; onGateOpen: () => void }) {
   const embed = resolveVideoEmbed(url);
   // Furthest point actually watched — a ref, not state, since timeupdate fires many
   // times a second and shouldn't trigger re-renders.
   const furthestTimeRef = useRef(0);
 
   if (!embed) return <p className="text-sm text-slate-400">No video URL configured.</p>;
-  if (embed.kind === 'youtube' || embed.kind === 'vimeo') {
-    // A cross-origin iframe embed — there's no way to intercept the platform's own
-    // seek bar or detect true playback end without loading their full player SDKs, so
-    // this can't be gated the same way as a direct upload (see the duration-based
-    // fallback in MyCourseLearnerPage's gating effect instead).
-    return (
-      <div className="w-full rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16 / 9' }}>
-        <iframe src={embed.embedUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-      </div>
-    );
-  }
+  if (embed.kind === 'youtube') return <YoutubeVideoContent embedUrl={embed.embedUrl} onGateOpen={onGateOpen} />;
+  if (embed.kind === 'vimeo') return <VimeoVideoContent embedUrl={embed.embedUrl} onGateOpen={onGateOpen} />;
 
   // Direct file upload — real control over playback. Seeking past the furthest point
   // already watched snaps back (a small grace window absorbs normal buffering jitter
@@ -134,21 +281,41 @@ function VideoContent({ url, onEnded }: { url: string; onEnded: () => void }) {
         const v = e.currentTarget;
         if (v.currentTime > furthestTimeRef.current + 1.5) v.currentTime = furthestTimeRef.current;
       }}
-      onEnded={onEnded}
+      onEnded={onGateOpen}
     />
   );
 }
 
-function ModuleContentView({ module_, onVideoEnded }: { module_: CourseModule; onVideoEnded: () => void }) {
+function DocumentContent({ url, fileName, onOpened }: { url: string; fileName?: string; onOpened: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={() => { setExpanded(true); onOpened(); }}
+        className="inline-flex items-center gap-2 text-brand-primary hover:underline text-sm"
+      >
+        <FileText className="h-4 w-4" /> Open {fileName || 'document'}
+      </button>
+      {expanded && (
+        <iframe
+          src={resolveMediaUrl(url)}
+          title={fileName || 'Document'}
+          className="w-full h-[560px] rounded-lg border border-slate-200"
+        />
+      )}
+    </div>
+  );
+}
+
+function ModuleContentView({ module_, onVideoGateOpen, onDocumentOpened }: { module_: CourseModule; onVideoGateOpen: () => void; onDocumentOpened: () => void }) {
   const c = module_.content || {};
   if (module_.type === 'video') {
-    return c.url ? <VideoContent url={c.url} onEnded={onVideoEnded} /> : <p className="text-sm text-slate-400">No video URL configured.</p>;
+    return c.url ? <VideoContent url={c.url} onGateOpen={onVideoGateOpen} /> : <p className="text-sm text-slate-400">No video URL configured.</p>;
   }
   if (module_.type === 'document') {
     return c.fileUrl ? (
-      <a href={resolveMediaUrl(c.fileUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-brand-primary hover:underline text-sm">
-        <FileText className="h-4 w-4" /> Open {c.fileName || 'document'}
-      </a>
+      <DocumentContent url={c.fileUrl} fileName={c.fileName} onOpened={onDocumentOpened} />
     ) : <p className="text-sm text-slate-400">No document uploaded.</p>;
   }
   if (module_.type === 'text') {
@@ -197,9 +364,15 @@ function QuizModule({ moduleId, enrollmentId, existingProgress, onSubmitted }: {
 export function MyCourseLearnerPage({ locale, courseId }: { locale: string; courseId: string }) {
   const { course, isLoading, mutate } = useCatalogCourse(courseId);
   const { updateProgress } = useMyEnrollments();
-  const { generateCertificate } = useMyCertificates();
+  const { generateCertificate, certificates } = useMyCertificates();
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
-  const [certGenerated, setCertGenerated] = useState(false);
+  const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
+  // pdfOpened drives whether the document viewer itself is shown; pdfGateOpen only
+  // flips true after MIN_DOCUMENT_DWELL_MS of it staying open — a single click used to
+  // be enough to unlock "Mark as Complete" with zero actual reading time.
+  const [pdfOpened, setPdfOpened] = useState<Record<string, boolean>>({});
+  const [pdfGateOpen, setPdfGateOpen] = useState<Record<string, boolean>>({});
+  const pdfDwellTimerStarted = useRef<Set<string>>(new Set());
 
   const modules = useMemo(() => (course?.modules ?? []).slice().sort((a, b) => a.order - b.order), [course]);
   const enrollment = course?.myEnrollment;
@@ -209,11 +382,11 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
   }, [modules, activeModuleId]);
 
   // Gates on whether "Mark as Complete" is clickable — never on whether it's actually
-  // clicked, that always stays a manual action. Video: the real onEnded event for a
-  // direct upload, or a timer based on the module's stated duration for an embedded
-  // YouTube/Vimeo player (see VideoContent — its playback can't be controlled from here).
-  // Text: a timer based on word count at an average reading speed. Both reset whenever
-  // the learner switches to a different module.
+  // clicked, that always stays a manual action. Video: the real onEnded/watched-threshold
+  // event, reported by VideoContent for both direct uploads and YouTube/Vimeo embeds
+  // (see YoutubeVideoContent/VimeoVideoContent — real playback progress via each
+  // platform's postMessage API, not a wall-clock guess). Text: a timer based on word
+  // count at an average reading speed. Resets whenever the learner switches modules.
   const [videoGateOpen, setVideoGateOpen] = useState(false);
   const [readGateOpen, setReadGateOpen] = useState(false);
   const activeModuleForGating = modules.find((m) => m._id === activeModuleId);
@@ -228,16 +401,6 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
       const minMs = Math.ceil((words / AVERAGE_READING_WPM) * 60) * 1000;
       if (minMs <= 0) { setReadGateOpen(true); return; }
       const timer = setTimeout(() => setReadGateOpen(true), minMs);
-      return () => clearTimeout(timer);
-    }
-
-    if (activeModuleForGating.type === 'video') {
-      const rawUrl = activeModuleForGating.content?.url;
-      const embed = rawUrl ? resolveVideoEmbed(rawUrl) : null;
-      if (!embed || embed.kind === 'file') return; // gated for real by VideoContent's onEnded
-      const durationMinutes = Number(activeModuleForGating.content?.durationMinutes) || 0;
-      if (durationMinutes <= 0) { setVideoGateOpen(true); return; } // no signal to gate on — don't block indefinitely
-      const timer = setTimeout(() => setVideoGateOpen(true), durationMinutes * 60 * 1000);
       return () => clearTimeout(timer);
     }
   }, [activeModuleForGating]);
@@ -271,9 +434,12 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
     mutate();
   };
 
+  const existingCert = certificates.find((c) => String(c.enrollmentId) === String(enrollment._id));
+  const certPdfUrl = existingCert?.pdfUrl || generatedPdfUrl;
+
   const handleGenerateCertificate = async () => {
-    const res = await generateCertificate(enrollment._id);
-    if (res) setCertGenerated(true);
+    const res: any = await generateCertificate(enrollment._id);
+    if (res?.data?.pdfUrl) setGeneratedPdfUrl(res.data.pdfUrl);
   };
 
   return (
@@ -306,23 +472,6 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          {enrollment.status === 'completed' ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between">
-              <p className="text-sm font-medium text-green-800">You've completed this course!</p>
-              {course.hasCertificate && (
-                certGenerated ? (
-                  <Link href={`/${locale}/my/training/certificates`} className="text-sm text-brand-primary font-medium hover:underline">
-                    Certificate ready — view it →
-                  </Link>
-                ) : (
-                  <button onClick={handleGenerateCertificate} className="text-sm text-brand-primary font-medium hover:underline">
-                    Get Certificate
-                  </button>
-                )
-              )}
-            </div>
-          ) : null}
-
           {activeModule && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-slate-900">{activeModule.title}</h3>
@@ -335,7 +484,17 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
                 />
               ) : (
                 <>
-                  <ModuleContentView module_={activeModule} onVideoEnded={() => setVideoGateOpen(true)} />
+                  <ModuleContentView
+                    module_={activeModule}
+                    onVideoGateOpen={() => setVideoGateOpen(true)}
+                    onDocumentOpened={() => {
+                      const id = activeModule._id;
+                      setPdfOpened((prev) => ({ ...prev, [id]: true }));
+                      if (pdfDwellTimerStarted.current.has(id)) return;
+                      pdfDwellTimerStarted.current.add(id);
+                      setTimeout(() => setPdfGateOpen((p) => ({ ...p, [id]: true })), MIN_DOCUMENT_DWELL_MS);
+                    }}
+                  />
                   <div className="pt-4 border-t border-slate-100">
                     {isComplete(activeModule._id) ? (
                       <span className="inline-flex items-center gap-1.5 text-sm text-green-700 font-medium"><CheckCircle2 className="h-4 w-4" /> Completed</span>
@@ -343,7 +502,12 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
                       <>
                         <button
                           onClick={markComplete}
-                          disabled={activeModule.type === 'video' ? !videoGateOpen : activeModule.type === 'text' ? !readGateOpen : false}
+                          disabled={
+                            activeModule.type === 'video' ? !videoGateOpen
+                            : activeModule.type === 'text' ? !readGateOpen
+                            : activeModule.type === 'document' ? !pdfGateOpen[activeModule._id]
+                            : false
+                          }
                           className="px-3 py-2 rounded-md bg-brand-primary text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Mark as Complete
@@ -354,10 +518,36 @@ export function MyCourseLearnerPage({ locale, courseId }: { locale: string; cour
                         {activeModule.type === 'text' && !readGateOpen && (
                           <p className="text-xs text-slate-400 mt-1.5">Keep reading — this unlocks once enough time has passed.</p>
                         )}
+                        {activeModule.type === 'document' && !pdfGateOpen[activeModule._id] && (
+                          <p className="text-xs text-slate-400 mt-1.5">
+                            {pdfOpened[activeModule._id] ? 'Keep the document open — this unlocks shortly.' : 'Open the document to enable this.'}
+                          </p>
+                        )}
                       </>
                     )}
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {enrollment.status === 'completed' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-6 flex items-center justify-between">
+              <p className="text-sm font-medium text-green-800">You've completed this course!</p>
+              {course.hasCertificate && (
+                certPdfUrl ? (
+                  <a
+                    href={resolveMediaUrl(certPdfUrl.replace(/^\/?uploads\//, ''))}
+                    target="_blank" rel="noreferrer"
+                    className="text-sm text-brand-primary font-medium hover:underline"
+                  >
+                    Certificate ready — view it →
+                  </a>
+                ) : (
+                  <button onClick={handleGenerateCertificate} className="text-sm text-brand-primary font-medium hover:underline">
+                    Get Certificate
+                  </button>
+                )
               )}
             </div>
           )}

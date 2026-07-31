@@ -4,11 +4,12 @@ import { useState } from 'react';
 import {
   Building2, Shield, Mail, Lock, Puzzle, Bell, Landmark, MessageSquare,
   Save, Check, X, Eye, EyeOff,
-  ChevronRight, AlertTriangle,
+  ChevronRight, AlertTriangle, MapPin,
 } from 'lucide-react';
 import { useConfigSection } from '@/hooks/useConfigSection';
 import { CompanySettingsPanel } from '../Components/CompanySettingsPanel';
 import { CompanyAccountsPanel } from '../Components/CompanyAccountsPanel';
+import { BranchesPanel } from '../Components/BranchesPanel';
 import { CommunicationSettingsPanel } from '../Components/CommunicationSettingsPanel';
 
 // ── Shared ────────────────────────────────────────────────────────────────────
@@ -65,6 +66,13 @@ function SectionHeader({ title, desc }: { title: string; desc: string }) {
 function CompanyAccountsSection() {
   const companyAccounts = useConfigSection('company-accounts');
   return <CompanyAccountsPanel items={companyAccounts.items as any} refetch={companyAccounts.refetch} />;
+}
+
+// ── Branches (wrapper to fetch data for the no-props section slot) ────────────
+
+function BranchesSection() {
+  const branches = useConfigSection('branches');
+  return <BranchesPanel items={branches.items as any} refetch={branches.refetch} />;
 }
 
 // ── Permissions & Roles ───────────────────────────────────────────────────────
@@ -394,6 +402,7 @@ function NotificationPreferencesSection() {
 
 const SECTIONS = [
   { id: 'company',         label: 'Company Settings',         icon: Building2 },
+  { id: 'branches',        label: 'Branches',                 icon: MapPin },
   { id: 'companyAccounts', label: 'Company Accounts',         icon: Landmark },
   { id: 'communication',   label: 'Communication',            icon: MessageSquare },
   { id: 'permissions',     label: 'Permissions & Roles',      icon: Shield },
@@ -407,6 +416,7 @@ type SectionId = typeof SECTIONS[number]['id'];
 
 const SECTION_COMPONENTS: Record<SectionId, React.ComponentType> = {
   company:         CompanySettingsPanel,
+  branches:        BranchesSection,
   companyAccounts: CompanyAccountsSection,
   communication:   CommunicationSettingsPanel,
   permissions:     PermissionsSection,

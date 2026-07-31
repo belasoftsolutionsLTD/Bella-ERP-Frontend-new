@@ -36,6 +36,13 @@ function calcWorkingDays(start: string, end: string, holidayDates: Set<string>, 
 export default function ApplyLeavePage({ locale }: { locale: string }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  // "Next" (step < last) and "Submit Request" (step === last) render in the exact same
+  // spot — advancing to Review is synchronous (no network round-trip), so a fast
+  // double-click's second click can land on the freshly-rendered Submit button before
+  // the Review screen is ever actually seen, submitting the request with no real preview.
+  // This cooldown keeps Submit disabled for a beat right after landing on Review so that
+  // can't happen.
+  const [reviewCooldown, setReviewCooldown] = useState(false);
   const [halfDayEnabled, setHalfDayEnabled] = useState(false);
   const [halfDayPeriod, setHalfDayPeriod] = useState<'morning' | 'afternoon'>('morning');
   const [uploading, setUploading] = useState(false);
@@ -76,7 +83,13 @@ export default function ApplyLeavePage({ locale }: { locale: string }) {
       if (totalDays <= 0) { toast.error('Selected dates contain no working days.'); return; }
     }
     const valid = await trigger(stepFields[step] as any);
-    if (valid) setStep(s => Math.min(s + 1, STEPS.length - 1));
+    if (!valid) return;
+    const nextStep = Math.min(step + 1, STEPS.length - 1);
+    setStep(nextStep);
+    if (nextStep === STEPS.length - 1) {
+      setReviewCooldown(true);
+      setTimeout(() => setReviewCooldown(false), 500);
+    }
   };
   const back = () => setStep(s => Math.max(s - 1, 0));
 
@@ -261,7 +274,7 @@ export default function ApplyLeavePage({ locale }: { locale: string }) {
               Next <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
-            <button type="submit" disabled={isSubmitting}
+            <button type="submit" disabled={isSubmitting || reviewCooldown}
               className="flex items-center gap-1.5 h-9 px-4 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors">
               {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Submit Request
             </button>

@@ -49,6 +49,25 @@ export async function downloadFile(url: string, filename: string): Promise<void>
   setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 }
 
+/**
+ * Fetch an auth-protected file and return a blob: URL for it — for rendering
+ * in-page (e.g. inside DocViewerModal's <iframe>/<img>), unlike openFile/downloadFile
+ * which immediately open a tab or trigger a save. Caller owns the URL's lifetime and
+ * must URL.revokeObjectURL it when done (e.g. on modal close).
+ */
+export async function fetchAsBlobUrl(url: string): Promise<string> {
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
+  const res = await fetch(url, {
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => null);
+    throw new Error(json?.message ?? `Failed to load (${res.status})`);
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 /** Open an auth-protected file in a new browser tab (e.g. for printing). */
 export async function openFile(url: string): Promise<void> {
   const token = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;

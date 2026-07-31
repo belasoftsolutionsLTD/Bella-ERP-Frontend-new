@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+} from 'recharts';
 import { ArrowLeft, Users, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkforceAnalytics } from '../Hooks/useWorkforceAnalytics';
@@ -121,13 +124,13 @@ export default function WorkforceAnalyticsPage() {
                 <p className="text-sm text-brand-text-muted text-center py-16">No data yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={headcount.byDepartment} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={130} />
+                  <PieChart>
+                    <Pie data={headcount.byDepartment} dataKey="count" nameKey="department" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
+                      {headcount.byDepartment.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="count" name="Employees" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>
@@ -138,10 +141,11 @@ export default function WorkforceAnalyticsPage() {
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
-                    <Pie data={headcount.byEmploymentType} dataKey="count" nameKey="employmentType" cx="50%" cy="50%" outerRadius={90} label={(e: any) => e.employmentType}>
+                    <Pie data={headcount.byEmploymentType} dataKey="count" nameKey="employmentType" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
                       {headcount.byEmploymentType.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<ChartTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -154,13 +158,13 @@ export default function WorkforceAnalyticsPage() {
                 <p className="text-sm text-brand-text-muted text-center py-16">No data yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={tenure} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={130} />
+                  <RadarChart data={tenure}>
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+                    <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="averageTenureYears" name="Avg Years" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Radar name="Avg Years" dataKey="averageTenureYears" stroke={PIE_COLORS[1]} fill={PIE_COLORS[1]} fillOpacity={0.4} />
+                  </RadarChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>
@@ -171,10 +175,11 @@ export default function WorkforceAnalyticsPage() {
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
-                    <Pie data={demographics.byGender} dataKey="count" nameKey="gender" cx="50%" cy="50%" outerRadius={90} label={(e: any) => e.gender}>
+                    <Pie data={demographics.byGender} dataKey="count" nameKey="gender" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
                       {demographics.byGender.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<ChartTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
                   </PieChart>
                 </ResponsiveContainer>
               )}

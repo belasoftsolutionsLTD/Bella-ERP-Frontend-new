@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowLeft, Package, ShieldOff, Clock, Star, ThumbsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOffboardingAnalytics } from '../Hooks/useOffboardingAnalytics';
+
+const PIE_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16'];
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -72,14 +74,14 @@ export default function OffboardingAnalyticsPage() {
             {exitTypeData.length === 0 ? (
               <p className="text-sm text-brand-text-muted text-center py-16">No offboarding records yet.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={exitTypeData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                  <XAxis dataKey="exitType" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }} tickLine={false} className="capitalize" />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={exitTypeData} dataKey="Count" nameKey="exitType" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
+                    {exitTypeData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="Count" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} formatter={(v) => <span style={{ textTransform: 'capitalize' }}>{v}</span>} />
+                </PieChart>
               </ResponsiveContainer>
             )}
           </ChartCard>

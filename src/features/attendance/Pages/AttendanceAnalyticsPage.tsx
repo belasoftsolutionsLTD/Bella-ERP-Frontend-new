@@ -3,10 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, PieChart, Pie, Cell, Legend,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { ArrowLeft, UserCheck, UserX, Clock, CalendarOff, HelpCircle, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAttendanceAnalytics } from '../Hooks/useAttendanceAnalytics';
+
+const CHART_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16'];
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -29,10 +35,33 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
+function PieTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0];
+  return (
+    <div className="bg-white border border-brand-border rounded-lg px-3 py-2 text-xs shadow-xl">
+      <p className="text-brand-text-secondary font-semibold mb-0.5">{d.name}</p>
+      <p className="font-bold" style={{ color: d.payload?.fill }}>{d.value}</p>
+    </div>
+  );
+}
+
 export default function AttendanceAnalyticsPage() {
   const locale = useLocale();
   const [groupBy, setGroupBy] = useState<'employee' | 'department'>('department');
   const { overview, summary, overtime, lateTrend, lateLeaderboard, absenteeism, loading } = useAttendanceAnalytics(groupBy);
+
+  // Top-N + "Other" bucket so the overtime donut stays readable when there are many employees/departments.
+  const OVERTIME_TOP_N = 6;
+  const overtimeSorted = [...overtime].sort((a: any, b: any) => b.overtimeHours - a.overtimeHours);
+  const overtimeDonutData = (() => {
+    const top = overtimeSorted.slice(0, OVERTIME_TOP_N);
+    const rest = overtimeSorted.slice(OVERTIME_TOP_N);
+    const otherTotal = rest.reduce((s: number, r: any) => s + r.overtimeHours, 0);
+    return otherTotal > 0 ? [...top, { label: 'Other', overtimeHours: otherTotal }] : top;
+  })();
+
+  const attendanceRadarData = summary.slice(0, 8).map((s: any) => ({ category: s.label, value: s.attendanceRate }));
 
   const kpis = [
     { label: 'Present Today', value: overview?.present ?? 0, color: 'text-emerald-600', icon: UserCheck },
@@ -105,14 +134,17 @@ export default function AttendanceAnalyticsPage() {
               {!overtime.length ? (
                 <p className="text-sm text-brand-text-muted text-center py-16">No overtime recorded this month.</p>
               ) : (
-                <ResponsiveContainer width="100%" height={Math.max(200, overtime.length * 32)}>
-                  <BarChart data={overtime.slice(0, 12)} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={130} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="overtimeHours" name="Overtime (hrs)" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie data={overtimeDonutData} dataKey="overtimeHours" nameKey="label" cx="50%" cy="50%"
+                      outerRadius={90} innerRadius={52} paddingAngle={2}>
+                      {overtimeDonutData.map((_: any, i: number) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PieTooltip />} />
+                    <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 11 }}>{v}</span>} />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>
@@ -121,32 +153,35 @@ export default function AttendanceAnalyticsPage() {
               {!absenteeism.length ? (
                 <p className="text-sm text-brand-text-muted text-center py-16">No data yet.</p>
               ) : (
-                <ResponsiveContainer width="100%" height={Math.max(200, absenteeism.length * 32)}>
-                  <BarChart data={absenteeism} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" unit="%" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={130} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="absenteeismRate" name="Absenteeism %" fill="#ef4444" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie data={absenteeism} dataKey="absenteeismRate" nameKey="department" cx="50%" cy="50%"
+                      outerRadius={90} innerRadius={52} paddingAngle={2}>
+                      {absenteeism.map((_: any, i: number) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PieTooltip />} />
+                    <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 11 }}>{v}</span>} />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-5">
-            <ChartCard title={`Hours Worked vs Expected (by ${groupBy})`}>
+            <ChartCard title={`Attendance Rate (by ${groupBy})`}>
               {!summary.length ? (
                 <p className="text-sm text-brand-text-muted text-center py-16">No data yet.</p>
               ) : (
-                <ResponsiveContainer width="100%" height={Math.max(200, summary.length * 32)}>
-                  <BarChart data={summary.slice(0, 12)} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" unit="%" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={130} />
+                <ResponsiveContainer width="100%" height={280}>
+                  <RadarChart data={attendanceRadarData}>
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis dataKey="category" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <PolarRadiusAxis tick={{ fontSize: 10, fill: '#64748b' }} />
+                    <Radar dataKey="value" name="Attendance Rate" stroke={CHART_COLORS[1]} fill={CHART_COLORS[1]} fillOpacity={0.4} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="attendanceRate" name="Attendance Rate" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                  </RadarChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>

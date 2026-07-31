@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, X, MapPin, Search, Check, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, X, MapPin, Search, Check, Users, ListChecks } from 'lucide-react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { cn } from '@/lib/utils';
@@ -18,8 +18,13 @@ interface Shift {
   endTime: string;
   breakMinutes: number;
   location: string;
+  address?: string | null;
+  addressLat?: number | null;
+  addressLng?: number | null;
   notes?: string;
 }
+
+interface ShiftTaskTemplate { _id: string; name: string; tasks: string[] }
 
 const SHIFT_TYPES = [
   { value: 'morning',   label: 'Morning',   start: '06:00', end: '14:00', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20'    },
@@ -51,17 +56,107 @@ function shiftColor(type: string) {
   return SHIFT_TYPES.find(s => s.value === type)?.color ?? 'bg-brand-bg-muted text-brand-text-secondary';
 }
 
+// ── Manage Task Checklist Templates ────────────────────────────────────────────
+// A named, reusable list of tasks (e.g. "Site Opening Checklist") — materialized into
+// its own per-shift copy the moment a shift referencing it is created (see backend
+// materializeShiftTasks), so editing a template here never changes a shift already
+// in progress, only shifts created after the edit.
+
+function ManageTaskTemplatesModal({ templates, onClose, onChanged }: {
+  templates: ShiftTaskTemplate[]; onClose: () => void; onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState<ShiftTaskTemplate | null>(null);
+  const [name, setName] = useState('');
+  const [tasksText, setTasksText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const startNew = () => { setEditing({ _id: '', name: '', tasks: [] }); setName(''); setTasksText(''); };
+  const startEdit = (t: ShiftTaskTemplate) => { setEditing(t); setName(t.name); setTasksText(t.tasks.join('\n')); };
+
+  const save = () => {
+    const tasks = tasksText.split('\n').map(t => t.trim()).filter(Boolean);
+    if (!name.trim() || tasks.length === 0) return;
+    setSaving(true);
+    const isNew = !editing?._id;
+    apiCallFunction({
+      url: isNew ? `${API_BASE_URL}/attendance/shift-task-templates` : `${API_BASE_URL}/attendance/shift-task-templates/${editing!._id}`,
+      method: isNew ? 'POST' : 'PATCH',
+      data: { name: name.trim(), tasks },
+      thenFn: () => { onChanged(); setEditing(null); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+
+  const remove = (id: string) => {
+    apiCallFunction({ url: `${API_BASE_URL}/attendance/shift-task-templates/${id}`, method: 'DELETE', thenFn: onChanged });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg bg-white border border-brand-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border shrink-0">
+          <h3 className="text-sm font-bold text-brand-text">Shift Task Checklists</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-brand-text-muted hover:text-brand-text hover:bg-brand-bg-soft transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {editing ? (
+            <div className="space-y-3">
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Checklist name, e.g. Site Opening Checklist"
+                className="w-full h-9 px-3 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+              <div>
+                <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">Tasks (one per line)</label>
+                <textarea value={tasksText} onChange={e => setTasksText(e.target.value)} rows={8} placeholder={'Clock in and review handover notes\nInspect site/equipment\nComplete required documentation'}
+                  className="w-full px-3 py-2 bg-brand-bg-soft border border-brand-border rounded-lg text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary resize-none" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setEditing(null)} className="px-3 py-1.5 text-xs text-brand-text-secondary hover:text-brand-text">Cancel</button>
+                <button onClick={save} disabled={saving || !name.trim() || !tasksText.trim()}
+                  className="px-4 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-semibold disabled:opacity-50 hover:bg-brand-primary-hover transition-colors">
+                  {saving ? 'Saving…' : 'Save Checklist'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button onClick={startNew} className="flex items-center gap-2 text-sm font-semibold text-indigo-500 hover:text-indigo-400">
+                <Plus className="h-4 w-4" /> New Checklist
+              </button>
+              <div className="divide-y divide-brand-border/60">
+                {templates.map(t => (
+                  <div key={t._id} className="flex items-center justify-between py-2.5">
+                    <div>
+                      <p className="text-sm font-medium text-brand-text">{t.name}</p>
+                      <p className="text-xs text-brand-text-muted">{t.tasks.length} task{t.tasks.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => startEdit(t)} className="h-7 w-7 rounded-lg flex items-center justify-center text-brand-text-secondary hover:bg-brand-bg-soft"><Edit2 className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => remove(t._id)} className="h-7 w-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </div>
+                ))}
+                {templates.length === 0 && <p className="text-xs text-brand-text-muted text-center py-6">No checklists yet.</p>}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Bulk Shift Modal ───────────────────────────────────────────────────────────
 
 interface BulkShiftModalProps {
   weekDates: string[];
   defaultDate?: string;
   shift?: Partial<Shift>;
+  templates: ShiftTaskTemplate[];
   onClose: () => void;
   onSave: () => void;
 }
 
-function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: BulkShiftModalProps) {
+function BulkShiftModal({ weekDates, defaultDate, shift, templates, onClose, onSave }: BulkShiftModalProps) {
   const isEdit = !!shift?._id;
 
   // Employees
@@ -85,7 +180,9 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
   const [end,    setEnd]    = useState(shift?.endTime    || '17:00');
   const [brk,    setBrk]    = useState(String(shift?.breakMinutes ?? 60));
   const [loc,    setLoc]    = useState(shift?.location   || 'office');
+  const [address,setAddress]= useState(shift?.address    || '');
   const [notes,  setNotes]  = useState(shift?.notes      || '');
+  const [taskTemplateId, setTaskTemplateId] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -133,7 +230,7 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
       apiCallFunction({
         url: `${API_BASE_URL}/attendance/shifts/${shift._id}`,
         method: 'PUT',
-        data: { employeeId: shift.employeeId, date: shift.date, shiftType: type, startTime: start, endTime: end, breakMinutes: Number(brk), location: loc, notes },
+        data: { employeeId: shift.employeeId, date: shift.date, shiftType: type, startTime: start, endTime: end, breakMinutes: Number(brk), location: loc, notes, address },
         thenFn: () => { onSave(); onClose(); },
         finallyFn: () => setSaving(false),
       });
@@ -148,7 +245,8 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
         employeeIds: openShift ? [] : Array.from(selectedEmpIds),
         dates: Array.from(selectedDates),
         isOpen: openShift,
-        shiftType: type, startTime: start, endTime: end, breakMinutes: Number(brk), location: loc, notes,
+        shiftType: type, startTime: start, endTime: end, breakMinutes: Number(brk), location: loc, notes, address,
+        taskTemplateId: taskTemplateId || undefined,
       },
       thenFn: () => { onSave(); onClose(); },
       finallyFn: () => setSaving(false),
@@ -313,6 +411,28 @@ function BulkShiftModal({ weekDates, defaultDate, shift, onClose, onSave }: Bulk
             </div>
           </div>
 
+          {(loc === 'field' || loc === 'client site') && (
+            <div>
+              <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">Address (optional)</label>
+              <input value={address} onChange={e => setAddress(e.target.value)} placeholder="e.g. 123 Main St, Nairobi"
+                className="w-full h-9 bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+              <p className="text-[10px] text-brand-text-muted mt-1">Used to show a map and directions on the staff shift details.</p>
+            </div>
+          )}
+
+          {/* Task checklist — mainly relevant for field/client-site shifts, but left
+              available for any shift since HR may want the same checklist elsewhere */}
+          {!isEdit && (
+            <div>
+              <label className="block text-[11px] text-brand-text-muted uppercase tracking-wide mb-1">Task Checklist (optional)</label>
+              <select value={taskTemplateId} onChange={e => setTaskTemplateId(e.target.value)}
+                className="w-full h-9 bg-brand-bg-soft border border-brand-border rounded-lg px-2 text-sm text-brand-text focus:outline-none focus:border-brand-primary">
+                <option value="">None</option>
+                {templates.map(t => <option key={t._id} value={t._id}>{t.name} ({t.tasks.length} tasks)</option>)}
+              </select>
+            </div>
+          )}
+
           {/* Summary */}
           {!isEdit && canSave && (
             openShift
@@ -346,6 +466,13 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
   const [shifts,     setShifts]     = useState<Shift[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [modal,      setModal]      = useState<{ shift?: Partial<Shift>; defaultDate?: string } | null>(null);
+  const [templates,  setTemplates]  = useState<ShiftTaskTemplate[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  const fetchTemplates = useCallback(() => {
+    apiCallFunction<any>({ url: `${API_BASE_URL}/attendance/shift-task-templates`, showToast: false, thenFn: r => setTemplates(r.data ?? []) });
+  }, []);
+  useEffect(() => { if (isManager) fetchTemplates(); }, [isManager, fetchTemplates]);
 
   const monday = getMondayOffset(weekOffset);
   const weekDates = DAYS.map((_, i) => {
@@ -396,10 +523,16 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
           </button>
         </div>
         {isManager && (
-          <button onClick={() => setModal({})}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold transition-colors">
-            <Plus className="h-4 w-4" /> Assign Shift
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowTemplates(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-border text-brand-text-secondary hover:text-brand-text text-sm font-semibold transition-colors">
+              <ListChecks className="h-4 w-4" /> Checklists
+            </button>
+            <button onClick={() => setModal({})}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold transition-colors">
+              <Plus className="h-4 w-4" /> Assign Shift
+            </button>
+          </div>
         )}
       </div>
 
@@ -484,8 +617,16 @@ export function ShiftsTab({ isManager = false }: { isManager?: boolean }) {
           weekDates={weekDates}
           defaultDate={modal.defaultDate}
           shift={modal.shift}
+          templates={templates}
           onClose={() => setModal(null)}
           onSave={fetchShifts}
+        />
+      )}
+      {showTemplates && (
+        <ManageTaskTemplatesModal
+          templates={templates}
+          onClose={() => setShowTemplates(false)}
+          onChanged={fetchTemplates}
         />
       )}
     </div>

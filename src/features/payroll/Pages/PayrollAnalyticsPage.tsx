@@ -1,10 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+} from 'recharts';
 import { Trophy } from 'lucide-react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+
+// Fixed-order categorical palette, validated colorblind-safe (scripts/validate_palette.js,
+// light mode). Assign by position, never cycle.
+const CHART_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16'];
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmt = (n: number) => `KES ${(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0 })}`;
@@ -91,26 +98,31 @@ export default function PayrollAnalyticsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <ChartCard title="Payroll Spend by Department">
+                {/* Proportion of total payroll — donut with legend, not a bar ranking. */}
                 <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={data.departmentBreakdown} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
-                    <YAxis type="category" dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={110} />
+                  <PieChart>
+                    <Pie data={data.departmentBreakdown} dataKey="totalGross" nameKey="department" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
+                      {data.departmentBreakdown.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="totalGross" name="Total Gross" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+                  </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
 
               <ChartCard title="Average Gross Salary by Department">
+                {/* An average, not a summable quantity — a radar compares departments
+                    without implying they add up to a whole. */}
                 <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={data.avgSalaryByDepartment} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
-                    <YAxis type="category" dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={110} />
+                  <RadarChart data={data.avgSalaryByDepartment} outerRadius="70%">
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+                    <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+                    <Radar name="Avg Gross" dataKey="avgGross" stroke={CHART_COLORS[1]} fill={CHART_COLORS[1]} fillOpacity={0.4} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="avgGross" name="Avg Gross" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                  </RadarChart>
                 </ResponsiveContainer>
               </ChartCard>
             </div>

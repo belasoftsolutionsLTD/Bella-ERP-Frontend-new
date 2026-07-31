@@ -12,9 +12,15 @@ const config: Config = {
     extend: {
       colors: {
         // ── Unified Design System (single source of truth — see design-system audit) ──
+        // Primary/accent match the Workfola logo's blue-and-orange theme — every
+        // bg-brand-primary/text-brand-primary/border-brand-primary usage across the app
+        // (buttons, active nav, links, focus rings) picks this up automatically since it's
+        // one centralized token, not touched per-component.
         'brand-sidebar':       '#FFFFFF',
-        'brand-primary':       '#4F46E5',
-        'brand-primary-hover': '#4338CA',
+        'brand-primary':       '#2563EB',
+        'brand-primary-hover': '#1D4ED8',
+        'brand-accent':        '#F97316',
+        'brand-accent-hover':  '#EA580C',
         'brand-success':       '#10B981',
         'brand-warning':       '#F59E0B',
         'brand-danger':        '#EF4444',
@@ -142,7 +148,7 @@ const config: Config = {
       boxShadow: {
         card:       '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
         'card-hover':'0 4px 16px rgba(0,0,0,0.4)',
-        brand:      '0 4px 16px rgba(99,102,241,0.3)',
+        brand:      '0 4px 16px rgba(37,99,235,0.3)',
         dropdown:   '0 8px 32px rgba(0,0,0,0.5)',
         drawer:     '-4px 0 32px rgba(0,0,0,0.5)',
       },

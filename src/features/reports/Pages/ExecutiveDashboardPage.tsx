@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   Users, Briefcase, DollarSign, CalendarClock, Clock3, Star,
   ClipboardCheck, Hourglass, AlertTriangle, ShieldAlert,
@@ -93,13 +93,13 @@ export default function ExecutiveDashboardPage() {
                 </ChartCard>
                 <ChartCard title="Payroll Cost (12 months)">
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={trends.payrollTrend}>
+                    <LineChart data={trends.payrollTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                       <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} />
                       <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="cost" name="Cost (KES)" fill={CHART_COLORS[2]} radius={[4, 4, 0, 0]} />
-                    </BarChart>
+                      <Line type="monotone" dataKey="cost" name="Cost (KES)" stroke={CHART_COLORS[2]} strokeWidth={2} dot={{ r: 3 }} />
+                    </LineChart>
                   </ResponsiveContainer>
                 </ChartCard>
                 <ChartCard title="Attendance Rate (12 weeks)">
@@ -118,14 +118,15 @@ export default function ExecutiveDashboardPage() {
               {/* Breakdown charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <ChartCard title="Headcount by Department">
-                  <ResponsiveContainer width="100%" height={Math.max(200, trends.headcountByDepartment.length * 34)}>
-                    <BarChart data={trends.headcountByDepartment} layout="vertical" margin={{ left: 24 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis type="category" dataKey="department" width={140} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <ResponsiveContainer width="100%" height={Math.max(220, trends.headcountByDepartment.length * 20)}>
+                    <PieChart>
+                      <Pie data={trends.headcountByDepartment} dataKey="count" nameKey="department" cx="50%" cy="50%"
+                        outerRadius={85} innerRadius={48} paddingAngle={2}>
+                        {trends.headcountByDepartment.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                      </Pie>
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="count" name="Employees" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
-                    </BarChart>
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
                   </ResponsiveContainer>
                 </ChartCard>
                 <ChartCard title="Leave Taken by Type (this month)">
@@ -134,10 +135,12 @@ export default function ExecutiveDashboardPage() {
                   ) : (
                     <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
-                        <Pie data={trends.leaveByTypeThisMonth} dataKey="days" nameKey="type" cx="50%" cy="50%" outerRadius={85} label={(e: any) => e.type}>
+                        <Pie data={trends.leaveByTypeThisMonth} dataKey="days" nameKey="type" cx="50%" cy="50%"
+                          outerRadius={85} innerRadius={48} paddingAngle={2}>
                           {trends.leaveByTypeThisMonth.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                         </Pie>
                         <Tooltip content={<ChartTooltip />} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )}

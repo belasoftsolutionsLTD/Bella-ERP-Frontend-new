@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AlertTriangle, DollarSign, Building2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReportQuery } from '../Hooks/useReportQuery';
-import { ChartCard, LoadingBlock, ErrorBlock, ExportCSVButton } from '../Components/shared';
+import { ChartCard, ChartTooltip, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
 
 interface AttritionRisk { employeeId: string; employeeName: string; department: string; managerName: string; riskSignals: string[]; daysSinceLastCheckIn: number | null; }
@@ -35,6 +36,13 @@ export default function InsightsPage() {
   const loading = aLoading || cLoading || dLoading || mLoading;
   const error = aError || cError || dError || mError;
   const refetch = () => { aRefetch(); cRefetch(); dRefetch(); mRefetch(); };
+
+  const costByDepartment = useMemo(() => {
+    if (!cost?.length) return [];
+    const totals = new Map<string, number>();
+    for (const c of cost) totals.set(c.department, (totals.get(c.department) ?? 0) + c.totalCost);
+    return Array.from(totals, ([department, totalCost]) => ({ department, totalCost })).sort((a, b) => b.totalCost - a.totalCost);
+  }, [cost]);
 
   return (
     <div className="space-y-6">
@@ -136,6 +144,18 @@ export default function InsightsPage() {
               <input value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Filter by department..."
                 className="h-8 bg-brand-bg-soft border border-brand-border rounded-lg px-3 text-xs text-brand-text placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
             </div>
+            {costByDepartment.length > 1 && (
+              <ResponsiveContainer width="100%" height={Math.max(220, costByDepartment.length * 20)}>
+                <PieChart>
+                  <Pie data={costByDepartment} dataKey="totalCost" nameKey="department" cx="50%" cy="50%"
+                    outerRadius={85} innerRadius={48} paddingAngle={2}>
+                    {costByDepartment.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-xs text-brand-text-muted border-b border-brand-border">

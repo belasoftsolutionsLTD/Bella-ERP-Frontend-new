@@ -90,7 +90,7 @@ interface PurchaseOrder {
 interface VendorInvoiceItem { description: string; quantity: number; unitPrice: number; totalPrice: number; }
 
 interface VendorInvoice {
-  _id: string; purchaseOrderId: string; vendorId: string; invoiceNumber: string;
+  _id: string; purchaseOrderId: string; vendorId: string; invoiceNumber: string; poInvoiceNumber?: string;
   invoiceDate: string; dueDate: string; items: VendorInvoiceItem[]; totalAmount: number; currency: string;
   status: string; threeWayMatchStatus: string; discrepancyNotes?: string;
   approvedAt?: string; paidAt?: string; createdAt: string;
@@ -112,8 +112,7 @@ const STATUS_BADGE: Record<string, string> = {
   rejected:  'bg-red-500/20 text-red-400',
   paid:      'bg-blue-500/20 text-blue-400',
   draft:     'bg-slate-600/40 text-brand-text-secondary',
-  sent:      'bg-cyan-500/20 text-cyan-400',
-  acknowledged: 'bg-brand-primary/20 text-indigo-400',
+  pendingDelivery: 'bg-brand-primary/20 text-indigo-400',
   partiallyReceived: 'bg-amber-500/20 text-amber-400',
   fullyReceived: 'bg-emerald-500/20 text-emerald-400',
   invoiced:  'bg-violet-500/20 text-violet-400',
@@ -1272,7 +1271,6 @@ function PurchaseOrdersTab() {
   useEffect(() => { load(); }, [load]);
 
   const send = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-orders/${id}/send`, method: 'PUT', thenFn: load });
-  const acknowledge = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-orders/${id}/acknowledge`, method: 'PUT', thenFn: load });
   const cancel = (id: string) => { if (confirm('Cancel this purchase order?')) apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-orders/${id}`, method: 'DELETE', thenFn: load }); };
 
   return (
@@ -1281,7 +1279,7 @@ function PurchaseOrdersTab() {
         <select value={statusFilter} onChange={e => setStatus(e.target.value)}
           className="h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border rounded-xl text-white focus:outline-none focus:border-brand-primary">
           <option value="">All Statuses</option>
-          {['draft', 'sent', 'acknowledged', 'partiallyReceived', 'fullyReceived', 'invoiced', 'paid', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+          {['draft', 'pending', 'pendingDelivery', 'partiallyReceived', 'fullyReceived', 'invoiced', 'paid', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
       {loading ? (
@@ -1311,12 +1309,7 @@ function PurchaseOrdersTab() {
                           <Send className="h-3 w-3" /> Send
                         </button>
                       )}
-                      {po.status === 'sent' && (
-                        <button onClick={() => acknowledge(po._id)} className="flex items-center gap-1 h-7 px-2 text-xs bg-brand-primary/20 text-indigo-400 rounded-lg hover:bg-brand-primary-hover/30 transition-colors">
-                          <CheckCircle2 className="h-3 w-3" /> Acknowledge
-                        </button>
-                      )}
-                      {['sent', 'acknowledged', 'partiallyReceived'].includes(po.status) && (
+                      {['pendingDelivery', 'partiallyReceived'].includes(po.status) && (
                         <button onClick={() => setReceivingPO(po)} className="flex items-center gap-1 h-7 px-2 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors">
                           <Truck className="h-3 w-3" /> Log Receipt
                         </button>
@@ -1356,7 +1349,7 @@ function CreateVendorInvoiceModal({ onClose, onSaved }: { onClose: () => void; o
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement-orders?status=acknowledged`, showToast: false,
+    apiCallFunction<any>({ url: `${API_BASE_URL}/spending/procurement-orders?status=pending`, showToast: false,
       thenFn: r => setOrders(r?.data?.data ?? []) });
   }, []);
 
@@ -1391,13 +1384,13 @@ function CreateVendorInvoiceModal({ onClose, onSaved }: { onClose: () => void; o
             <label className="block text-xs text-brand-text-secondary mb-1">Purchase Order <span className="text-red-400">*</span></label>
             <select value={purchaseOrderId} onChange={e => setPurchaseOrderId(e.target.value)}
               className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
-              <option value="">Select PO (acknowledged)…</option>
+              <option value="">Select PO (awaiting invoice)…</option>
               {orders.map(o => <option key={o._id} value={o._id}>{o.poNumber} — {o.vendor?.name}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-brand-text-secondary mb-1">Invoice Number <span className="text-red-400">*</span></label>
+              <label className="block text-xs text-brand-text-secondary mb-1">Vendor&apos;s Invoice Number <span className="text-red-400">*</span></label>
               <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)}
                 className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary" />
             </div>
@@ -1450,12 +1443,70 @@ function CreateVendorInvoiceModal({ onClose, onSaved }: { onClose: () => void; o
   );
 }
 
+// paymentMethod/paymentReference are now required to mark a vendor invoice paid (the
+// backend posts the payment to the ledger, which needs to know how it was paid) —
+// mirrors MarkPaidModal above, but for the /procurement-invoices/:id/pay route.
+const VENDOR_PAYMENT_METHODS = ['bank_transfer', 'mpesa', 'cash', 'cheque'] as const;
+function PayVendorInvoiceModal({ invoice, onClose, onPaid }: { invoice: VendorInvoice; onClose: () => void; onPaid: () => void }) {
+  const [method, setMethod] = useState<typeof VENDOR_PAYMENT_METHODS[number]>('bank_transfer');
+  const [reference, setReference] = useState('');
+  const [saving, setSaving] = useState(false);
+  const confirm = () => {
+    if (!reference.trim()) return;
+    setSaving(true);
+    apiCallFunction({
+      url: `${API_BASE_URL}/spending/procurement-invoices/${invoice._id}/pay`,
+      method: 'PATCH',
+      data: { paymentMethod: method, paymentReference: reference.trim() },
+      thenFn: () => { onPaid(); onClose(); },
+      finallyFn: () => setSaving(false),
+    });
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-white border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
+          <h2 className="font-bold text-white">Mark as Paid</h2>
+          <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="px-6 py-5 space-y-3">
+          <p className="text-sm text-brand-text-secondary">
+            <span className="font-semibold text-white">#{invoice.invoiceNumber}</span>
+            <span className="block text-brand-text-secondary text-xs mt-0.5">{fmt(invoice.totalAmount, invoice.currency)}</span>
+          </p>
+          <div>
+            <label className="block text-xs text-brand-text-secondary mb-1">Payment Method</label>
+            <select value={method} onChange={(e) => setMethod(e.target.value as typeof method)}
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white focus:outline-none focus:border-brand-primary">
+              {VENDOR_PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m.replace('_', ' ')}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-brand-text-secondary mb-1">Payment Reference <span className="text-red-400">*</span></label>
+            <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Bank ref, cheque no., M-Pesa code…"
+              className="w-full h-9 px-3 text-sm bg-brand-bg-soft border border-brand-border-strong rounded-xl text-white placeholder:text-brand-text-muted focus:outline-none focus:border-brand-primary" />
+          </div>
+        </div>
+        <div className="flex gap-3 px-6 pb-5">
+          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-brand-border-strong text-sm text-brand-text-secondary hover:bg-brand-bg-soft transition-colors">Cancel</button>
+          <button onClick={confirm} disabled={saving || !reference.trim()}
+            className="flex-1 h-10 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-colors disabled:opacity-50">
+            {saving ? 'Saving…' : 'Confirm Payment'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Vendor Invoices Tab (3-way match) ─────────────────────────────────────────
 function VendorInvoicesTab() {
   const [invoices, setInvoices] = useState<VendorInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [disputingInvoice, setDisputingInvoice] = useState<VendorInvoice | null>(null);
+  const [payingInvoice, setPayingInvoice] = useState<VendorInvoice | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -1467,7 +1518,6 @@ function VendorInvoicesTab() {
 
   const match   = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${id}/match`, method: 'PATCH', thenFn: load });
   const approve = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${id}/approve`, method: 'PATCH', thenFn: load });
-  const pay     = (id: string) => apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${id}/pay`, method: 'PATCH', thenFn: load });
   const dispute = (reason: string) => {
     if (!disputingInvoice) return;
     apiCallFunction({ url: `${API_BASE_URL}/spending/procurement-invoices/${disputingInvoice._id}/dispute`, method: 'PATCH', data: { reason }, thenFn: () => { load(); setDisputingInvoice(null); } });
@@ -1502,7 +1552,8 @@ function VendorInvoicesTab() {
               {invoices.map(inv => (
                 <tr key={inv._id} className="hover:bg-brand-bg-soft transition-colors">
                   <td className="px-4 py-3">
-                    <p className="text-brand-text-secondary font-mono text-xs">{inv.invoiceNumber}</p>
+                    <p className="text-white font-mono text-xs font-semibold">{inv.poInvoiceNumber ?? '—'}</p>
+                    <p className="text-brand-text-secondary font-mono text-[11px]">Vendor ref: {inv.invoiceNumber}</p>
                     <p className="text-xs text-brand-text-muted">Due {fmtDate(inv.dueDate)}</p>
                   </td>
                   <td className="px-4 py-3 text-white">{inv.vendor?.name ?? '—'}</td>
@@ -1528,7 +1579,7 @@ function VendorInvoicesTab() {
                         </>
                       )}
                       {inv.status === 'approved' && (
-                        <button onClick={() => pay(inv._id)} className="h-7 px-2 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors">Pay</button>
+                        <button onClick={() => setPayingInvoice(inv)} className="h-7 px-2 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors">Pay</button>
                       )}
                     </div>
                   </td>
@@ -1543,6 +1594,7 @@ function VendorInvoicesTab() {
       )}
       {showCreate && <CreateVendorInvoiceModal onClose={() => setShowCreate(false)} onSaved={load} />}
       {disputingInvoice && <RejectModal title={disputingInvoice.invoiceNumber} onClose={() => setDisputingInvoice(null)} onConfirm={dispute} />}
+      {payingInvoice && <PayVendorInvoiceModal invoice={payingInvoice} onClose={() => setPayingInvoice(null)} onPaid={load} />}
     </div>
   );
 }

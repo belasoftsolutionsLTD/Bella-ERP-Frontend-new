@@ -510,6 +510,11 @@ function CelebrationSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item, i) => {
             const meta = CELEBRATION_META[item.type];
+            // The list itself is a 30-day-ahead heads-up for planning, but actually
+            // posting "Happy Birthday!" to the public feed only makes sense once the
+            // date is essentially here — not four weeks early. new_joiner entries are
+            // always daysUntil:0 (recent hires), so they're never gated.
+            const canSendNow = item.daysUntil <= 1;
             return (
               <div key={i} className={cn('bg-gradient-to-br rounded-2xl p-5 border border-brand-border/50', meta.bg)}>
                 <div className="text-4xl mb-3">{meta.emoji}</div>
@@ -524,10 +529,17 @@ function CelebrationSection() {
                   {item.daysUntil === 0 ? 'Today! 🎊' : `In ${item.daysUntil} day${item.daysUntil !== 1 ? 's' : ''}`}
                   {' · '}{new Date(item.date).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })}
                 </p>
-                <button onClick={() => { setClapping(item); setMsg(''); }}
-                  className="mt-4 w-full py-2 rounded-xl text-xs font-semibold text-white transition-colors"
-                  style={{ backgroundColor: meta.color }}>
-                  👏 {meta.btn}
+                <button
+                  onClick={() => { if (canSendNow) { setClapping(item); setMsg(''); } }}
+                  disabled={!canSendNow}
+                  title={canSendNow ? undefined : 'Available closer to the date'}
+                  className={cn(
+                    'mt-4 w-full py-2 rounded-xl text-xs font-semibold transition-colors',
+                    canSendNow ? 'text-white' : 'text-brand-text-muted bg-brand-bg-muted cursor-not-allowed'
+                  )}
+                  style={canSendNow ? { backgroundColor: meta.color } : undefined}
+                >
+                  {canSendNow ? `👏 ${meta.btn}` : `${meta.btn} (in ${item.daysUntil - 1}d)`}
                 </button>
               </div>
             );

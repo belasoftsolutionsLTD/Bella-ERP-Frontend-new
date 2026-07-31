@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
 import { ChartCard, ChartTooltip, LoadingBlock, ErrorBlock, CHART_COLORS } from '../Components/shared';
@@ -60,19 +60,20 @@ export default function PayrollReportsPage() {
                 <div><p className="text-lg font-bold text-indigo-400">{fmtKES(breakdown.net)}</p><p className="text-xs text-brand-text-secondary">Net</p></div>
               </div>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={breakdownData}>
+                <AreaChart data={breakdownData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} />
                   <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="Gross" stackId="a" fill={CHART_COLORS[2]} />
-                  <Bar dataKey="PAYE" stackId="a" fill={CHART_COLORS[4]} />
-                  <Bar dataKey="SHA" stackId="a" fill={CHART_COLORS[3]} />
-                  <Bar dataKey="NSSF" stackId="a" fill={CHART_COLORS[5]} />
-                  <Bar dataKey="AHL" stackId="a" fill={CHART_COLORS[6]} />
-                  <Bar dataKey="Other" stackId="a" fill={CHART_COLORS[7]} />
-                  <Bar dataKey="Net" stackId="a" fill={CHART_COLORS[0]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Area type="monotone" dataKey="Gross" stackId="a" stroke={CHART_COLORS[2]} fill={CHART_COLORS[2]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="PAYE" stackId="a" stroke={CHART_COLORS[4]} fill={CHART_COLORS[4]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="SHA" stackId="a" stroke={CHART_COLORS[3]} fill={CHART_COLORS[3]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="NSSF" stackId="a" stroke={CHART_COLORS[5]} fill={CHART_COLORS[5]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="AHL" stackId="a" stroke={CHART_COLORS[6]} fill={CHART_COLORS[6]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="Other" stackId="a" stroke={CHART_COLORS[7]} fill={CHART_COLORS[7]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="Net" stackId="a" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.6} />
+                </AreaChart>
               </ResponsiveContainer>
             </ChartCard>
           )}
@@ -95,13 +96,14 @@ export default function PayrollReportsPage() {
                   <p className="text-sm text-brand-text-muted text-center py-16">No overtime recorded this month.</p>
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={overtime.byDepartmentThisMonth} layout="vertical" margin={{ left: 24 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis type="category" dataKey="department" width={120} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                    <PieChart>
+                      <Pie data={overtime.byDepartmentThisMonth} dataKey="cost" nameKey="department" cx="50%" cy="50%"
+                        outerRadius={85} innerRadius={48} paddingAngle={2}>
+                        {overtime.byDepartmentThisMonth.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                      </Pie>
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="cost" name="Cost (KES)" fill={CHART_COLORS[3]} radius={[0, 4, 4, 0]} />
-                    </BarChart>
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
                   </ResponsiveContainer>
                 )}
               </ChartCard>

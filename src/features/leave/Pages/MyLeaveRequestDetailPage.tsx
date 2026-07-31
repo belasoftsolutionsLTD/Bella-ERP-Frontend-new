@@ -3,17 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, FileText, Activity as ActivityIcon, Printer, Eye } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, Activity as ActivityIcon, Printer, Eye, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { openFile, resolveUploadUrl } from '@/functions/downloadFile';
+import { stampLogo } from '@/functions/getCompanyLogo';
 import { ConfirmDialog } from '@/components/custom-ui/ConfirmDialog';
 import { useMyLeaveRequestDetail, useMyLeaveRequests } from '../Hooks/useMyLeave';
 
-// Guaranteed HR-only actions (see backend/src/routes/leave/leave.js route guards) —
-// approve/reject/cancel can also be a direct manager or dept head acting as an approval-
-// chain step, so those keep showing the real approver's name (legitimate, expected
-// information). Only these three are always performed by HR/super_admin specifically.
-const HR_ONLY_ACTIONS = new Set(['revoked', 'disputeResolved', 'counterOffered']);
+// Actor names are never shown to the requesting staff member for anything done TO their
+// request by someone else — only actions the employee performed themselves keep a name.
+const SELF_ACTIONS = new Set(['submitted', 'disputed', 'cancelled']);
 
 const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
   draft:     { label: 'Draft',     bg: 'bg-slate-100', text: 'text-slate-500' },
@@ -36,6 +35,7 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
   const [showCounterDispute, setShowCounterDispute] = useState(false);
   const [counterDisputeReason, setCounterDisputeReason] = useState('');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [pdfDataUri, setPdfDataUri] = useState<string | null>(null);
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-primary/40" /></div>;
   if (!request) return <p className="text-sm text-slate-400 text-center py-16">Request not found.</p>;
@@ -44,11 +44,11 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
 
   const handlePrint = () => window.print();
 
-  // Opens the PDF in a new tab instead of forcing an immediate download — the browser's
-  // own PDF viewer already lets someone download/save from there if they actually want to.
+  // Renders the PDF inline (in-page modal) instead of a new browser tab/window.
   const handleViewPdf = async () => {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
+    await stampLogo(doc);
     const employeeName = request.employee?.fullName ?? 'Employee';
     const lines = [
       ['Employee', employeeName],
@@ -79,7 +79,7 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
       doc.text(String(value), 70, y, { maxWidth: 125 });
       y += 10;
     }
-    doc.output('dataurlnewwindow', { filename: `leave-request-${request._id}.pdf` });
+    setPdfDataUri(doc.output('datauristring', { filename: `leave-request-${request._id}.pdf` }));
   };
 
   return (
@@ -197,7 +197,7 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
               <div key={step.level} className={cn('flex items-center justify-between px-3 py-2 rounded-lg border',
                 step.level === request.currentApprovalLevel && request.status === 'pending' ? 'border-primary/40 bg-primary/5' : 'border-slate-100')}>
                 <div>
-                  <p className="text-sm text-slate-800">Level {step.level}: {step.approverName} <span className="text-slate-400 text-xs capitalize">({step.approverRole})</span></p>
+                  <p className="text-sm text-slate-800 capitalize">Level {step.level}: {step.approverRole}</p>
                   {step.comment && <p className="text-xs text-slate-500 italic mt-0.5">"{step.comment}"</p>}
                 </div>
                 <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize',
@@ -260,12 +260,25 @@ export default function MyLeaveRequestDetailPage({ locale, requestId }: { locale
                 <div>
                   <p className="text-slate-700 capitalize">
                     {entry.action.replace(/([A-Z])/g, ' $1')}
-                    {entry.performedByName ? ` by ${HR_ONLY_ACTIONS.has(entry.action) ? 'HR' : entry.performedByName}` : ''}
+                    {entry.performedByName && SELF_ACTIONS.has(entry.action) ? ` by ${entry.performedByName}` : ''}
                   </p>
                   {entry.comment && <p className="text-xs text-slate-400 italic">"{entry.comment}"</p>}
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {pdfDataUri && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPdfDataUri(null)} />
+          <div className="relative z-10 w-full max-w-2xl h-[85vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
+              <p className="text-sm font-bold text-slate-800">Leave Request PDF</p>
+              <button onClick={() => setPdfDataUri(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-gray-100 transition-colors"><X className="h-4 w-4" /></button>
+            </div>
+            <iframe src={pdfDataUri} title="Leave Request PDF" className="flex-1 w-full border-0" />
           </div>
         </div>
       )}

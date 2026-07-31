@@ -53,6 +53,12 @@ export default function StaffPortalPage() {
 function HrStaffPortalView() {
   const { employees, listLoading, search, setSearch, total, hasMore, loadMore, selectedId, selectEmployee, detail } = useStaffPortal();
   const [detailTab, setDetailTab] = useState<DetailTab>('profile');
+  const [collapsedDepts, setCollapsedDepts] = useState<Set<string>>(new Set());
+  const toggleDept = (dept: string) => setCollapsedDepts((prev) => {
+    const next = new Set(prev);
+    next.has(dept) ? next.delete(dept) : next.add(dept);
+    return next;
+  });
 
   const activeCount = employees.filter(e => e.status === 'active').length;
   const onLeaveCount = employees.filter(e => e.status === 'on_leave').length;
@@ -134,36 +140,44 @@ function HrStaffPortalView() {
                 <p className="text-xs">No employees found.</p>
               </div>
             ) : (
-              groupedByDept.map(([dept, deptEmployees]) => (
-                <div key={dept}>
-                  <div className="sticky top-0 px-3 py-1.5 bg-gray-100/90 backdrop-blur-sm border-b border-gray-200">
-                    <p className="text-[11px] font-bold text-foreground/50 uppercase tracking-wide">{dept} <span className="font-normal normal-case text-foreground/35">({deptEmployees.length})</span></p>
+              groupedByDept.map(([dept, deptEmployees]) => {
+                const isOpen = !collapsedDepts.has(dept);
+                return (
+                  <div key={dept}>
+                    <button
+                      type="button"
+                      onClick={() => toggleDept(dept)}
+                      className="w-full sticky top-0 px-3 py-1.5 bg-gray-100/90 backdrop-blur-sm border-b border-gray-200 flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
+                    >
+                      <ChevronRight className={cn('h-3 w-3 shrink-0 text-foreground/40 transition-transform', isOpen && 'rotate-90')} />
+                      <p className="text-[11px] font-bold text-foreground/50 uppercase tracking-wide">{dept} <span className="font-normal normal-case text-foreground/35">({deptEmployees.length})</span></p>
+                    </button>
+                    {isOpen && deptEmployees.map((emp) => {
+                      const isSelected = selectedId === emp._id;
+                      return (
+                        <button
+                          key={emp._id}
+                          onClick={() => { selectEmployee(emp); setDetailTab('profile'); }}
+                          className={cn(
+                            'w-full text-left px-3 py-2.5 flex items-center gap-3 transition-all duration-150 border-b border-gray-50 hover:bg-gray-50',
+                            isSelected && 'bg-primary/5 border-l-3 border-l-primary'
+                          )}
+                        >
+                          <Avatar name={emp.fullName} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className={cn('text-sm font-medium truncate', isSelected ? 'text-primary' : 'text-foreground')}>
+                              {emp.fullName}
+                            </p>
+                            <p className="text-xs text-foreground/50 truncate">{emp.designation}</p>
+                            <StatusBadge status={EMPLOYEE_STATUS_MAP[emp.status] ?? 'inactive'} className="mt-0.5" />
+                          </div>
+                          <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 transition-transform', isSelected ? 'text-primary translate-x-0.5' : 'text-foreground/20')} />
+                        </button>
+                      );
+                    })}
                   </div>
-                  {deptEmployees.map((emp) => {
-                    const isSelected = selectedId === emp._id;
-                    return (
-                      <button
-                        key={emp._id}
-                        onClick={() => { selectEmployee(emp); setDetailTab('profile'); }}
-                        className={cn(
-                          'w-full text-left px-3 py-2.5 flex items-center gap-3 transition-all duration-150 border-b border-gray-50 hover:bg-gray-50',
-                          isSelected && 'bg-primary/5 border-l-3 border-l-primary'
-                        )}
-                      >
-                        <Avatar name={emp.fullName} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className={cn('text-sm font-medium truncate', isSelected ? 'text-primary' : 'text-foreground')}>
-                            {emp.fullName}
-                          </p>
-                          <p className="text-xs text-foreground/50 truncate">{emp.designation}</p>
-                          <StatusBadge status={EMPLOYEE_STATUS_MAP[emp.status] ?? 'inactive'} className="mt-0.5" />
-                        </div>
-                        <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 transition-transform', isSelected ? 'text-primary translate-x-0.5' : 'text-foreground/20')} />
-                      </button>
-                    );
-                  })}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

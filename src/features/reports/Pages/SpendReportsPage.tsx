@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useReportQuery } from '../Hooks/useReportQuery';
 import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
 import { ReportsNav } from '../Components/ReportsNav';
@@ -52,23 +52,31 @@ export default function SpendReportsPage() {
                   {expenses.byCategory.length === 0 ? <p className="text-sm text-slate-500 text-center py-16">No approved claims this year.</p> : (
                     <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
-                        <Pie data={expenses.byCategory} dataKey="total" nameKey="_id" cx="50%" cy="50%" outerRadius={85} label={(e: any) => e._id}>
+                        <Pie data={expenses.byCategory} dataKey="total" nameKey="_id" cx="50%" cy="50%"
+                          outerRadius={85} innerRadius={48} paddingAngle={2}>
                           {expenses.byCategory.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                         </Pie>
                         <Tooltip content={<ChartTooltip />} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
                 </ChartCard>
                 <ChartCard title="Expense Trend by Month">
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={expenses.byMonth.map((total, i) => ({ month: MONTH_ABBR[i], total }))}>
+                    <AreaChart data={expenses.byMonth.map((total, i) => ({ month: MONTH_ABBR[i], total }))}>
+                      <defs>
+                        <linearGradient id="spendMonthGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                       <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} />
                       <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="total" name="Amount (KES)" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
-                    </BarChart>
+                      <Area type="monotone" dataKey="total" name="Amount (KES)" stroke={CHART_COLORS[0]} strokeWidth={2} fill="url(#spendMonthGrad)" dot={{ fill: CHART_COLORS[0], r: 3 }} activeDot={{ r: 5 }} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </ChartCard>
               </div>
@@ -88,14 +96,15 @@ export default function SpendReportsPage() {
           {procurement && (
             <ChartCard title="Procurement Spend by Department">
               {procurement.byDepartment.length === 0 ? <p className="text-sm text-slate-500 text-center py-10">No purchase requests recorded.</p> : (
-                <ResponsiveContainer width="100%" height={Math.max(180, procurement.byDepartment.length * 34)}>
-                  <BarChart data={procurement.byDepartment} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                    <YAxis type="category" dataKey="department" width={120} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <ResponsiveContainer width="100%" height={Math.max(220, procurement.byDepartment.length * 20)}>
+                  <PieChart>
+                    <Pie data={procurement.byDepartment} dataKey="total" nameKey="department" cx="50%" cy="50%"
+                      outerRadius={85} innerRadius={48} paddingAngle={2}>
+                      {procurement.byDepartment.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="total" name="Estimated Cost (KES)" fill={CHART_COLORS[3]} radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>

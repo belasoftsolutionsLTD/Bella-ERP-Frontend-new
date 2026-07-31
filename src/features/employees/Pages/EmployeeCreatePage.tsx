@@ -24,6 +24,7 @@ const schema = employeeSchema.pick({
   designation: true,
   employmentType: true,
   department: true,
+  branchId: true,
   dateOfHire: true,
   contractEndDate: true,
   probationEndDate: true,
@@ -90,6 +91,7 @@ export default function EmployeeCreatePage() {
   const departments = useConfigSection('departments');
   const designations = useConfigSection('designations');
   const jobGroups = useConfigSection('job-groups');
+  const branches = useConfigSection('branches');
   const { control, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { paymentMethod: 'bank_transfer' },
@@ -103,6 +105,7 @@ export default function EmployeeCreatePage() {
   const designationOptions = (designations.items.length > 0 ? designations.items : DESIGNATIONS.map(name => ({ name })))
     .map((d) => ({ label: d.name, value: d.name }));
   const jobGroupOptions = jobGroups.items.map((g: any) => ({ label: g.name, value: g._id }));
+  const branchOptions = branches.items.map((b: any) => ({ label: b.name, value: b._id }));
 
   // Gross pay drives job group selection automatically — the tier is looked up from
   // the entered figure rather than left for HR to guess/pick manually.
@@ -222,6 +225,14 @@ export default function EmployeeCreatePage() {
               placeholder="Select type"
               options={employmentTypeOptions}
               required
+            />
+            <CustomInput
+              component="select"
+              name="branchId"
+              control={control}
+              label="Branch"
+              placeholder="Select branch (optional)"
+              options={branchOptions}
             />
           </div>
         </div>

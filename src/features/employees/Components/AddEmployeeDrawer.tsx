@@ -20,7 +20,7 @@ const schema = employeeSchema.pick({
   grossPay: true, taxId: true, paymentMethod: true, bankName: true, bankAccountNumber: true,
   mpesaNumber: true, paypalEmail: true, cryptoWalletAddress: true, cryptoNetwork: true,
   email: true, phone: true, nokName: true, nokRelationship: true, nokPhone: true,
-  nokNationalId: true, nokEmail: true, location: true, costCenter: true,
+  nokNationalId: true, nokEmail: true, location: true, branchId: true, costCenter: true,
   preferredName: true, gender: true, maritalStatus: true, nationality: true,
   passportNumber: true, passportExpiryDate: true,
   addressStreet: true, addressCity: true, addressState: true, addressCountry: true, addressPostalCode: true,
@@ -80,6 +80,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
   const departments = useConfigSection('departments');
   const designations = useConfigSection('designations');
   const jobGroups = useConfigSection('job-groups');
+  const branches = useConfigSection('branches');
 
   const { register, handleSubmit, watch, setValue, formState: { isSubmitting, errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -102,6 +103,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
     .map((d) => ({ label: d.name, value: d.name }));
   const designationOptions = (designations.items.length > 0 ? designations.items : DESIGNATIONS.map(name => ({ name })))
     .map((d) => ({ label: d.name, value: d.name }));
+  const branchOptions = branches.items.map((b: any) => ({ label: b.name, value: b._id }));
 
   const submit = async (data: FormValues) => {
     const { nokName, nokRelationship, nokPhone, nokNationalId, nokEmail, taxId, addressStreet, addressCity, addressState, addressCountry, addressPostalCode, ...rest } = data;
@@ -282,6 +284,13 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                   <label className="text-xs font-medium text-slate-600">Location</label>
                   <input {...register('location')} placeholder="e.g. Nairobi Main Office" className={inp} />
                   <p className="text-[10px] text-slate-400">Physical work site — used for cost analytics.</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Branch</label>
+                  <select {...register('branchId')} className={sel}>
+                    <option value="">Select…</option>
+                    {branchOptions.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-slate-600">Cost Center</label>

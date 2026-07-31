@@ -1,10 +1,12 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarDays } from 'lucide-react';
+import { toast } from 'sonner';
+import { CalendarDays, FileDown, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { Wrapper } from '@/components/custom-ui/Wrapper';
+import { generateLeaveHistoryReport } from '../../leave/reportGenerator';
 import type { LeaveBalance, LeaveRequest } from '../../leave/types';
 
 const LEAVE_COLORS = [
@@ -13,11 +15,13 @@ const LEAVE_COLORS = [
   'from-rose-500 to-pink-600', 'from-fuchsia-500 to-violet-600',
 ];
 
-export function LeaveTab({ employeeId }: { employeeId: string }) {
+export function LeaveTab({ employeeId, employeeName, staffNumber }: { employeeId: string; employeeName?: string; staffNumber?: string }) {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [reportUri, setReportUri] = useState<string | null>(null);
 
   const fetch = useCallback(() => {
     setLoading(true);
@@ -32,9 +36,28 @@ export function LeaveTab({ employeeId }: { employeeId: string }) {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  const generateReport = async () => {
+    setGenerating(true);
+    try {
+      setReportUri(await generateLeaveHistoryReport({ employeeId, employeeName, staffNumber }));
+    } catch {
+      toast.error('Failed to generate report.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <Wrapper loading={loading} error={error} onRetry={fetch}>
       <div className="space-y-6">
+        <div className="flex justify-end">
+          <button onClick={generateReport} disabled={generating}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-semibold transition-colors disabled:opacity-50">
+            {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+            {generating ? 'Generating…' : 'Generate Report'}
+          </button>
+        </div>
+
         {balances.length > 0 && (
           <div>
             <h4 className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Leave Balances</h4>
@@ -75,6 +98,19 @@ export function LeaveTab({ employeeId }: { employeeId: string }) {
           </div>
         )}
       </div>
+
+      {reportUri && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setReportUri(null)} />
+          <div className="relative z-10 w-full max-w-2xl h-[85vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
+              <p className="text-sm font-bold text-slate-800">Leave History Report{employeeName ? ` — ${employeeName}` : ''}</p>
+              <button onClick={() => setReportUri(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-gray-100 transition-colors"><X className="h-4 w-4" /></button>
+            </div>
+            <iframe src={reportUri} title="Leave History Report" className="flex-1 w-full border-0" />
+          </div>
+        </div>
+      )}
     </Wrapper>
   );
 }

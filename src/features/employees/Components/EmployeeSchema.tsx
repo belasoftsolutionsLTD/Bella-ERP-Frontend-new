@@ -39,6 +39,7 @@ export const employeeSchema = z.object({
   email:                z.string().email('Invalid email address'),
   phone:                z.string().optional(),
   location:             z.string().optional(),
+  branchId:             z.string().optional(),
   costCenter:           z.string().optional(),
   nokName:              z.string().optional(),
   nokRelationship:      z.string().optional(),

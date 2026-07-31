@@ -9,7 +9,7 @@ import type { ApprovalChainEntry } from '../expenses/types';
 
 export type PRStatus = 'draft' | 'submitted' | 'pending' | 'approved' | 'rejected' | 'converted';
 export type PRPriority = 'low' | 'normal' | 'medium' | 'high' | 'urgent';
-export type POStatus = 'draft' | 'sent' | 'acknowledged' | 'partiallyReceived' | 'fullyReceived' | 'cancelled' | 'invoiced' | 'paid';
+export type POStatus = 'draft' | 'pending' | 'pendingDelivery' | 'partiallyReceived' | 'fullyReceived' | 'cancelled' | 'invoiced' | 'paid';
 export type VendorStatus = 'pending_approval' | 'active' | 'inactive' | 'rejected' | 'blacklisted';
 export type VendorType = 'company' | 'individual';
 export interface VendorDocument { docId: string; docType: string; fileName: string; filePath: string; uploadedAt: string; }
@@ -153,7 +153,8 @@ export interface VendorInvoice {
   purchaseOrderId: string;
   vendorId: string;
   vendor?: Vendor | null;
-  invoiceNumber: string;
+  invoiceNumber: string; // the vendor's own invoice number, as printed on their invoice
+  poInvoiceNumber?: string; // our auto-generated internal reference, e.g. PO-TEC-2026-00007
   invoiceDate: string;
   dueDate: string;
   items: VendorInvoiceItem[];

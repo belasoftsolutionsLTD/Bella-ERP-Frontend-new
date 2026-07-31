@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight, TrendingUp, Repeat, DollarSign } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
 import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
@@ -48,14 +48,15 @@ export default function WorkforceReportsPage() {
             {data.promotionsByDept.length === 0 ? (
               <p className="text-sm text-brand-text-muted text-center py-10">No promotions recorded this year.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={Math.max(160, data.promotionsByDept.length * 34)}>
-                <BarChart data={data.promotionsByDept} layout="vertical" margin={{ left: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="department" width={140} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+              <ResponsiveContainer width="100%" height={Math.max(220, data.promotionsByDept.length * 20)}>
+                <PieChart>
+                  <Pie data={data.promotionsByDept} dataKey="count" nameKey="department" cx="50%" cy="50%"
+                    outerRadius={85} innerRadius={48} paddingAngle={2}>
+                    {data.promotionsByDept.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="count" name="Promotions" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
               </ResponsiveContainer>
             )}
           </ChartCard>

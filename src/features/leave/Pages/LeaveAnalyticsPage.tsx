@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, PieChart, Pie, Cell, Legend, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowLeft, Clock, TrendingUp, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLeaveAnalytics } from '../Hooks/useLeaveAnalytics';
@@ -90,10 +90,11 @@ export default function LeaveAnalyticsPage() {
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <PieChart>
-                    <Pie data={data.leaveTypeBreakdown} dataKey="days" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={(e: any) => e.name}>
+                    <Pie data={data.leaveTypeBreakdown} dataKey="days" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={46} paddingAngle={2}>
                       {data.leaveTypeBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<ChartTooltip />} />
+                    <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 11 }}>{v}</span>} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -104,13 +105,13 @@ export default function LeaveAnalyticsPage() {
                 <p className="text-sm text-brand-text-muted text-center py-16">No approved leave yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={data.departmentAbsence} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={110} />
+                  <PieChart>
+                    <Pie data={data.departmentAbsence} dataKey="days" nameKey="department" cx="50%" cy="50%" outerRadius={80} innerRadius={46} paddingAngle={2}>
+                      {data.departmentAbsence.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="days" name="Days" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 11 }}>{v}</span>} />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>

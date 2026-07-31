@@ -4,11 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, Check, X, RotateCcw, FileText, Activity as ActivityIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Check, X, RotateCcw, FileText, FileDown, Activity as ActivityIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge, type Status } from '@/components/ui/StatusBadge';
 import { ConfirmDialog } from '@/components/custom-ui/ConfirmDialog';
 import { useLeaveRequest } from '../Hooks/useLeaveRequests';
+import { generateLeaveHistoryReport } from '../reportGenerator';
 
 // Guaranteed HR-only actions (see backend/src/routes/leave/leave.js route guards) —
 // approve/reject/cancel can also be a direct manager or dept head acting as an approval-
@@ -33,9 +34,24 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
   const [proposedDays, setProposedDays] = useState('');
   const [counterOfferReason, setCounterOfferReason] = useState('');
   const [pendingConfirm, setPendingConfirm] = useState<'approve' | 'cancel' | 'revoke' | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportUri, setReportUri] = useState<string | null>(null);
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-6 w-6 animate-spin text-indigo-400" /></div>;
   if (!request) return <p className="text-sm text-brand-text-muted text-center py-16">Request not found.</p>;
+
+  const generateReport = async () => {
+    setGeneratingReport(true);
+    try {
+      setReportUri(await generateLeaveHistoryReport({
+        employeeId: request.employeeId, employeeName: request.employee?.fullName, staffNumber: request.employee?.staffNumber,
+      }));
+    } catch {
+      toast.error('Failed to generate report.');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -43,11 +59,20 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
         <Link href={`/${locale}/leave/requests`} className="flex items-center gap-1 text-xs text-brand-text-secondary hover:text-brand-text mb-1.5 transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" /> Requests
         </Link>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl font-bold text-brand-text">{request.employee?.fullName ?? 'Unknown Employee'}</h1>
-          <StatusBadge status={LEAVE_STATUS_MAP[request.status] ?? 'inactive'} label={request.status} className="capitalize" />
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-bold text-brand-text">{request.employee?.fullName ?? 'Unknown Employee'}</h1>
+              <StatusBadge status={LEAVE_STATUS_MAP[request.status] ?? 'inactive'} label={request.status} className="capitalize" />
+            </div>
+            <p className="text-sm text-brand-text-secondary mt-0.5">{request.employee?.department} · {request.employee?.staffNumber}</p>
+          </div>
+          <button onClick={generateReport} disabled={generatingReport}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-brand-border text-brand-text-secondary hover:text-brand-text text-xs font-semibold transition-colors disabled:opacity-50">
+            {generatingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+            {generatingReport ? 'Generating…' : 'Generate Report'}
+          </button>
         </div>
-        <p className="text-sm text-brand-text-secondary mt-0.5">{request.employee?.department} · {request.employee?.staffNumber}</p>
       </div>
 
       <div className="bg-brand-bg-soft border border-brand-border/60 rounded-xl p-5">
@@ -231,6 +256,19 @@ export default function RequestDetailPage({ requestId }: { requestId: string }) 
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {reportUri && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setReportUri(null)} />
+          <div className="relative z-10 w-full max-w-2xl h-[85vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
+              <p className="text-sm font-bold text-slate-800">Leave History Report{request.employee?.fullName ? ` — ${request.employee.fullName}` : ''}</p>
+              <button onClick={() => setReportUri(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-gray-100 transition-colors"><X className="h-4 w-4" /></button>
+            </div>
+            <iframe src={reportUri} title="Leave History Report" className="flex-1 w-full border-0" />
           </div>
         </div>
       )}

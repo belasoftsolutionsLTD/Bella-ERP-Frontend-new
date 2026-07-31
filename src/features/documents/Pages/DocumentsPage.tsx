@@ -23,6 +23,10 @@ const DOC_TYPES = [
   { value: 'policy',      label: 'Company Policies',   icon: FileText },
   { value: 'id',          label: 'ID & Identification',icon: FileText },
   { value: 'certificate', label: 'Certificates',       icon: FileText },
+  // Matches the docType Recruitment writes when hiring a candidate copies their resume
+  // into employees.documents (see recruitmentFunctions.js) — previously had no folder
+  // to file under, so it only ever surfaced under "All Documents".
+  { value: 'CV',          label: 'Resumes & CVs',      icon: FileText },
   { value: 'other',       label: 'Other',              icon: File },
 ];
 

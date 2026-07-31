@@ -4,10 +4,13 @@
 
 @layer base {
   :root {
-    /* Theme colors — overridden at runtime by ThemeLoader */
-    --color-primary: 249 115 22;      /* #f97316 orange */
-    --color-accent:  249 115 22;      /* same as primary by default */
-    --color-gradient-end: 234 88 12;  /* #ea580c orange-600 */
+    /* Theme colors — overridden at runtime by ThemeLoader (via company_settings, when
+       configured). Default matches the Workfola logo's blue, same as brand-primary in
+       tailwind.config.ts, so the Staff Portal (which reads these vars, not brand-primary)
+       looks like one consistent app rather than a separate orange-default theme. */
+    --color-primary: 37 99 235;       /* #2563EB blue */
+    --color-accent:  37 99 235;       /* same as primary by default */
+    --color-gradient-end: 29 78 216;  /* #1D4ED8 blue-700 */
 
     --background: 210 40% 98%;   /* #f8fafc — light bg for auth/staff-facing pages */
     --foreground: 222.2 47.4% 11.2%;  /* #0f172a — near-black text for light backgrounds */
@@ -17,7 +20,7 @@
     --radius: 0.5rem;
     --border: 214.3 31.8% 91%;
     --input: 214.3 31.8% 91%;
-    --ring: 24 94% 53%;
+    --ring: 221 83% 53%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --popover: 0 0% 100%;

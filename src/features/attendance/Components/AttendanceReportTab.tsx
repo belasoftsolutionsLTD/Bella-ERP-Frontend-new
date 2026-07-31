@@ -3,12 +3,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Download, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { downloadFile } from '@/functions/downloadFile';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { ManualEntryModal } from './ManualEntryModal';
+
+const CHART_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16'];
+
+function SplitTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0];
+  return (
+    <div className="bg-white border border-brand-border rounded-lg px-3 py-2 text-xs shadow-xl">
+      <p className="text-brand-text-secondary font-semibold mb-0.5">{d.name}</p>
+      <p className="font-bold" style={{ color: d.payload?.fill }}>{d.value}</p>
+    </div>
+  );
+}
 
 interface DayRecord {
   status?: string;
@@ -131,18 +145,42 @@ export function AttendanceReportTab() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { label: 'Attendance Rate', value: `${stats.attendanceRate}%`,  color: 'text-emerald-600' },
-            { label: 'Present',         value: stats.totalPresent,          color: 'text-emerald-600' },
-            { label: 'Late',            value: stats.totalLate,             color: 'text-amber-600'   },
-            { label: 'Absent',          value: stats.totalAbsent,           color: 'text-red-600'     },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3 text-center">
-              <p className="text-[11px] text-brand-text-muted uppercase tracking-wide mb-0.5">{label}</p>
-              <p className={cn('text-xl font-bold', color)}>{value}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+          <div className="lg:col-span-3 grid grid-cols-4 gap-3">
+            {[
+              { label: 'Attendance Rate', value: `${stats.attendanceRate}%`,  color: 'text-emerald-600' },
+              { label: 'Present',         value: stats.totalPresent,          color: 'text-emerald-600' },
+              { label: 'Late',            value: stats.totalLate,             color: 'text-amber-600'   },
+              { label: 'Absent',          value: stats.totalAbsent,           color: 'text-red-600'     },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3 text-center">
+                <p className="text-[11px] text-brand-text-muted uppercase tracking-wide mb-0.5">{label}</p>
+                <p className={cn('text-xl font-bold', color)}>{value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Supplemental present/late/absent split donut */}
+          <div className="bg-brand-bg-soft border border-brand-border rounded-xl px-4 py-3">
+            <p className="text-[11px] text-brand-text-muted uppercase tracking-wide mb-1 text-center">Present / Late / Absent Split</p>
+            <ResponsiveContainer width="100%" height={120}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Present', value: stats.totalPresent },
+                    { name: 'Late', value: stats.totalLate },
+                    { name: 'Absent', value: stats.totalAbsent },
+                  ]}
+                  dataKey="value" nameKey="name" cx="50%" cy="50%"
+                  outerRadius={50} innerRadius={28} paddingAngle={2}
+                >
+                  {CHART_COLORS.slice(0, 3).map((c, i) => <Cell key={i} fill={c} />)}
+                </Pie>
+                <Tooltip content={<SplitTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 

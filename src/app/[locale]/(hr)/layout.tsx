@@ -126,15 +126,23 @@ export default function HrLayout({ children }: { children: React.ReactNode }) {
 
   if (!isLoggedIn) return null;
 
+  // Staff Portal has its own complete internal nav (profile, attendance, leave, tasks,
+  // etc.) — for a plain staff account the outer sidebar has nothing left to show beyond
+  // a single "Staff Portal" link back to the page they're already on, so it's just
+  // redundant chrome here. Scoped to exactly this route (not the other /my/* staff
+  // pages) since those don't have their own nav and rely on the outer sidebar to get
+  // back anywhere.
+  const hideOuterSidebar = isStaff && pathname.endsWith('/staff-portal');
+
   return (
     <ClockInProvider>
       <div className="flex flex-col h-screen bg-brand-bg overflow-hidden">
         {showReset && <PasswordResetPrompt onDone={handleResetDone} />}
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <HrSidebar />
-          <div className="flex flex-col flex-1 min-h-0">
+          {!hideOuterSidebar && <HrSidebar />}
+          <div className="flex flex-col flex-1 min-h-0 min-w-0">
             <HrTopBar />
-            <main className="flex-1 overflow-y-auto px-8 py-6 md:px-10 md:py-8 bg-brand-bg">
+            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-8 py-6 md:px-10 md:py-8 bg-brand-bg">
               {children}
             </main>
           </div>

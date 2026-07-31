@@ -2,12 +2,16 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+} from 'recharts';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useOnboardingAnalytics } from '../Hooks/useOnboardingAnalytics';
 
 const STAKEHOLDER_LABEL: Record<string, string> = { hr: 'HR', it: 'IT', manager: 'Manager', newHire: 'New Hire', finance: 'Finance' };
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const CHART_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16'];
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -77,13 +81,13 @@ export default function OnboardingAnalyticsPage() {
                 <p className="text-sm text-brand-text-muted text-center py-16">No completed records yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={data.avgCompletionDaysByDepartment} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={110} />
+                  <RadarChart data={data.avgCompletionDaysByDepartment}>
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis dataKey="department" tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+                    <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="avgDays" name="Avg Days" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Radar name="Avg Days" dataKey="avgDays" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.4} />
+                  </RadarChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>
@@ -93,13 +97,13 @@ export default function OnboardingAnalyticsPage() {
                 <p className="text-sm text-brand-text-muted text-center py-16">No completed records yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={data.avgCompletionDaysByTemplate} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="templateName" tick={{ fontSize: 11, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={130} />
+                  <RadarChart data={data.avgCompletionDaysByTemplate}>
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis dataKey="templateName" tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+                    <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="avgDays" name="Avg Days" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Radar name="Avg Days" dataKey="avgDays" stroke={CHART_COLORS[1]} fill={CHART_COLORS[1]} fillOpacity={0.4} />
+                  </RadarChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>
@@ -109,14 +113,14 @@ export default function OnboardingAnalyticsPage() {
             {stakeholderData.length === 0 ? (
               <p className="text-sm text-brand-text-muted text-center py-16">No task data yet.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={stakeholderData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                  <XAxis dataKey="stakeholder" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+              <ResponsiveContainer width="100%" height={260}>
+                <RadarChart data={stakeholderData}>
+                  <PolarGrid stroke="#334155" />
+                  <PolarAngleAxis dataKey="stakeholder" tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+                  <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => `${v}%`} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="Completion Rate" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Radar name="Completion Rate" dataKey="Completion Rate" stroke={CHART_COLORS[2]} fill={CHART_COLORS[2]} fillOpacity={0.4} />
+                </RadarChart>
               </ResponsiveContainer>
             )}
           </ChartCard>

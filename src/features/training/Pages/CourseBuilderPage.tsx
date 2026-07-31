@@ -302,10 +302,15 @@ export function CourseBuilderPage({ locale, courseId }: { locale: string; course
           </div>
           <CustomInput component="number" name="certificateValidityDays" control={control} label="Certificate Validity (days, blank = never expires)" />
 
-          <div className="flex justify-end pt-3 border-t border-slate-100">
+          <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-100">
             <Button type="submit" disabled={isSubmitting} className="bg-brand-primary text-white">
               {isSubmitting ? 'Saving...' : 'Save & Continue'}
             </Button>
+            {isEditMode && (
+              <Button type="button" onClick={() => setStep(1)} className="bg-brand-primary text-white">
+                Next <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
           </div>
         </form>
       )}

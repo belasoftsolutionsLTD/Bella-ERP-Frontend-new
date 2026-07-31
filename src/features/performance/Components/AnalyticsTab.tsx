@@ -5,6 +5,11 @@ import { Loader2, BarChart2, Target, Users, Star, AlertTriangle } from 'lucide-r
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import {
+  PieChart, Pie, Cell, AreaChart, Area,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  ResponsiveContainer, Tooltip, Legend, XAxis, YAxis, CartesianGrid,
+} from 'recharts';
 
 interface Analytics {
   goalsCompletionRate: number;
@@ -24,7 +29,17 @@ const GOAL_STATUS_COLORS: Record<string, string> = {
   behind:      '#ef4444',
 };
 
+const PALETTE = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16'];
+
 const RATING_LABELS: Record<number, string> = { 1: 'Unsatisfactory', 2: 'Needs Work', 3: 'Meets', 4: 'Exceeds', 5: 'Outstanding' };
+
+const tooltipStyle = {
+  backgroundColor: '#f8fafc',
+  border: '1px solid #334155',
+  borderRadius: '12px',
+  color: '#e2e8f0',
+  fontSize: '12px',
+};
 
 export function AnalyticsTab() {
   const [data, setData]     = useState<Analytics | null>(null);
@@ -68,9 +83,23 @@ export function AnalyticsTab() {
     { icon: BarChart2,label: 'Active Cycles',         value: String(data.activeCycles),              sub: 'review cycles running'   },
   ];
 
-  const maxDeptRating = Math.max(...(data.departmentPerformance.map(d => d.avgRating) || [1]));
-  const maxRatingCount = Math.max(...(data.ratingDistribution.map(r => r.count) || [1]));
-  const totalGoals = data.goalsByStatus.reduce((s, g) => s + g.count, 0);
+  const goalsChartData = data.goalsByStatus.map(g => ({
+    id: g._id,
+    name: g._id.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    value: g.count,
+  }));
+
+  const ratingChartData = [1, 2, 3, 4, 5].map(rating => ({
+    rating,
+    label: RATING_LABELS[rating],
+    count: data.ratingDistribution.find(r => r._id === rating)?.count ?? 0,
+  }));
+
+  const deptChartData = data.departmentPerformance.map(d => ({
+    department: d._id || 'No Department',
+    avgRating: d.avgRating,
+    count: d.count,
+  }));
 
   return (
     <div className="space-y-6">
@@ -93,30 +122,32 @@ export function AnalyticsTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-        {/* Goals by status — donut-style */}
+        {/* Goals by status — donut */}
         <div className="bg-brand-bg-soft border border-brand-border rounded-xl p-5">
           <h3 className="text-sm font-bold text-brand-text mb-4">Goals by Status</h3>
           {data.goalsByStatus.length === 0 ? (
             <p className="text-sm text-brand-text-muted text-center py-6">No goal data yet.</p>
           ) : (
-            <div className="space-y-3">
-              {data.goalsByStatus.map(g => {
-                const pct = totalGoals > 0 ? Math.round((g.count / totalGoals) * 100) : 0;
-                const color = GOAL_STATUS_COLORS[g._id] || '#64748b';
-                const label = g._id.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
-                return (
-                  <div key={g._id}>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-xs font-medium text-brand-text-secondary">{label}</span>
-                      <span className="text-xs text-brand-text-muted">{g.count} ({pct}%)</span>
-                    </div>
-                    <div className="h-2.5 rounded-full bg-brand-bg-muted overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={goalsChartData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  innerRadius={46}
+                  paddingAngle={2}
+                >
+                  {goalsChartData.map((entry, i) => (
+                    <Cell key={entry.id} fill={GOAL_STATUS_COLORS[entry.id] || PALETTE[i % PALETTE.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => [v, 'Goals']} />
+                <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 11 }}>{v}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
           )}
         </div>
 
@@ -126,22 +157,34 @@ export function AnalyticsTab() {
           {data.ratingDistribution.length === 0 ? (
             <p className="text-sm text-brand-text-muted text-center py-6">No appraisal data yet.</p>
           ) : (
-            <div className="flex items-end gap-2 h-32">
-              {[1, 2, 3, 4, 5].map(rating => {
-                const entry = data.ratingDistribution.find(r => r._id === rating);
-                const count = entry?.count ?? 0;
-                const pct   = maxRatingCount > 0 ? (count / maxRatingCount) * 100 : 0;
-                const color = rating >= 4 ? '#6366f1' : rating === 3 ? '#3b82f6' : '#f59e0b';
-                return (
-                  <div key={rating} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[11px] text-brand-text-muted">{count}</span>
-                    <div className="w-full rounded-t flex items-end justify-center transition-all" style={{ height: `${Math.max(4, pct)}%`, backgroundColor: color }} />
-                    <span className="text-[10px] text-brand-text-muted">{rating}</span>
-                    <span className="text-[9px] text-slate-700 text-center leading-none">{RATING_LABELS[rating]}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={ratingChartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="ratingGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="rating" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v: any) => [v, 'Reviews']}
+                  labelFormatter={(rating: any) => `Rating ${rating} — ${RATING_LABELS[rating as number]}`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  fill="url(#ratingGrad)"
+                  dot={{ fill: '#6366f1', r: 3 }}
+                  activeDot={{ r: 5 }}
+                  name="Reviews"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           )}
         </div>
 
@@ -151,22 +194,18 @@ export function AnalyticsTab() {
           {data.departmentPerformance.length === 0 ? (
             <p className="text-sm text-brand-text-muted text-center py-6">No department data yet.</p>
           ) : (
-            <div className="space-y-3">
-              {data.departmentPerformance.map(d => {
-                const pct = maxDeptRating > 0 ? (d.avgRating / 5) * 100 : 0;
-                const color = d.avgRating >= 4 ? '#6366f1' : d.avgRating >= 3 ? '#3b82f6' : '#f59e0b';
-                return (
-                  <div key={d._id} className="flex items-center gap-3">
-                    <span className="text-xs text-brand-text-secondary w-36 shrink-0 truncate">{d._id || 'No Department'}</span>
-                    <div className="flex-1 h-2.5 rounded-full bg-brand-bg-muted overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-                    </div>
-                    <span className="text-xs font-bold text-brand-text-secondary w-10 text-right">{d.avgRating.toFixed(1)}</span>
-                    <span className="text-[11px] text-brand-text-muted w-12 text-right">{d.count} review{d.count !== 1 ? 's' : ''}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <RadarChart data={deptChartData} outerRadius="75%">
+                <PolarGrid stroke="#1e293b" />
+                <PolarAngleAxis dataKey="department" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <PolarRadiusAxis domain={[0, 5]} tick={{ fill: '#64748b', fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v: any, _n: any, item: any) => [`${(v as number).toFixed(1)} / 5 (${item?.payload?.count ?? 0} reviews)`, 'Avg Rating']}
+                />
+                <Radar dataKey="avgRating" name="Avg Rating" stroke="#6366f1" fill="#6366f1" fillOpacity={0.4} />
+              </RadarChart>
+            </ResponsiveContainer>
           )}
         </div>
       </div>

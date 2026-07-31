@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
 import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, CHART_COLORS } from '../Components/shared';
@@ -48,15 +48,16 @@ export default function RecruitmentReportsPage() {
                 <StatTile label="Avg Time to Hire" value={pipeline.avgTimeToHireDays != null ? `${pipeline.avgTimeToHireDays}d` : '—'} colorCls="text-emerald-400" />
               </div>
               <ChartCard title="Open Positions by Department">
-                <ResponsiveContainer width="100%" height={Math.max(180, pipeline.byDepartment.length * 34)}>
-                  <BarChart data={pipeline.byDepartment} layout="vertical" margin={{ left: 24 }}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart data={pipeline.byDepartment} margin={{ left: 0, right: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
-                    <YAxis type="category" dataKey="department" width={120} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                    <XAxis dataKey="department" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="openPositions" name="Open Roles" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} />
-                    <Bar dataKey="applicants" name="Applicants" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Area type="monotone" dataKey="openPositions" name="Open Roles" stackId="a" stroke={CHART_COLORS[1]} fill={CHART_COLORS[1]} fillOpacity={0.6} />
+                    <Area type="monotone" dataKey="applicants" name="Applicants" stackId="a" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.6} />
+                  </AreaChart>
                 </ResponsiveContainer>
               </ChartCard>
             </>
@@ -64,15 +65,16 @@ export default function RecruitmentReportsPage() {
 
           {source && (
             <ChartCard title="Source of Hire Effectiveness">
-              <ResponsiveContainer width="100%" height={Math.max(180, source.length * 40)}>
-                <BarChart data={source} layout="vertical" margin={{ left: 24 }}>
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={source} margin={{ left: 0, right: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="source" width={100} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <XAxis dataKey="source" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="applications" name="Applications" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="hires" name="Hires" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Area type="monotone" dataKey="applications" name="Applications" stackId="a" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="hires" name="Hires" stackId="a" stroke={CHART_COLORS[2]} fill={CHART_COLORS[2]} fillOpacity={0.6} />
+                </AreaChart>
               </ResponsiveContainer>
             </ChartCard>
           )}

@@ -742,10 +742,10 @@ export default function PayrollPage() {
       thenFn: () => fetchCycles(), finallyFn: () => setAdvancing(false) });
   };
 
-  const approveEmployee = (resultId: string) => {
+  const approveEmployee = (employeeId: string) => {
     if (!activeCycle) return;
     apiCallFunction({ url: `${API_BASE_URL}/payroll/cycles/${activeCycle._id}/approve`, method: 'POST',
-      data: { employeeIds: [resultId] }, thenFn: () => fetchResults() });
+      data: { employeeIds: [employeeId] }, thenFn: () => fetchResults() });
   };
 
   const sendPayslipEmails = () => {
@@ -961,7 +961,7 @@ export default function PayrollPage() {
                       <div className="px-4 py-3"><span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', sCfg)}>{sLabel}</span></div>
                       <div className="px-4 py-3 flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         {isHR && r.status === 'pending' && (
-                          <button onClick={() => approveEmployee(r._id)} className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-colors">
+                          <button onClick={() => approveEmployee(r.employeeId)} className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-colors">
                             <Check className="h-3.5 w-3.5" />
                           </button>
                         )}
@@ -1017,7 +1017,7 @@ export default function PayrollPage() {
       )}
       {compareOpen && <CompareCyclesModal cycles={cycles} onClose={() => setCompareOpen(false)} />}
       {excOpen   && ac && <ExceptionsPanel cycleId={ac._id} onClose={() => setExcOpen(false)} />}
-      {detailR   && ac && <ResultModal r={detailR} cur={cur} cycleYear={ac.period.year} onClose={() => setDetailR(null)} onApprove={() => approveEmployee(detailR._id)} isHR={isHR} />}
+      {detailR   && ac && <ResultModal r={detailR} cur={cur} cycleYear={ac.period.year} onClose={() => setDetailR(null)} onApprove={() => approveEmployee(detailR.employeeId)} isHR={isHR} />}
       {readyOpen && <ReadinessModal onClose={() => setReadyOpen(false)} />}
     </div>
   );

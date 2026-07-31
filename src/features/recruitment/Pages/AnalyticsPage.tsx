@@ -1,8 +1,9 @@
 'use client';
 
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
 } from 'recharts';
 import { useTimeToFill, useTimeInStage, useSourceEffectiveness, useOfferAcceptance } from '../Hooks/useAnalytics';
 
@@ -35,26 +36,27 @@ export function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard title="Time to Fill by Department (days)">
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={timeToFill}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="department" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
+            <RadarChart data={timeToFill}>
+              <PolarGrid stroke="#e2e8f0" />
+              <PolarAngleAxis dataKey="department" tick={{ fontSize: 12 }} />
+              <PolarRadiusAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Bar dataKey="avgDaysToFill" fill="#f97316" radius={[4, 4, 0, 0]} />
-            </BarChart>
+              <Radar name="Avg Days to Fill" dataKey="avgDaysToFill" stroke={COLORS[0]} fill={COLORS[0]} fillOpacity={0.4} />
+            </RadarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         <ChartCard title="Source Effectiveness">
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={sourceEffectiveness} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-              <XAxis type="number" tick={{ fontSize: 12 }} />
-              <YAxis type="category" dataKey="source" tick={{ fontSize: 12 }} width={90} />
+            <RadarChart data={sourceEffectiveness}>
+              <PolarGrid stroke="#e2e8f0" />
+              <PolarAngleAxis dataKey="source" tick={{ fontSize: 12 }} />
+              <PolarRadiusAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Bar dataKey="applications" name="Applications" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="hires" name="Hires" fill="#22c55e" radius={[0, 4, 4, 0]} />
-            </BarChart>
+              <Legend />
+              <Radar name="Applications" dataKey="applications" stroke={COLORS[1]} fill={COLORS[1]} fillOpacity={0.35} />
+              <Radar name="Hires" dataKey="hires" stroke={COLORS[3]} fill={COLORS[3]} fillOpacity={0.35} />
+            </RadarChart>
           </ResponsiveContainer>
         </ChartCard>
 

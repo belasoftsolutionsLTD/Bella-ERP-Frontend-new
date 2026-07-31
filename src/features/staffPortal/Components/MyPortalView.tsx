@@ -104,6 +104,29 @@ const NAV_GROUPS: { label: string; items: typeof NAV }[] = (() => {
   return order.map((label) => ({ label, items: byGroup.get(label)! }));
 })();
 
+// Fixed, consistent color per group — same colorblind-validated categorical set used
+// for charts and the outer HrSidebar elsewhere in the app, so the two sidebars read as
+// one system rather than one colorful and one plain gray.
+const GROUP_COLORS: Record<string, string> = {
+  'Overview': '#6366f1',
+  'Time & Attendance': '#f59e0b',
+  'My Work': '#ec4899',
+  'Finance': '#10b981',
+  'Growth': '#8b5cf6',
+  'Communication': '#0ea5e9',
+  'My Documents': '#84cc16',
+  'Employment Lifecycle': '#ef4444',
+};
+// Darker text-safe variants for the hues that are too light to read as small text on a
+// white background (sky/emerald/amber/lime) — the dot keeps the vivid color, the label
+// text uses this one instead.
+const GROUP_TEXT_COLORS: Record<string, string> = {
+  'Time & Attendance': '#b45309',
+  'Finance': '#047857',
+  'Communication': '#0369a1',
+  'My Documents': '#4d7c0f',
+};
+
 function ProfilePhotoAvatar({ profile }: { profile: { fullName: string; photoPath?: string } }) {
   const token = typeof window !== 'undefined' ? (sessionStorage.getItem('token') ?? '') : '';
   const photoUrl = profile.photoPath
@@ -165,6 +188,14 @@ export function MyPortalView() {
 
   const [active, setActive]           = useState<Section>('profile');
   const [showSidebar, setShowSidebar] = useState(false);
+  // Same collapsible-group pattern as the outer HrSidebar — Set-based toggle, defaults
+  // to all-open so nothing changes visually until a group is actually collapsed.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (label: string) => setCollapsedGroups((prev) => {
+    const next = new Set(prev);
+    next.has(label) ? next.delete(label) : next.add(label);
+    return next;
+  });
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [notifsOn, setNotifsOn]       = useState(true);
   const [togglingNotif, setTogglingNotif] = useState(false);
@@ -258,12 +289,24 @@ export function MyPortalView() {
           </div>
 
           <nav className="flex-1 overflow-y-auto py-2 px-2">
-            {NAV_GROUPS.map(({ label: groupLabel, items }) => (
+            {NAV_GROUPS.map(({ label: groupLabel, items }) => {
+              const isGroupOpen = !collapsedGroups.has(groupLabel);
+              const groupColor = GROUP_COLORS[groupLabel] ?? '#64748B';
+              const groupTextColor = GROUP_TEXT_COLORS[groupLabel] ?? groupColor;
+              return (
               <div key={groupLabel}>
-                <p className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-brand-text-muted select-none first:pt-1.5">
-                  {groupLabel}
-                </p>
-                {items.map(({ key, label, icon: Icon, description, href }) => {
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(groupLabel)}
+                  className="w-full flex items-center gap-1.5 px-3 pt-4 pb-1.5 select-none first:pt-1.5"
+                >
+                  <ChevronRight className="h-2.5 w-2.5 shrink-0 transition-transform" style={{ color: groupTextColor, transform: isGroupOpen ? 'rotate(90deg)' : undefined }} />
+                  <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: groupColor }} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: groupTextColor }}>
+                    {groupLabel}
+                  </span>
+                </button>
+                {isGroupOpen && items.map(({ key, label, icon: Icon, description, href }) => {
                   const isActive = active === key;
                   const badge = navBadge(key);
                   return (
@@ -284,7 +327,8 @@ export function MyPortalView() {
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </nav>
         </aside>
 
@@ -2530,7 +2574,7 @@ function ExpensesPanel() {
                   {c.approvalChain.map((a: any) => (
                     <span key={a.level} className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full',
                       a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : a.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700')}>
-                      L{a.level} {a.approverName || a.approverRole || '—'} · {a.status}
+                      L{a.level} {a.approverRole || '—'} · {a.status}
                     </span>
                   ))}
                 </div>
@@ -2694,7 +2738,7 @@ function RequestsPanel() {
                   {r.approvalChain.map((a: any) => (
                     <span key={a.level} className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full',
                       a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : a.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700')}>
-                      L{a.level} {a.approverName || a.approverRole || '—'} · {a.status}
+                      L{a.level} {a.approverRole || '—'} · {a.status}
                     </span>
                   ))}
                 </div>

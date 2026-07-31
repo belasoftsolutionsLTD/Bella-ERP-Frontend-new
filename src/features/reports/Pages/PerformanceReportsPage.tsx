@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight } from 'lucide-react';
 import { useReportQuery } from '../Hooks/useReportQuery';
 import { ChartCard, ChartTooltip, StatTile, LoadingBlock, ErrorBlock, ExportCSVButton, CHART_COLORS } from '../Components/shared';
@@ -50,25 +50,27 @@ export default function PerformanceReportsPage() {
           {goals && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ChartCard title="Goal Completion Rate by Department">
-                <ResponsiveContainer width="100%" height={Math.max(180, goals.byDepartment.length * 34)}>
-                  <BarChart data={goals.byDepartment} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} domain={[0, 100]} />
-                    <YAxis type="category" dataKey="department" width={120} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <ResponsiveContainer width="100%" height={Math.max(220, goals.byDepartment.length * 20)}>
+                  <PieChart>
+                    <Pie data={goals.byDepartment} dataKey="completionRate" nameKey="department" cx="50%" cy="50%"
+                      outerRadius={85} innerRadius={48} paddingAngle={2}>
+                      {goals.byDepartment.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="completionRate" name="Completion %" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
               <ChartCard title="Goal Completion Rate by Category">
-                <ResponsiveContainer width="100%" height={Math.max(180, goals.byCategory.length * 34)}>
-                  <BarChart data={goals.byCategory} layout="vertical" margin={{ left: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} domain={[0, 100]} />
-                    <YAxis type="category" dataKey="category" width={100} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <ResponsiveContainer width="100%" height={Math.max(220, goals.byCategory.length * 20)}>
+                  <PieChart>
+                    <Pie data={goals.byCategory} dataKey="completionRate" nameKey="category" cx="50%" cy="50%"
+                      outerRadius={85} innerRadius={48} paddingAngle={2}>
+                      {goals.byCategory.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="completionRate" name="Completion %" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
             </div>

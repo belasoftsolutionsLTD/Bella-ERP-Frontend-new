@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { TrendingUp, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
@@ -133,18 +133,16 @@ export default function TaskAnalytics() {
         <div className="bg-brand-bg-soft rounded-2xl p-5 border border-brand-border">
           <h3 className="text-sm font-semibold text-brand-text-secondary mb-4">Tasks by Module</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data.moduleBreakdown} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-              <XAxis type="number" tick={{ fill: '#64748b', fontSize: 10 }} allowDecimals={false} />
-              <YAxis type="category" dataKey="module" tick={{ fill: '#94a3b8', fontSize: 10 }} width={80}
-                tickFormatter={m => m.charAt(0).toUpperCase() + m.slice(1).replace('_', ' ')} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="count" name="Total" radius={[0, 4, 4, 0]}>
+            <PieChart>
+              <Pie data={data.moduleBreakdown} dataKey="count" nameKey="module" cx="50%" cy="50%"
+                outerRadius={80} innerRadius={46} paddingAngle={2}>
                 {data.moduleBreakdown.map((_, i) => (
                   <Cell key={i} fill={MODULE_COLORS[i % MODULE_COLORS.length]} />
                 ))}
-              </Bar>
-            </BarChart>
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} formatter={(v, _n, item) => [v, item?.payload?.module ? String(item.payload.module).charAt(0).toUpperCase() + String(item.payload.module).slice(1).replace('_', ' ') : '']} />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} formatter={(v) => v.charAt(0).toUpperCase() + v.slice(1).replace('_', ' ')} />
+            </PieChart>
           </ResponsiveContainer>
         </div>
 
@@ -160,14 +158,16 @@ export default function TaskAnalytics() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.deptOverdue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="department" tick={{ fill: '#94a3b8', fontSize: 9 }}
-                  tickFormatter={d => d.length > 10 ? d.slice(0, 10) + '…' : d} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 10 }} allowDecimals={false} />
+              <PieChart>
+                <Pie data={data.deptOverdue} dataKey="overdue" nameKey="department" cx="50%" cy="50%"
+                  outerRadius={80} innerRadius={46} paddingAngle={2}>
+                  {data.deptOverdue.map((_, i) => (
+                    <Cell key={i} fill={MODULE_COLORS[i % MODULE_COLORS.length]} />
+                  ))}
+                </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="overdue" name="Overdue" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+              </PieChart>
             </ResponsiveContainer>
           )}
         </div>
