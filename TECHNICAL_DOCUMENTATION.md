@@ -1,7 +1,7 @@
-# Bella ERP — Comprehensive Technical Documentation
+# Bela ERP — Comprehensive Technical Documentation
 
 > **Generated:** 2026-07-02  
-> **System:** Bella ERP — HR / School ERP Platform  
+> **System:** Bela ERP — HR / School ERP Platform  
 > **Codebase:** `/home/carole/Downloads/LMS-NODE`
 
 ---

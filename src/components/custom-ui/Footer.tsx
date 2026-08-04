@@ -69,7 +69,7 @@ export function Footer() {
   }, []);
 
   const year = new Date().getFullYear();
-  const name = info?.companyName || 'Bella ERP';
+  const name = info?.companyName || 'Bela ERP';
   const activeSocials = SOCIALS.filter(s => info?.[s.key]);
   const hasContact = info?.email || info?.phone || info?.address || info?.website;
 
@@ -204,7 +204,7 @@ export function Footer() {
           <p className="text-[11px] text-white/30">
             © {year} <span className="text-white/50">{name}</span>. All rights reserved.
           </p>
-          <p className="text-[11px] text-white/20">Powered by Bella ERP</p>
+          <p className="text-[11px] text-white/20">Powered by Bela ERP</p>
         </div>
       </div>
     </footer>

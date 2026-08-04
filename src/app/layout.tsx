@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Bella ERP',
-  description: 'Bella ERP – HR Management System',
+  title: 'Bela ERP',
+  description: 'Bela ERP – HR Management System',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
