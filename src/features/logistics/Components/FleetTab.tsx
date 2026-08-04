@@ -15,11 +15,11 @@ const STATUS_CLS: Record<VehicleStatus, string> = {
   inactive: 'bg-slate-200 text-slate-500',
 };
 
-function useEmployeeOptions() {
+function useDriverOptions() {
   const [employees, setEmployees] = useState<{ _id: string; fullName: string }[]>([]);
   useEffect(() => {
     apiCallFunction<any>({
-      url: `${API_BASE_URL}/employees?limit=200`, showToast: false,
+      url: `${API_BASE_URL}/employees?limit=200&designation=driver`, showToast: false,
       thenFn: (r) => setEmployees((r.data?.data ?? r.data ?? []).map((e: any) => ({ _id: e._id, fullName: e.fullName }))),
     });
   }, []);
@@ -74,7 +74,7 @@ function VehicleRow({ vehicle, level }: { vehicle: any; level: LogisticsAccessLe
   const [editingDriver, setEditingDriver] = useState(false);
   const [editingLocation, setEditingLocation] = useState(false);
   const [location, setLocation] = useState(vehicle.currentLocation || '');
-  const employees = useEmployeeOptions();
+  const employees = useDriverOptions();
   const canManage = level === 'admin' || level === 'opsAdmin';
 
   return (

@@ -63,7 +63,7 @@ function AddWorkOrderModal({ onClose }: { onClose: () => void }) {
 function AddPartRow({ workOrderId }: { workOrderId: string }) {
   const t = useTranslations('Logistics');
   const { addPart } = useWorkOrders();
-  const { items } = useInventoryItems();
+  const { items } = useInventoryItems({ category: 'Vehicle Parts' });
   const { locations } = useInventoryLocations();
   const [itemId, setItemId] = useState('');
   const [locationId, setLocationId] = useState('');

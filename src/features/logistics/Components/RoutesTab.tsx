@@ -22,11 +22,11 @@ const STOP_STATUS_CLS: Record<StopStatus, string> = {
   rescheduled: 'bg-amber-100 text-amber-700',
 };
 
-function useEmployeeOptions() {
+function useDriverOptions() {
   const [employees, setEmployees] = useState<{ _id: string; fullName: string }[]>([]);
   useEffect(() => {
     apiCallFunction<any>({
-      url: `${API_BASE_URL}/employees?limit=200`, showToast: false,
+      url: `${API_BASE_URL}/employees?limit=200&designation=driver`, showToast: false,
       thenFn: (r) => setEmployees((r.data?.data ?? r.data ?? []).map((e: any) => ({ _id: e._id, fullName: e.fullName }))),
     });
   }, []);
@@ -37,7 +37,7 @@ function AddRouteModal({ onClose }: { onClose: () => void }) {
   const t = useTranslations('Logistics');
   const { createRoute } = useRoutes();
   const { vehicles } = useVehicles();
-  const employees = useEmployeeOptions();
+  const employees = useDriverOptions();
   const [vehicleId, setVehicleId] = useState('');
   const [driverId, setDriverId] = useState('');
   const [date, setDate] = useState('');

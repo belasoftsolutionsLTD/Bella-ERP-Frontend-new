@@ -5,6 +5,9 @@ import { useTranslations } from 'next-intl';
 import { Plus, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShipments } from '../Hooks/useShipments';
+import { useInventoryTransfers } from '@/features/inventory/Hooks/useInventoryTransfers';
+import { usePosSales } from '@/features/pos/Hooks/usePosSales';
+import { DEFAULT_CURRENCY } from '@/configs/constants';
 import type { LogisticsAccessLevel, ShipmentStatus } from '../types';
 
 const STATUS_CLS: Record<ShipmentStatus, string> = {
@@ -24,6 +27,9 @@ function AddShipmentModal({ onClose }: { onClose: () => void }) {
   const [sourceId, setSourceId] = useState('');
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [saving, setSaving] = useState(false);
+  // Transfers/sales aren't shipment-linked yet — excludes ones already picked from this list.
+  const { transfers } = useInventoryTransfers({ status: 'received' });
+  const { sales } = usePosSales({ status: 'completed' });
 
   const save = () => {
     setSaving(true);
@@ -41,8 +47,25 @@ function AddShipmentModal({ onClose }: { onClose: () => void }) {
           <option value="inventory_transfer">{t('shipments.inventoryTransfer')}</option>
           <option value="pos_sale">{t('shipments.posSale')}</option>
         </select>
-        {sourceType !== 'standalone' && (
-          <input value={sourceId} onChange={(e) => setSourceId(e.target.value)} placeholder={t('shipments.sourceIdHint')} className="h-9 w-full border border-slate-200 rounded-lg px-3 text-sm" />
+        {sourceType === 'inventory_transfer' && (
+          <select value={sourceId} onChange={(e) => setSourceId(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-2 text-sm">
+            <option value="">{t('shipments.selectTransfer')}</option>
+            {transfers.map((tr: any) => (
+              <option key={tr._id} value={tr._id}>
+                {(tr.fromLocation?.name || '?')} → {(tr.toLocation?.name || '?')} · {new Date(tr.createdAt).toLocaleDateString()}
+              </option>
+            ))}
+          </select>
+        )}
+        {sourceType === 'pos_sale' && (
+          <select value={sourceId} onChange={(e) => setSourceId(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-2 text-sm">
+            <option value="">{t('shipments.selectSale')}</option>
+            {sales.map((s: any) => (
+              <option key={s._id} value={s._id}>
+                {s.saleNumber} · {DEFAULT_CURRENCY} {s.total?.toLocaleString()} · {new Date(s.createdAt).toLocaleDateString()}
+              </option>
+            ))}
+          </select>
         )}
         <input type="date" value={expectedDeliveryDate} onChange={(e) => setExpectedDeliveryDate(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-3 text-sm" />
         <div className="flex justify-end gap-2 pt-2">
