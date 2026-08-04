@@ -7,6 +7,7 @@ import {
   ChevronRight, AlertTriangle, MapPin,
 } from 'lucide-react';
 import { useConfigSection } from '@/hooks/useConfigSection';
+import { useEmailTemplates } from '../Hooks/useEmailTemplates';
 import { CompanySettingsPanel } from '../Components/CompanySettingsPanel';
 import { CompanyAccountsPanel } from '../Components/CompanyAccountsPanel';
 import { BranchesPanel } from '../Components/BranchesPanel';
@@ -140,48 +141,74 @@ function PermissionsSection() {
 
 // ── Email Templates ───────────────────────────────────────────────────────────
 
-const EMAIL_TEMPLATES = [
-  { id: 'welcome', label: 'Welcome Email', desc: 'Sent to new employees on account creation' },
-  { id: 'leave_approved', label: 'Leave Approved', desc: 'Sent when an employee\'s leave is approved' },
-  { id: 'leave_declined', label: 'Leave Declined', desc: 'Sent when an employee\'s leave is rejected' },
-  { id: 'payslip', label: 'Payslip Ready', desc: 'Sent when payslip is generated for the month' },
-  { id: 'onboarding', label: 'Onboarding Checklist', desc: 'Sent to new hires with onboarding tasks' },
-  { id: 'performance_review', label: 'Performance Review', desc: 'Sent when a review cycle is opened' },
-];
-
 function EmailTemplatesSection() {
+  const { items, loading, save, reset } = useEmailTemplates();
   const [active, setActive] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const open = (id: string) => {
-    setActive(id);
-    setSubject(`[{{company_name}}] ${EMAIL_TEMPLATES.find(t => t.id === id)?.label}`);
-    setBody('Dear {{employee_name}},\n\nThis is an automated message from {{company_name}}.\n\n{{content}}\n\nRegards,\nHR Team');
+  const activeTemplate = items.find(t => t.trigger === active) || null;
+
+  const open = (trigger: string) => {
+    const t = items.find(x => x.trigger === trigger);
+    if (!t) return;
+    setActive(trigger);
+    setSubject(t.subject);
+    setBody(t.body);
   };
+
+  const handleSave = () => {
+    if (!active) return;
+    setSaving(true);
+    save(active, { subject, body }, () => setSaving(false));
+  };
+
+  const handleReset = () => {
+    if (!active) return;
+    reset(active, () => {
+      const t = items.find(x => x.trigger === active);
+      if (t) { setSubject(t.defaultSubject); setBody(t.defaultBody); }
+    });
+  };
+
+  const byModule = items.reduce<Record<string, typeof items>>((acc, t) => {
+    (acc[t.module] ??= []).push(t);
+    return acc;
+  }, {});
 
   return (
     <div>
-      <SectionHeader title="Email Templates" desc="Customise the automated emails sent to employees" />
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        {EMAIL_TEMPLATES.map(t => (
-          <button key={t.id} onClick={() => open(t.id)}
-            className={`text-left p-4 rounded-xl border transition-colors ${active === t.id ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border/60 bg-brand-bg-soft hover:border-brand-border-strong'}`}>
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-brand-text text-[13px]">{t.label}</span>
-              <ChevronRight className={`h-4 w-4 text-brand-text-muted transition-transform ${active === t.id ? 'rotate-90' : ''}`} />
+      <SectionHeader title="Email Templates" desc="Customise the automated emails sent by the system" />
+      {loading ? (
+        <p className="text-[13px] text-brand-text-muted">Loading…</p>
+      ) : (
+        Object.entries(byModule).map(([mod, templates]) => (
+          <div key={mod} className="mb-4">
+            <p className="text-[11px] font-semibold text-brand-text-secondary uppercase tracking-wider mb-2">{mod}</p>
+            <div className="grid grid-cols-2 gap-3">
+              {templates.map(t => (
+                <button key={t.trigger} onClick={() => open(t.trigger)}
+                  className={`text-left p-4 rounded-xl border transition-colors ${active === t.trigger ? 'border-brand-primary bg-brand-primary/10' : 'border-brand-border/60 bg-brand-bg-soft hover:border-brand-border-strong'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-brand-text text-[13px]">{t.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      {t.isCustomized && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-brand-primary/20 text-indigo-400">Customized</span>}
+                      <ChevronRight className={`h-4 w-4 text-brand-text-muted transition-transform ${active === t.trigger ? 'rotate-90' : ''}`} />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-brand-text-muted mt-0.5">{t.description}</p>
+                </button>
+              ))}
             </div>
-            <p className="text-[11px] text-brand-text-muted mt-0.5">{t.desc}</p>
-          </button>
-        ))}
-      </div>
+          </div>
+        ))
+      )}
 
-      {active && (
+      {activeTemplate && (
         <div className="rounded-2xl border border-brand-border/60 overflow-hidden bg-brand-bg-soft">
           <div className="px-4 py-3 border-b border-brand-border flex items-center justify-between">
-            <span className="text-[13px] font-bold text-brand-text">
-              Editing: {EMAIL_TEMPLATES.find(t => t.id === active)?.label}
-            </span>
+            <span className="text-[13px] font-bold text-brand-text">Editing: {activeTemplate.label}</span>
             <button onClick={() => setActive(null)} className="text-brand-text-muted hover:text-brand-text-secondary">
               <X className="h-4 w-4" />
             </button>
@@ -190,15 +217,20 @@ function EmailTemplatesSection() {
             <Field label="Subject">
               <Input value={subject} onChange={setSubject} placeholder="Email subject…" />
             </Field>
-            <Field label="Body">
+            <Field label="Body (HTML)">
               <textarea value={body} onChange={e => setBody(e.target.value)} rows={8}
                 className="w-full px-3 py-2.5 rounded-lg border border-brand-border bg-brand-bg-soft text-brand-text text-[13px] font-mono resize-none focus:outline-none focus:ring-1 focus:ring-brand-primary" />
             </Field>
             <p className="text-[11px] text-brand-text-muted">
-              Variables: <code className="text-indigo-400">{'{{employee_name}}'}</code>, <code className="text-indigo-400">{'{{company_name}}'}</code>, <code className="text-indigo-400">{'{{content}}'}</code>
+              Variables: {activeTemplate.tokens.map(tok => (
+                <code key={tok} className="text-indigo-400 mr-1.5">{`{{${tok}}}`}</code>
+              ))}
             </p>
-            <div className="flex justify-end">
-              <SaveButton onClick={() => {}} saving={false} />
+            <div className="flex justify-between items-center">
+              {activeTemplate.isCustomized ? (
+                <button onClick={handleReset} className="text-[12px] text-brand-text-muted hover:text-red-400 font-medium">Reset to default</button>
+              ) : <span />}
+              <SaveButton onClick={handleSave} saving={saving} />
             </div>
           </div>
         </div>
