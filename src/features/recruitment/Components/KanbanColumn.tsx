@@ -5,12 +5,13 @@ import type { Application, PipelineStage } from '../types';
 import { ApplicationCard } from './ApplicationCard';
 import { STAGE_TYPE_STYLES } from '../constants';
 
-export function KanbanColumn({ stage, applications, onCardClick, selectedIds, onToggleSelect }: {
+export function KanbanColumn({ stage, applications, onCardClick, selectedIds, onToggleSelect, onMoveClick }: {
   stage: PipelineStage;
   applications: Application[];
   onCardClick: (application: Application) => void;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
+  onMoveClick?: (application: Application) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
@@ -34,6 +35,7 @@ export function KanbanColumn({ stage, applications, onCardClick, selectedIds, on
             onClick={() => onCardClick(app)}
             selected={selectedIds?.has(app._id)}
             onToggleSelect={onToggleSelect}
+            onMoveClick={onMoveClick}
           />
         ))}
         {applications.length === 0 && <p className="text-xs text-slate-400 text-center py-6">No candidates</p>}

@@ -12,6 +12,7 @@ interface Job {
   title: string;
   department: string;
   location: string;
+  branchName: string;
   employmentType: string;
   headcount: number;
   salaryRange?: { min: number; max: number; currency: string };
@@ -66,7 +67,7 @@ export default function CareersPage() {
                       <span className="text-[11px] font-semibold bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full">{job.department}</span>
                       <span className="text-[11px] text-gray-400">{job.headcount} opening{job.headcount !== 1 ? 's' : ''}</span>
                     </div>
-                    <h2 className="font-bold text-gray-900 text-base group-hover:text-blue-700 transition-colors">{job.title}</h2>
+                    <h2 className="font-bold text-gray-900 text-base group-hover:text-blue-700 transition-colors">{job.title} — {job.branchName}</h2>
                     <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
                       <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>
                       <span className="flex items-center gap-1"><Users className="h-3 w-3" />{job.employmentType}</span>

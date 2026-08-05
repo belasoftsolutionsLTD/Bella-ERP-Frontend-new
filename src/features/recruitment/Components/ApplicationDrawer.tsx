@@ -166,6 +166,7 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
                       type="datetime-local"
                       value={pickedSchedule}
                       onChange={(e) => setPickedSchedule(e.target.value)}
+                      min={new Date(Date.now() + 5 * 60 * 1000).toISOString().slice(0, 16)}
                       className="rounded-md border border-slate-300 px-2 py-1.5 text-xs"
                     />
                   </div>
@@ -342,9 +343,9 @@ export function ApplicationDrawer({ application, requisition, locale, initialTab
                   <input placeholder="Salary" type="number" value={offerForm.salary} onChange={(e) => setOfferForm((f) => ({ ...f, salary: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                   <input placeholder="Currency" value={offerForm.currency} onChange={(e) => setOfferForm((f) => ({ ...f, currency: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                   <label className="block text-xs text-slate-500">Start date</label>
-                  <input type="date" value={offerForm.startDate} onChange={(e) => setOfferForm((f) => ({ ...f, startDate: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  <input type="date" value={offerForm.startDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setOfferForm((f) => ({ ...f, startDate: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                   <label className="block text-xs text-slate-500">Expires</label>
-                  <input type="date" value={offerForm.expiresAt} onChange={(e) => setOfferForm((f) => ({ ...f, expiresAt: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  <input type="date" value={offerForm.expiresAt} min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)} onChange={(e) => setOfferForm((f) => ({ ...f, expiresAt: e.target.value }))} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                   <Button
                     size="sm"
                     className="bg-brand-primary text-white w-full"

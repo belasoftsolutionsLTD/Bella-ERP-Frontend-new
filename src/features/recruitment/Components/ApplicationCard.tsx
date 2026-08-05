@@ -2,16 +2,21 @@
 
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { FileCheck, FileX } from 'lucide-react';
+import { FileCheck, FileX, MoveRight } from 'lucide-react';
 import type { Application } from '../types';
 import { SOURCE_LABELS } from '../constants';
 
-export function ApplicationCard({ application, requiresScorecard, onClick, selected, onToggleSelect }: {
+export function ApplicationCard({ application, requiresScorecard, onClick, selected, onToggleSelect, onMoveClick }: {
   application: Application;
   requiresScorecard?: boolean;
   onClick: () => void;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
+  // Explicit button-based alternative to dragging a card between columns — some
+  // users find drag-and-drop error-prone or hard to use (trackpads, accessibility).
+  // Funnels into the exact same confirmedMoveStage flow as drag, so the confirm
+  // dialog and offer/interview special-casing behave identically either way.
+  onMoveClick?: (application: Application) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: application._id });
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
@@ -30,18 +35,32 @@ export function ApplicationCard({ application, requiresScorecard, onClick, selec
       onClick={onClick}
       className={`relative bg-white rounded-lg border p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition ${isDragging ? 'opacity-40' : ''} ${selected ? 'border-primary ring-1 ring-primary/40' : 'border-slate-200'}`}
     >
-      {onToggleSelect && (
-        <input
-          type="checkbox"
-          checked={!!selected}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          onChange={() => onToggleSelect(application._id)}
-          className="absolute top-2 right-2 h-3.5 w-3.5 accent-brand-primary cursor-pointer"
-          aria-label="Select candidate"
-        />
-      )}
-      <p className="text-sm font-medium text-slate-900 truncate pr-5">
+      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+        {onMoveClick && application.status === 'active' && (
+          <button
+            type="button"
+            title="Move to another stage"
+            aria-label="Move to another stage"
+            onClick={(e) => { e.stopPropagation(); onMoveClick(application); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="h-5 w-5 flex items-center justify-center rounded text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+          >
+            <MoveRight className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onChange={() => onToggleSelect(application._id)}
+            className="h-3.5 w-3.5 accent-brand-primary cursor-pointer"
+            aria-label="Select candidate"
+          />
+        )}
+      </div>
+      <p className="text-sm font-medium text-slate-900 truncate pr-10">
         {application.candidate ? `${application.candidate.firstName} ${application.candidate.lastName}` : 'Candidate'}
       </p>
       <div className="mt-1 flex items-center justify-between text-xs text-slate-500">

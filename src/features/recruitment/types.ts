@@ -62,6 +62,7 @@ export interface JobRequisition {
   title: string;
   department: string;
   location: string;
+  branchId: string | null;
   employmentType: EmploymentType;
   headcount: number;
   salaryRange: SalaryRange;
@@ -97,6 +98,23 @@ export interface Candidate {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// Row shape returned by GET /recruitment/my-interviews — self-scoped and
+// denormalized (candidate name, job title, stage name, competencies) so a plain
+// staff interviewer never needs to hit the MGMT-gated requisition/application endpoints.
+export interface MyInterview {
+  applicationId: string;
+  candidateName: string;
+  jobTitle: string;
+  stageId: string;
+  stageName: string;
+  scheduledAt: string;
+  meetingLink: string | null;
+  location: string | null;
+  requiredDocuments: string | null;
+  competencies: Competency[];
+  scorecardSubmitted: boolean;
 }
 
 export interface StageHistoryEntry {

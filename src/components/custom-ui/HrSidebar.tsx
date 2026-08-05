@@ -10,6 +10,7 @@ import {
   Receipt, Search, LogOut, Clock, ChevronLeft, ChevronRight,
   GitBranch, FolderOpen, UserMinus, Building2, ShoppingCart,
   Briefcase, CalendarDays, Monitor, BookOpen, Bell, Inbox, Boxes, CreditCard, Kanban, Truck,
+  CalendarCheck, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,6 +94,14 @@ export function HrSidebar() {
     { href: `/${locale}/inbox`,         label: 'Inbox',         icon: Inbox,      roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/training`,      label: 'Training',      icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
     { href: `/${locale}/my/training`,   label: 'My Training',   icon: BookOpen,   roles: ['super_admin', 'hr_manager', 'department_head'] },
+    // Any role can be assigned as an interviewer on a requisition (see recruitmentFunctions.js
+    // assignInterviewer — interviewerId is just a users._id), so unlike every other item in
+    // this section, staff gets this one too. Page itself is a harmless empty state for
+    // anyone with zero assignments.
+    { href: `/${locale}/my/interviews`, label: 'My Interviews', icon: CalendarCheck, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] },
+    // MFA setup/verify/disable has no role restriction backend-side (any authenticated
+    // account can protect its own login) — every role gets this link.
+    { href: `/${locale}/my/security`, label: 'Security', icon: ShieldCheck, roles: ['super_admin', 'hr_manager', 'department_head', 'staff'] },
   ];
 
   const myTeamItems: NavItem[] = [

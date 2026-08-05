@@ -11,6 +11,7 @@ interface Job {
   title: string;
   department: string;
   location: string;
+  branchName: string;
   employmentType: string;
   headcount: number;
   description?: string;
@@ -49,6 +50,8 @@ export default function JobDetailPage() {
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consentGiven) { setError('You must consent to data processing to apply.'); return; }
+    if (!form.phone.trim()) { setError('Phone number is required — it\'s how we\'ll reach you if email doesn\'t work.'); return; }
+    if (!resume) { setError('Please attach your resume.'); return; }
     const missingRequired = (job?.screeningQuestions || []).some((q) => q.required && !answers[q.id]?.trim());
     if (missingRequired) { setError('Please answer all required questions.'); return; }
     setSubmitting(true);
@@ -58,11 +61,11 @@ export default function JobDetailPage() {
     body.append('firstName', form.firstName.trim());
     body.append('lastName', form.lastName.trim());
     body.append('email', form.email.trim());
-    if (form.phone.trim()) body.append('phone', form.phone.trim());
+    body.append('phone', form.phone.trim());
     if (form.location.trim()) body.append('location', form.location.trim());
     if (form.linkedInUrl.trim()) body.append('linkedInUrl', form.linkedInUrl.trim());
     if (form.coverLetter.trim()) body.append('coverLetter', form.coverLetter.trim());
-    if (resume) body.append('resume', resume);
+    body.append('resume', resume);
     const answerList = (job?.screeningQuestions || [])
       .filter((q) => answers[q.id]?.trim())
       .map((q) => ({ questionId: q.id, answer: answers[q.id].trim() }));
@@ -139,7 +142,7 @@ export default function JobDetailPage() {
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <span className="text-[11px] font-semibold bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full">{job.department}</span>
-                  <h2 className="font-bold text-2xl text-gray-900 mt-2">{job.title}</h2>
+                  <h2 className="font-bold text-2xl text-gray-900 mt-2">{job.title} — {job.branchName}</h2>
                   <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5" /> {job.location} · <Users className="h-3.5 w-3.5" /> {job.employmentType}
                   </p>
@@ -186,8 +189,8 @@ export default function JobDetailPage() {
                   <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</label>
-                  <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone <span className="text-red-500">*</span></label>
+                  <input required type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} className="h-11 border border-brand-border rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20" />
                 </div>
               </div>
 
@@ -226,7 +229,7 @@ export default function JobDetailPage() {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Resume</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Resume <span className="text-red-500">*</span></label>
                 {resume ? (
                   <div className="flex items-center gap-3 border border-blue-200 bg-blue-50 rounded-xl px-4 py-3">
                     <Upload className="h-4 w-4 text-blue-500 shrink-0" />

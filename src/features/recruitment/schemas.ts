@@ -45,6 +45,7 @@ export const CreateRequisitionSchema = z.object({
   title: z.string().min(2, 'Title is required'),
   department: z.string().min(1, 'Department is required'),
   location: z.string().min(1, 'Location is required'),
+  branchId: z.string().optional(),
   employmentType: z.enum(['fullTime', 'partTime', 'contract', 'internship']),
   headcount: z.coerce.number().int().min(1, 'Headcount must be at least 1'),
   salaryRange: z.object({

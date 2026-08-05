@@ -20,6 +20,11 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
   const [initialPendingInterviewStage, setInitialPendingInterviewStage] = useState<{ id: string; name: string } | null>(null);
   const [activeApp, setActiveApp] = useState<Application | null>(null);
   const [pendingMove, setPendingMove] = useState<{ appId: string; targetStageId: string; targetName: string; backward: boolean } | null>(null);
+  // Explicit "Move" button on each card — an alternative entry point to
+  // confirmedMoveStage alongside drag-and-drop, for anyone who finds drag hard to
+  // use. Picking a stage here still goes through the same confirm dialog / offer
+  // / interview routing as drag does, since it calls the same function.
+  const [moveTarget, setMoveTarget] = useState<Application | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -32,6 +37,10 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
   const clearSelection = () => setSelectedIds(new Set());
 
   const [bulkShortlistStageId, setBulkShortlistStageId] = useState('');
+  // Bulk shortlist previously fired immediately on click, unlike Reject/Hire which
+  // both required a confirm step — an inconsistency flagged explicitly: moving
+  // several candidates at once with one accidental click had no way back.
+  const [showBulkShortlist, setShowBulkShortlist] = useState(false);
   const [showBulkReject, setShowBulkReject] = useState(false);
   const [bulkRejectReason, setBulkRejectReason] = useState('');
   const [showBulkHire, setShowBulkHire] = useState(false);
@@ -42,6 +51,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
     bulkAction(action, [...selectedIds], extra, (result) => {
       setBulkBusy(false);
       clearSelection();
+      setShowBulkShortlist(false);
       setShowBulkReject(false);
       setShowBulkHire(false);
       setBulkRejectReason('');
@@ -117,7 +127,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
           <Button
             size="sm"
             disabled={!bulkShortlistStageId || bulkBusy}
-            onClick={() => runBulk('shortlist', { stageId: bulkShortlistStageId })}
+            onClick={() => setShowBulkShortlist(true)}
           >
             Shortlist
           </Button>
@@ -152,6 +162,16 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
         </div>
       )}
 
+      {showBulkShortlist && (
+        <ConfirmDialog
+          title="Move selected candidates?"
+          message={`Are you sure you want to move all ${selectedIds.size} selected candidate(s) to "${requisition.pipelineStages.find((s) => s.id === bulkShortlistStageId)?.name ?? bulkShortlistStageId}"?`}
+          confirmLabel="Move All"
+          onCancel={() => setShowBulkShortlist(false)}
+          onConfirm={() => runBulk('shortlist', { stageId: bulkShortlistStageId })}
+        />
+      )}
+
       {showBulkHire && (
         <ConfirmDialog
           title="Hire selected candidates?"
@@ -183,6 +203,7 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
                 onCardClick={(app) => { setInitialTab('overview'); setInitialPendingInterviewStage(null); setSelected(app); }}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
+                onMoveClick={(app) => setMoveTarget(app)}
               />
             ))}
           </div>
@@ -201,6 +222,32 @@ export function PipelineKanban({ requisition, locale }: { requisition: JobRequis
           {activeApp && <ApplicationCard application={activeApp} onClick={() => {}} />}
         </DragOverlay>
       </DndContext>
+
+      {moveTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="bg-white rounded-xl w-full max-w-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-slate-900">Move to stage</h2>
+              <button onClick={() => setMoveTarget(null)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">
+              {moveTarget.candidate ? `${moveTarget.candidate.firstName} ${moveTarget.candidate.lastName}` : 'Candidate'}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {requisition.pipelineStages.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => { confirmedMoveStage(moveTarget, s.id); setMoveTarget(null); }}
+                  disabled={s.id === moveTarget.currentStageId}
+                  className={`text-xs px-2.5 py-1 rounded-full border ${s.id === moveTarget.currentStageId ? 'bg-brand-primary text-white border-brand-primary' : 'border-slate-300 text-slate-600 hover:bg-slate-50'} disabled:opacity-50`}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingMove && (
         <ConfirmDialog

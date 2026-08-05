@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CustomInput } from '@/components/custom-ui/CustomInput';
+import { useConfigSection } from '@/hooks/useConfigSection';
 import { Button } from '@/components/ui/button';
 import { DEPARTMENTS, DESIGNATIONS } from '@/features/employees/Components/EmployeeSchema';
 import { useRequisitions, useRequisition } from '../Hooks/useRequisitions';
@@ -60,12 +61,13 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
   const { accounts } = useUserAccounts();
   const { kits } = useInterviewKits();
   const { templates } = useEmailTemplates();
+  const { items: branches } = useConfigSection('branches');
   const [step, setStep] = useState(0);
 
   const { control, register, handleSubmit, watch, trigger, setValue, getValues, reset, formState: { errors, isSubmitting } } = useForm<CreateRequisitionFormValues>({
     resolver: zodResolver(CreateRequisitionSchema),
     defaultValues: {
-      title: '', department: '', location: '', employmentType: 'fullTime', headcount: 1,
+      title: '', department: '', location: '', branchId: '', employmentType: 'fullTime', headcount: 1,
       salaryRange: { min: 0, max: 0, currency: 'KES' },
       description: '', applicationDeadline: '', competencies: [], pipelineStages: [], screeningQuestions: [], approvalChain: [], hiringManagerId: '',
     },
@@ -77,6 +79,7 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
         title: existingRequisition.title,
         department: existingRequisition.department,
         location: existingRequisition.location,
+        branchId: existingRequisition.branchId || '',
         employmentType: existingRequisition.employmentType,
         headcount: existingRequisition.headcount,
         salaryRange: existingRequisition.salaryRange,
@@ -178,6 +181,12 @@ export function RequisitionWizard({ locale, requisitionId }: { locale: string; r
             <div className="grid grid-cols-2 gap-4">
               <CustomInput component="select" name="department" control={control} label="Department" options={DEPARTMENTS.map((d) => ({ value: d, label: d }))} />
               <CustomInput component="text" name="location" control={control} label="Location" placeholder="e.g. Nairobi or Remote" />
+              {branches.length > 0 && (
+                <CustomInput
+                  component="select" name="branchId" control={control} label="Branch (optional)"
+                  options={[{ value: '', label: 'No specific branch — shown as Headquarters' }, ...branches.map((b) => ({ value: b._id, label: b.name }))]}
+                />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <CustomInput component="select" name="employmentType" control={control} label="Employment Type" options={[
