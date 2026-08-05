@@ -83,9 +83,15 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
     setEmployeeId('');
   };
 
+  const employeeLinkRequired = role === 'staff' || role === 'department_head';
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !role) return;
+    if (employeeLinkRequired && !employeeId) {
+      toast.error('Link this account to an employee record — Staff and Department Head accounts need one to show any personal data.');
+      return;
+    }
     setLoading(true);
     await apiCallFunction({
       url: `${API_BASE_URL}/auth/accounts`,
@@ -121,7 +127,11 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
           <div className="space-y-1.5" ref={dropRef}>
             <label className="text-xs font-medium text-foreground/60 uppercase tracking-wide flex items-center gap-1.5">
               <Search className="h-3.5 w-3.5" /> Fill from existing employee
-              <span className="text-foreground/30 normal-case font-normal">(optional)</span>
+              {employeeLinkRequired ? (
+                <span className="text-red-500 normal-case font-normal">(required for {role === 'staff' ? 'Staff' : 'Department Head'})</span>
+              ) : (
+                <span className="text-foreground/30 normal-case font-normal">(optional)</span>
+              )}
             </label>
 
             {linkedEmp ? (
@@ -270,7 +280,7 @@ export function CreateAccountModal({ onClose, onCreated }: Props) {
 
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-white" disabled={loading}>
+            <Button type="submit" className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-white" disabled={loading || (employeeLinkRequired && !employeeId)}>
               {loading ? 'Creating…' : 'Create Account'}
             </Button>
           </div>
