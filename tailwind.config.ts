@@ -43,7 +43,7 @@ const config: Config = {
         'status-neutral-bg': '#F1F5F9', 'status-neutral-text': '#475569',
         'status-info-bg':    '#DBEAFE', 'status-info-text':    '#1E40AF',
 
-        // ── Legacy Bela ERP Dark Theme (superseded by brand-* above — kept only
+        // ── Legacy Workfola Dark Theme (superseded by brand-* above — kept only
         // until every consumer below is migrated off it) ───────────────────
         'bg-base':     '#0f172a',
         'bg-surface':  '#1e293b',

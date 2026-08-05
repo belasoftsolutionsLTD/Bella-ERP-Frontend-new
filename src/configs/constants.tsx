@@ -1,4 +1,4 @@
-export const COMPANY_NAME = 'Bela ERP';
+export const COMPANY_NAME = 'Workfola';
 export const SHORT_COMPANY_NAME = 'BERP';
 export const DEFAULT_LOCALE = 'en';
 export const DEFAULT_TIMEZONE = 'Africa/Nairobi';

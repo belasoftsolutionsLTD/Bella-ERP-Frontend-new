@@ -68,7 +68,7 @@ export default function LoginPage() {
           <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm">
             <span className="text-white font-black text-sm">HR</span>
           </div>
-          <span className="font-bold text-slate-900 text-lg">Bela ERP</span>
+          <span className="font-bold text-slate-900 text-lg">Workfola</span>
         </div>
 
         {/* Centre copy */}
@@ -99,7 +99,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-xs text-slate-400">© {new Date().getFullYear()} Bela ERP. All rights reserved.</p>
+        <p className="text-xs text-slate-400">© {new Date().getFullYear()} Workfola. All rights reserved.</p>
       </div>
 
       {/* ── Right panel: form ──────────────────────────────────────────────── */}
@@ -111,7 +111,7 @@ export default function LoginPage() {
             <div className="h-8 w-8 rounded-xl bg-orange-500 flex items-center justify-center">
               <span className="text-white font-black text-xs">HR</span>
             </div>
-            <span className="font-bold text-slate-900">Bela ERP</span>
+            <span className="font-bold text-slate-900">Workfola</span>
           </div>
 
           {/* Heading */}

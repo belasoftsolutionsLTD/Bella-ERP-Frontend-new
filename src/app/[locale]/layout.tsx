@@ -6,8 +6,8 @@ import Providers from './providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Bela ERP',
-  description: 'Bela ERP – HR Management System',
+  title: 'Workfola',
+  description: 'Workfola – HR Management System',
 };
 
 export default async function LocaleLayout({

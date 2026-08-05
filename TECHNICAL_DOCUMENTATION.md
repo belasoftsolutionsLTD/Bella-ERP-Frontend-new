@@ -1,7 +1,7 @@
-# Bela ERP — Comprehensive Technical Documentation
+# Workfola — Comprehensive Technical Documentation
 
 > **Generated:** 2026-07-02  
-> **System:** Bela ERP — HR / School ERP Platform  
+> **System:** Workfola — HR / School ERP Platform  
 > **Codebase:** `/home/carole/Downloads/LMS-NODE`
 
 ---

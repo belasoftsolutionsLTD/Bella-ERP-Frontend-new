@@ -743,7 +743,7 @@ function WelcomeOverlay({ name, locale, onDismiss }: { name: string; locale: str
         <div className="h-16 w-16 rounded-2xl bg-brand-primary flex items-center justify-center mx-auto text-3xl">
           🎉
         </div>
-        <h1 className="text-[28px] font-bold text-brand-text">Welcome to Bela ERP, {name}!</h1>
+        <h1 className="text-[28px] font-bold text-brand-text">Welcome to Workfola, {name}!</h1>
         <p className="text-brand-text-secondary text-[14px]">Your account is set up and ready to go. Let&apos;s get started.</p>
         <div className="grid grid-cols-2 gap-3 pt-2">
           <Link href={`/${locale}/onboarding`} onClick={onDismiss}

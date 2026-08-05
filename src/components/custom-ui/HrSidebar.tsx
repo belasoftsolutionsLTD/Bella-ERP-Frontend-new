@@ -292,7 +292,7 @@ export function HrSidebar() {
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-brand-text text-sm leading-tight truncate">{companyName || 'Bela ERP'}</p>
+            <p className="font-bold text-brand-text text-sm leading-tight truncate">{companyName || 'Workfola'}</p>
             <p className="text-[10px] text-brand-text-muted mt-0.5">HR Management</p>
           </div>
         )}

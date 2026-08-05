@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
           <div className="h-8 w-8 rounded-xl bg-orange-500 flex items-center justify-center">
             <span className="text-white font-black text-xs">HR</span>
           </div>
-          <span className="font-bold text-slate-900">Bela ERP</span>
+          <span className="font-bold text-slate-900">Workfola</span>
         </div>
 
         {sent ? (

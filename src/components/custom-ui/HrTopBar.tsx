@@ -75,7 +75,7 @@ export function HrTopBar() {
 
   // Derive page title from the URL segment after the locale
   const pageKey   = pathname.split('/').filter(Boolean)[1] ?? '';
-  const pageTitle = PAGE_LABELS[pageKey] ?? 'Bela ERP';
+  const pageTitle = PAGE_LABELS[pageKey] ?? 'Workfola';
 
   const role      = userData?.role ?? '';
   const roleLabel = role.replace(/_/g, ' ');
