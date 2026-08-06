@@ -74,7 +74,7 @@ export default function LoginPage() {
           return;
         }
         const user = res.data.user;
-        login(res.data.token, user);
+        login(res.data.token, user, res.data.refreshToken);
         redirectAfterLogin(user);
       },
       catchFn: (err: any) => {
@@ -93,7 +93,7 @@ export default function LoginPage() {
       showToast: false,
       thenFn: (res) => {
         const user = res.data.user;
-        login(res.data.token, user);
+        login(res.data.token, user, res.data.refreshToken);
         redirectAfterLogin(user);
       },
       catchFn: (err: any) => toast.error(err?.response?.data?.message ?? 'Invalid code.'),

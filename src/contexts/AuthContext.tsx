@@ -16,7 +16,7 @@ interface AuthContextValue {
   isLoggedIn: boolean;
   userData: UserData | null;
   authLoading: boolean;
-  login: (token: string, user: UserData) => void;
+  login: (token: string, user: UserData, refreshToken?: string) => void;
   logout: () => void;
   refreshUser: (updates: Partial<UserData>) => void;
   isHR: boolean;
@@ -46,9 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthLoading(false);
   }, []);
 
-  const login = (token: string, user: UserData) => {
+  const login = (token: string, user: UserData, refreshToken?: string) => {
     sessionStorage.setItem('token', token);
     sessionStorage.setItem('userData', JSON.stringify(user));
+    // Stored so apiCallFunction can silently renew an expiring access token instead
+    // of hard-logging the user out — see its 401-retry logic. Optional because a
+    // couple of call sites (e.g. the MFA-complete step) may not always pass it.
+    if (refreshToken) sessionStorage.setItem('refreshToken', refreshToken);
     setUserData(user);
     setIsLoggedIn(true);
   };
@@ -56,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('userData');
+    sessionStorage.removeItem('refreshToken');
     setUserData(null);
     setIsLoggedIn(false);
   };
