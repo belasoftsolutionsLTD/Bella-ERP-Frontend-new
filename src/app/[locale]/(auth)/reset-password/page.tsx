@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
     apiCallFunction<any>({
       url: `${API_BASE_URL}/auth/reset-password`,
       method: 'POST',
-      data: { token, newPassword: data.newPassword },
+      data: { token, newPassword: data.newPassword.trim() },
       showToast: false,
       thenFn: () => {
         setDone(true);

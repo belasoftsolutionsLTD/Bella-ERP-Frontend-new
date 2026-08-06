@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Plus, Trash2, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
-import { useVehicleTypes } from '../Hooks/useLogisticsConfig';
+import { useVehicleTypes, useServiceBays } from '../Hooks/useLogisticsConfig';
 
 function VehicleTypesPanel() {
   const t = useTranslations('Logistics');
@@ -28,6 +28,35 @@ function VehicleTypesPanel() {
           <span key={vt._id} className="flex items-center gap-1.5 text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
             {vt.name}
             <button onClick={() => deleteVehicleType(vt._id)} className="text-slate-400 hover:text-red-500"><Trash2 className="h-3 w-3" /></button>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Same list-of-named-values pattern as Vehicle Types — maintenance work orders store
+// the chosen bay name as a plain string (see createWorkOrder), not a joined entity.
+function ServiceBaysPanel() {
+  const t = useTranslations('Logistics');
+  const { serviceBays, createServiceBay, deleteServiceBay } = useServiceBays();
+  const [name, setName] = useState('');
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('settings.serviceBays')}</p>
+      <div className="flex items-center gap-2">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('settings.serviceBayName')}
+          className="h-9 flex-1 border border-slate-200 rounded-lg px-3 text-sm" />
+        <button onClick={() => { if (name.trim()) { createServiceBay(name.trim()); setName(''); } }} className="h-9 px-3 rounded-lg bg-brand-primary text-white text-sm font-semibold flex items-center gap-1">
+          <Plus className="h-3.5 w-3.5" /> {t('common.add')}
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {serviceBays.map((sb) => (
+          <span key={sb._id} className="flex items-center gap-1.5 text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
+            {sb.name}
+            <button onClick={() => deleteServiceBay(sb._id)} className="text-slate-400 hover:text-red-500"><Trash2 className="h-3 w-3" /></button>
           </span>
         ))}
       </div>
@@ -77,6 +106,7 @@ export function SettingsTab() {
   return (
     <div className="space-y-6">
       <VehicleTypesPanel />
+      <ServiceBaysPanel />
       <AccountingIntegrationPanel />
     </div>
   );

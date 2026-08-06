@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
 import { swrFetcher, type Paginated } from './swrFetcher';
-import type { LogisticsAccessLevel, Vehicle, FleetUtilization, VehicleType } from '../types';
+import type { LogisticsAccessLevel, Vehicle, FleetUtilization, VehicleType, ServiceBay } from '../types';
 
 export function useLogisticsAccess() {
   const { data, isLoading } = useSWR<{ level: LogisticsAccessLevel }>(`${API_BASE_URL}/logistics/my-access`, swrFetcher);
@@ -56,4 +56,17 @@ export function useVehicleTypes() {
   });
 
   return { vehicleTypes: data ?? [], error, isLoading, mutate, createVehicleType, deleteVehicleType };
+}
+
+export function useServiceBays() {
+  const { data, error, isLoading, mutate } = useSWR<ServiceBay[]>(`${API_BASE_URL}/logistics/service-bays`, swrFetcher);
+
+  const createServiceBay = (name: string) => apiCallFunction({
+    url: `${API_BASE_URL}/logistics/service-bays`, method: 'POST', data: { name }, thenFn: () => mutate(),
+  });
+  const deleteServiceBay = (id: string) => apiCallFunction({
+    url: `${API_BASE_URL}/logistics/service-bays/${id}`, method: 'DELETE', thenFn: () => mutate(),
+  });
+
+  return { serviceBays: data ?? [], error, isLoading, mutate, createServiceBay, deleteServiceBay };
 }

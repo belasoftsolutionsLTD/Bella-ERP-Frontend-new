@@ -25,7 +25,7 @@ function PasswordResetPrompt({ onDone }: { onDone: () => void }) {
     await apiCallFunction({
       url: `${API_BASE_URL}/auth/me/password`,
       method: 'PATCH',
-      data: { newPassword },
+      data: { newPassword: newPassword.trim() },
       thenFn: () => {
         toast.success('Password updated. Welcome!');
         onDone();

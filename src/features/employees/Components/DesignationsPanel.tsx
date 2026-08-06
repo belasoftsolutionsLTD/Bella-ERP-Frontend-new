@@ -71,7 +71,7 @@ export function DesignationsPanel({ items, loading, departments, onCreate, onUpd
       {showForm && (
         <div className="p-4 border-b bg-gray-50 space-y-3">
           <div className="flex flex-col gap-1 max-w-xs">
-            <label className="text-xs text-foreground/60">Designation Name *</label>
+            <label className="text-xs text-foreground/60">Designation Name <span className="text-brand-danger">*</span></label>
             <input
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}

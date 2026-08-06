@@ -8,6 +8,12 @@ export interface VehicleType {
   isActive: boolean;
 }
 
+export interface ServiceBay {
+  _id: string;
+  name: string;
+  isActive: boolean;
+}
+
 export interface Vehicle {
   _id: string;
   make: string;
@@ -46,6 +52,7 @@ export interface WorkOrder {
   status: WorkOrderStatus;
   scheduledDate: string | null;
   completedDate: string | null;
+  serviceBay: string | null;
   partsUsed: WorkOrderPart[];
   laborCost: number;
   otherCost: number;

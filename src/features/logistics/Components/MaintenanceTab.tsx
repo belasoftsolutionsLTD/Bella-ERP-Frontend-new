@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Plus, CheckCircle2, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkOrders } from '../Hooks/useWorkOrders';
-import { useVehicles } from '../Hooks/useLogisticsConfig';
+import { useVehicles, useServiceBays } from '../Hooks/useLogisticsConfig';
 import { useInventoryItems } from '@/features/inventory/Hooks/useInventoryItems';
 import { useInventoryLocations } from '@/features/inventory/Hooks/useInventoryLocations';
 import type { LogisticsAccessLevel, WorkOrderStatus } from '../types';
@@ -20,16 +20,18 @@ function AddWorkOrderModal({ onClose }: { onClose: () => void }) {
   const t = useTranslations('Logistics');
   const { createWorkOrder } = useWorkOrders();
   const { vehicles } = useVehicles();
+  const { serviceBays } = useServiceBays();
   const [vehicleId, setVehicleId] = useState('');
   const [type, setType] = useState('scheduled');
   const [description, setDescription] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
+  const [serviceBay, setServiceBay] = useState('');
   const [saving, setSaving] = useState(false);
 
   const save = () => {
     if (!vehicleId || !description.trim()) return;
     setSaving(true);
-    createWorkOrder({ vehicleId, type, description: description.trim(), scheduledDate: scheduledDate || undefined })
+    createWorkOrder({ vehicleId, type, description: description.trim(), scheduledDate: scheduledDate || undefined, serviceBay: serviceBay || undefined })
       ?.then(() => { setSaving(false); onClose(); }).catch(() => setSaving(false));
   };
 
@@ -49,6 +51,12 @@ function AddWorkOrderModal({ onClose }: { onClose: () => void }) {
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('maintenance.description')}
           className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" rows={3} />
         <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-3 text-sm" />
+        {serviceBays.length > 0 && (
+          <select value={serviceBay} onChange={(e) => setServiceBay(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-2 text-sm">
+            <option value="">{t('maintenance.selectServiceBay')}</option>
+            {serviceBays.map((sb) => <option key={sb._id} value={sb.name}>{sb.name}</option>)}
+          </select>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-700 px-3 py-1.5">{t('common.cancel')}</button>
           <button onClick={save} disabled={saving} className="px-4 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-semibold disabled:opacity-50">
@@ -110,7 +118,7 @@ function WorkOrderCard({ order, canManage }: { order: any; canManage: boolean })
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-slate-800">{order.description}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{t(`maintenance.${order.type}`)} {order.scheduledDate ? `· ${new Date(order.scheduledDate).toLocaleDateString()}` : ''}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{t(`maintenance.${order.type}`)} {order.scheduledDate ? `· ${new Date(order.scheduledDate).toLocaleDateString()}` : ''} {order.serviceBay ? `· ${order.serviceBay}` : ''}</p>
         </div>
         <span className={cn('text-[11px] font-bold px-2 py-1 rounded-full shrink-0', STATUS_CLS[order.status as WorkOrderStatus])}>{t(`maintenance.status.${order.status}`)}</span>
       </div>

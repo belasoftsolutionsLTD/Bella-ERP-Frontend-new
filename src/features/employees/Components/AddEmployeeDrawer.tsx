@@ -169,21 +169,21 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
               <SectionHeader icon={User} title="Personal Information" color="text-blue-600 border-blue-100" />
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">First Name *</label>
+                  <label className="text-xs font-medium text-slate-600">First Name <span className="text-brand-danger">*</span></label>
                   <input {...register('firstName')} placeholder="e.g. Jane" className={inp} />
                   {errors.firstName && <p className="text-xs text-red-500">{errors.firstName.message}</p>}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Last Name *</label>
+                  <label className="text-xs font-medium text-slate-600">Last Name <span className="text-brand-danger">*</span></label>
                   <input {...register('lastName')} placeholder="e.g. Wanjiku" className={inp} />
                   {errors.lastName && <p className="text-xs text-red-500">{errors.lastName.message}</p>}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">National ID *</label>
+                  <label className="text-xs font-medium text-slate-600">National ID <span className="text-brand-danger">*</span></label>
                   <input {...register('nationalId')} placeholder="e.g. 12345678" className={inp} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Email *</label>
+                  <label className="text-xs font-medium text-slate-600">Email <span className="text-brand-danger">*</span></label>
                   <input {...register('email')} type="email" placeholder="jane@school.ac.ke" className={inp} />
                 </div>
                 <div className="space-y-1">
@@ -260,21 +260,21 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
               <SectionHeader icon={Briefcase} title="Work & Role" color="text-violet-600 border-violet-100" />
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Department *</label>
+                  <label className="text-xs font-medium text-slate-600">Department <span className="text-brand-danger">*</span></label>
                   <select {...register('department')} className={sel}>
                     <option value="">Select…</option>
                     {departmentOptions.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Designation *</label>
+                  <label className="text-xs font-medium text-slate-600">Designation <span className="text-brand-danger">*</span></label>
                   <select {...register('designation')} className={sel}>
                     <option value="">Select…</option>
                     {designationOptions.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Employment Type *</label>
+                  <label className="text-xs font-medium text-slate-600">Employment Type <span className="text-brand-danger">*</span></label>
                   <select {...register('employmentType')} className={sel}>
                     <option value="">Select…</option>
                     {EMPLOYMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -305,7 +305,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
               <SectionHeader icon={CalendarDays} title="Contract Details" color="text-emerald-600 border-emerald-100" />
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Date of Hire *</label>
+                  <label className="text-xs font-medium text-slate-600">Date of Hire <span className="text-brand-danger">*</span></label>
                   <input {...register('dateOfHire')} type="date" className={inp} />
                 </div>
                 <div className="space-y-1">
@@ -339,12 +339,12 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Gross Monthly Pay *</label>
+                  <label className="text-xs font-medium text-slate-600">Gross Monthly Pay <span className="text-brand-danger">*</span></label>
                   <input {...register('grossPay')} type="number" placeholder="e.g. 85000" className={inp} />
                   {errors.grossPay && <p className="text-xs text-red-500">{errors.grossPay.message}</p>}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Job Group *</label>
+                  <label className="text-xs font-medium text-slate-600">Job Group <span className="text-brand-danger">*</span></label>
                   <select {...register('jobGroupId')} className={sel}>
                     <option value="">Select job group…</option>
                     {jobGroups.items.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
@@ -390,21 +390,21 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600">Account Number *</label>
+                    <label className="text-xs font-medium text-slate-600">Account Number <span className="text-brand-danger">*</span></label>
                     <input {...register('bankAccountNumber')} placeholder="e.g. 0123456789" className={inp} />
                     {errors.bankAccountNumber && <p className="text-xs text-red-500">{errors.bankAccountNumber.message}</p>}
                   </div>
                 </>)}
                 {paymentMethod === 'mpesa' && (
                   <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-slate-600">M-Pesa Number *</label>
+                    <label className="text-xs font-medium text-slate-600">M-Pesa Number <span className="text-brand-danger">*</span></label>
                     <input {...register('mpesaNumber')} placeholder="254712345678" className={inp} />
                     {errors.mpesaNumber && <p className="text-xs text-red-500">{errors.mpesaNumber.message}</p>}
                   </div>
                 )}
                 {paymentMethod === 'paypal' && (
                   <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-slate-600">PayPal Email *</label>
+                    <label className="text-xs font-medium text-slate-600">PayPal Email <span className="text-brand-danger">*</span></label>
                     <input {...register('paypalEmail')} type="email" placeholder="jane@paypal.com" className={inp} />
                     {errors.paypalEmail && <p className="text-xs text-red-500">{errors.paypalEmail.message}</p>}
                   </div>
@@ -443,7 +443,7 @@ export function AddEmployeeDrawer({ onClose, onCreated }: Props) {
                   <input {...register('nokNationalId')} placeholder="e.g. 12345678" className={inp} />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-slate-600">Email *</label>
+                  <label className="text-xs font-medium text-slate-600">Email <span className="text-brand-danger">*</span></label>
                   <input {...register('nokEmail')} type="email" placeholder="nextofkin@example.com" className={inp} />
                 </div>
               </div>

@@ -63,7 +63,10 @@ export default function LoginPage() {
     return apiCallFunction<any>({
       url: `${API_BASE_URL}/auth/login`,
       method: 'POST',
-      data: { ...data, captchaToken },
+      // Pasted temp/reset passwords very commonly pick up a stray leading/trailing
+      // space from the mail client — trimmed here (and again server-side) so that
+      // never shows up as a confusing "wrong password."
+      data: { ...data, password: data.password.trim(), captchaToken },
       showToast: false,
       thenFn: (res) => {
         if (res.data.mfaRequired) {

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, ChevronRight, Camera, PenLine, CheckCircle2, XCircle, CalendarClock } from 'lucide-react';
+import { Plus, ChevronRight, Camera, PenLine, CheckCircle2, XCircle, CalendarClock, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiCallFunction } from '@/functions/apiCallFunction';
 import { API_BASE_URL } from '@/configs/constants';
+import { LocationPickerModal } from '@/components/custom-ui/LocationPickerModal';
 import { useRoutes } from '../Hooks/useRoutes';
 import { useVehicles } from '../Hooks/useLogisticsConfig';
 import type { LogisticsAccessLevel, RouteStatus, StopStatus } from '../types';
@@ -41,10 +42,12 @@ function AddRouteModal({ onClose }: { onClose: () => void }) {
   const [vehicleId, setVehicleId] = useState('');
   const [driverId, setDriverId] = useState('');
   const [date, setDate] = useState('');
-  const [stops, setStops] = useState([{ address: '', timeWindowStart: '', timeWindowEnd: '' }]);
+  const [stops, setStops] = useState([{ address: '', lat: null as number | null, lng: null as number | null, timeWindowStart: '', timeWindowEnd: '' }]);
   const [saving, setSaving] = useState(false);
+  // Index of the stop currently being pinned on the map, or null when the picker's closed.
+  const [pickerIndex, setPickerIndex] = useState<number | null>(null);
 
-  const addStop = () => setStops((s) => [...s, { address: '', timeWindowStart: '', timeWindowEnd: '' }]);
+  const addStop = () => setStops((s) => [...s, { address: '', lat: null, lng: null, timeWindowStart: '', timeWindowEnd: '' }]);
   const updateStop = (i: number, patch: Partial<(typeof stops)[number]>) => setStops((s) => s.map((st, idx) => (idx === i ? { ...st, ...patch } : st)));
   const removeStop = (i: number) => setStops((s) => s.filter((_, idx) => idx !== i));
 
@@ -79,11 +82,30 @@ function AddRouteModal({ onClose }: { onClose: () => void }) {
             <button onClick={addStop} className="flex items-center gap-1 text-xs text-brand-primary font-semibold"><Plus className="h-3 w-3" /> {t('common.add')}</button>
           </div>
           {stops.map((stop, i) => (
-            <div key={i} className="grid grid-cols-[1fr_90px_90px_28px] gap-2 items-center">
-              <input value={stop.address} onChange={(e) => updateStop(i, { address: e.target.value })} placeholder={t('routes.address')} className="h-9 border border-slate-200 rounded-lg px-2 text-xs" />
-              <input type="time" value={stop.timeWindowStart} onChange={(e) => updateStop(i, { timeWindowStart: e.target.value })} className="h-9 border border-slate-200 rounded-lg px-2 text-xs" />
-              <input type="time" value={stop.timeWindowEnd} onChange={(e) => updateStop(i, { timeWindowEnd: e.target.value })} className="h-9 border border-slate-200 rounded-lg px-2 text-xs" />
-              <button onClick={() => removeStop(i)} className="text-slate-300 hover:text-red-500 text-xs">✕</button>
+            <div key={i} className="space-y-1.5 bg-slate-50 rounded-lg p-2">
+              <div className="flex items-center justify-between">
+                {/* First stop is where the route starts, the last is where it ends —
+                    same ordering the backend already sequences stops by (sequenceStops). */}
+                <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                  {stops.length > 1 ? (i === 0 ? t('routes.startPoint') : i === stops.length - 1 ? t('routes.endPoint') : `${t('routes.stop')} ${i + 1}`) : t('routes.stop')}
+                </span>
+                <button onClick={() => removeStop(i)} className="text-slate-300 hover:text-red-500 text-xs">✕</button>
+              </div>
+              <div className="grid grid-cols-[1fr_90px_90px] gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={() => setPickerIndex(i)}
+                  className={cn(
+                    'h-9 border rounded-lg px-2 text-xs text-left flex items-center gap-1.5 truncate',
+                    stop.lat != null ? 'border-slate-200 text-slate-700' : 'border-dashed border-slate-300 text-slate-400'
+                  )}
+                >
+                  <MapPin className={cn('h-3.5 w-3.5 shrink-0', stop.lat != null ? 'text-brand-primary' : 'text-slate-300')} />
+                  <span className="truncate">{stop.address || t('routes.pickLocation')}</span>
+                </button>
+                <input type="time" value={stop.timeWindowStart} onChange={(e) => updateStop(i, { timeWindowStart: e.target.value })} className="h-9 border border-slate-200 rounded-lg px-2 text-xs" />
+                <input type="time" value={stop.timeWindowEnd} onChange={(e) => updateStop(i, { timeWindowEnd: e.target.value })} className="h-9 border border-slate-200 rounded-lg px-2 text-xs" />
+              </div>
             </div>
           ))}
         </div>
@@ -95,6 +117,16 @@ function AddRouteModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+
+      {pickerIndex != null && (
+        <LocationPickerModal
+          initialAddress={stops[pickerIndex].address}
+          initialLat={stops[pickerIndex].lat}
+          initialLng={stops[pickerIndex].lng}
+          onClose={() => setPickerIndex(null)}
+          onConfirm={({ address, lat, lng }) => { updateStop(pickerIndex, { address, lat, lng }); setPickerIndex(null); }}
+        />
+      )}
     </div>
   );
 }

@@ -5,10 +5,18 @@ import { useTranslations } from 'next-intl';
 import { Plus, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShipments } from '../Hooks/useShipments';
+import { useRoutes } from '../Hooks/useRoutes';
 import { useInventoryTransfers } from '@/features/inventory/Hooks/useInventoryTransfers';
 import { usePosSales } from '@/features/pos/Hooks/usePosSales';
 import { DEFAULT_CURRENCY } from '@/configs/constants';
 import type { LogisticsAccessLevel, ShipmentStatus } from '../types';
+
+// Today, in the browser's local timezone, formatted for a date input's min attribute —
+// same "can't schedule into the past" reasoning applied to interviews/offers earlier.
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const STATUS_CLS: Record<ShipmentStatus, string> = {
   pending: 'bg-slate-100 text-slate-500',
@@ -26,14 +34,22 @@ function AddShipmentModal({ onClose }: { onClose: () => void }) {
   const [sourceType, setSourceType] = useState('standalone');
   const [sourceId, setSourceId] = useState('');
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
+  const [routeId, setRouteId] = useState('');
+  const [stopId, setStopId] = useState('');
   const [saving, setSaving] = useState(false);
   // Transfers/sales aren't shipment-linked yet — excludes ones already picked from this list.
   const { transfers } = useInventoryTransfers({ status: 'received' });
   const { sales } = usePosSales({ status: 'completed' });
+  const { routes } = useRoutes();
+  const selectedRoute = routes.find((r) => r._id === routeId);
 
   const save = () => {
     setSaving(true);
-    createShipment({ sourceType, sourceId: sourceType === 'standalone' ? undefined : sourceId.trim(), expectedDeliveryDate: expectedDeliveryDate || undefined })
+    createShipment({
+      sourceType, sourceId: sourceType === 'standalone' ? undefined : sourceId.trim(),
+      expectedDeliveryDate: expectedDeliveryDate || undefined,
+      routeId: routeId || undefined, stopId: routeId && stopId ? stopId : undefined,
+    })
       ?.then(() => { setSaving(false); onClose(); }).catch(() => setSaving(false));
   };
 
@@ -67,7 +83,34 @@ function AddShipmentModal({ onClose }: { onClose: () => void }) {
             ))}
           </select>
         )}
-        <input type="date" value={expectedDeliveryDate} onChange={(e) => setExpectedDeliveryDate(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-3 text-sm" />
+        <input type="date" min={todayIso()} value={expectedDeliveryDate} onChange={(e) => setExpectedDeliveryDate(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-3 text-sm" />
+
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">{t('shipments.route')}</label>
+          <select
+            value={routeId}
+            onChange={(e) => { setRouteId(e.target.value); setStopId(''); }}
+            className="h-9 w-full border border-slate-200 rounded-lg px-2 text-sm"
+          >
+            <option value="">{t('shipments.noRoute')}</option>
+            {routes.map((r) => (
+              <option key={r._id} value={r._id}>
+                {new Date(r.date).toLocaleDateString()} · {r.stops.length} {t('routes.stopsCount')}
+              </option>
+            ))}
+          </select>
+        </div>
+        {selectedRoute && selectedRoute.stops.length > 0 && (
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">{t('shipments.stop')}</label>
+            <select value={stopId} onChange={(e) => setStopId(e.target.value)} className="h-9 w-full border border-slate-200 rounded-lg px-2 text-sm">
+              <option value="">{t('shipments.wholeRoute')}</option>
+              {selectedRoute.stops.map((s) => (
+                <option key={s.id} value={s.id}>{s.sequence}. {s.address}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-700 px-3 py-1.5">{t('common.cancel')}</button>
           <button onClick={save} disabled={saving} className="px-4 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-semibold disabled:opacity-50">
